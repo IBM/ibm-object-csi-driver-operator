@@ -112,7 +112,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
-	//setting default values for a Kubernetes Custom Resource using the Scheme's Default() method, based on the Go type definition of the Custom Resource. 
+	//setting default values for a Kubernetes Custom Resource using the Scheme's Default() method, based on the Go type definition of the Custom Resource.
 	//This ensures that the CR has all the required fields with default values before further processing or reconciliation by the operator.
 	r.Scheme.Default(instance.Unwrap())
 	changed := instance.SetDefaults()
@@ -133,7 +133,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		instance, instance.Unwrap()); err != nil {
 		return reconcile.Result{}, err
 	}
-        // If the deletion timestamp is set, perform cleanup operations and remove a finalizer before returning from the reconciliation process.
+	// If the deletion timestamp is set, perform cleanup operations and remove a finalizer before returning from the reconciliation process.
 	if !instance.GetDeletionTimestamp().IsZero() {
 		isFinalizerExists, err := r.ControllerHelper.HasFinalizer(instance)
 		if err != nil {
