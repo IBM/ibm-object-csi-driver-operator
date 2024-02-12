@@ -28,8 +28,6 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/util/common"
-	operatorConfig "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/config"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -37,6 +35,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+
+	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/util/common"
+	operatorConfig "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/config"
 
 	csiv1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers"
@@ -126,6 +127,13 @@ func main() {
 		ControllerHelper: controllerHelper,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "IBMObjectCSI")
+		os.Exit(1)
+	}
+	if err = (&controllers.FixStaleVolumeReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "FixStaleVolume")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
