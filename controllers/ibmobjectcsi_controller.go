@@ -50,7 +50,7 @@ const ReconcileTime = 30 * time.Second
 
 type reconciler func(instance *crutils.IBMObjectCSI) error
 
-var log = logf.Log.WithName("ibmobjectcsi_controller")
+var csiLog = logf.Log.WithName("ibmobjectcsi_controller")
 
 // IBMObjectCSIReconciler reconciles a IBMObjectCSI object
 type IBMObjectCSIReconciler struct {
@@ -97,9 +97,9 @@ type IBMObjectCSIReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.1/pkg/reconcile
 func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("Request.Namespace", req.Namespace, "Request.Name", req.Name)
+	reqLogger := csiLog.WithValues("Request.Namespace", req.Namespace, "Request.Name", req.Name)
 	reqLogger.Info("Reconciling IBMObjectCSI")
-	r.ControllerHelper.Log = log
+	r.ControllerHelper.Log = csiLog
 
 	// Fetch the CSIDriver instance
 	instance := crutils.New(&csiv1alpha1.IBMObjectCSI{}, r.ServerVersion)
@@ -199,7 +199,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 }
 
 func (r *IBMObjectCSIReconciler) updateStatus(instance *crutils.IBMObjectCSI, originalStatus csiv1alpha1.IBMObjectCSIStatus) error {
-	logger := log.WithName("updateStatus")
+	logger := csiLog.WithName("updateStatus")
 	controllerPod := &corev1.Pod{}
 	controllerDeployment, err := r.getControllerDeployment(instance)
 	if err != nil {
@@ -267,7 +267,7 @@ func (r *IBMObjectCSIReconciler) getControllerPod(controllerDeployment *appsv1.D
 }
 
 func (r *IBMObjectCSIReconciler) areAllPodImagesSynced(controllerDeployment *appsv1.Deployment, controllerPod *corev1.Pod) bool {
-	logger := log.WithName("areAllPodImagesSynced")
+	logger := csiLog.WithName("areAllPodImagesSynced")
 	deploymentContainers := controllerDeployment.Spec.Template.Spec.Containers
 	podContainers := controllerPod.Spec.Containers
 	if len(deploymentContainers) != len(podContainers) {
@@ -329,7 +329,7 @@ func (r *IBMObjectCSIReconciler) reconcileClusterRole(instance *crutils.IBMObjec
 }
 
 func (r *IBMObjectCSIReconciler) reconcileServiceAccount(instance *crutils.IBMObjectCSI) error {
-	logger := log.WithValues("Resource Type", "ServiceAccount")
+	logger := csiLog.WithValues("Resource Type", "ServiceAccount")
 
 	controller := instance.GenerateControllerServiceAccount()
 	node := instance.GenerateNodeServiceAccount()
@@ -423,7 +423,7 @@ func (r *IBMObjectCSIReconciler) restartControllerPod(logger logr.Logger, instan
 }
 
 func (r *IBMObjectCSIReconciler) reconcileCSIDriver(instance *crutils.IBMObjectCSI) error {
-	logger := log.WithValues("Resource Type", "CSIDriver")
+	logger := csiLog.WithValues("Resource Type", "CSIDriver")
 
 	cd := instance.GenerateCSIDriver()
 	found := &storagev1.CSIDriver{}
@@ -448,7 +448,7 @@ func (r *IBMObjectCSIReconciler) reconcileCSIDriver(instance *crutils.IBMObjectC
 }
 
 func (r *IBMObjectCSIReconciler) deleteCSIDriver(instance *crutils.IBMObjectCSI) error {
-	logger := log.WithName("deleteCSIDriver")
+	logger := csiLog.WithName("deleteCSIDriver")
 
 	csiDriver := instance.GenerateCSIDriver()
 	found := &storagev1.CSIDriver{}
