@@ -37,12 +37,16 @@ spec:
           metadata:
             type: object
           spec:
-            description: FixStaleVolumeSpec defines the desired state of FixStaleVolume
             properties:
-              deploymentName:
-                type: string
-              deploymentNamespace:
-                type: string
+              deploymentData:
+                items:
+                  properties:
+                    deploymentName:
+                      type: string
+                    deploymentNamespace:
+                      type: string
+                  type: object
+                type: array
             type: object
           status:
             description: FixStaleVolumeStatus defines the observed state of FixStaleVolume

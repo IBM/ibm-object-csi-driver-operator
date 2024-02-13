@@ -21,26 +21,22 @@ import (
 	"fmt"
 	"os"
 
-	"sigs.k8s.io/controller-runtime/pkg/cache"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/util/common"
-	operatorConfig "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/config"
-
 	csiv1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers"
+	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/util/common"
+	operatorConfig "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/config"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -89,10 +85,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	defaultNamespaces := map[string]cache.Config{
-		namespace: {},
-	}
-
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		Metrics:                metricsserver.Options{BindAddress: metricsAddr},
@@ -111,8 +103,6 @@ func main() {
 		// if you are doing or is intended to do any operation such as perform cleanups
 		// after the manager stops then its usage might be unsafe.
 		// LeaderElectionReleaseOnCancel: true,
-
-		Cache: cache.Options{DefaultNamespaces: defaultNamespaces},
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

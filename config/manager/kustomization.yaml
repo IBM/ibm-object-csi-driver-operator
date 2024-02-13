@@ -5,4 +5,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: ashimagarg/csi
-  newTag: "12"
+  newTag: "23"
