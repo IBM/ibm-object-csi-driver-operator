@@ -10,5 +10,6 @@ metadata:
   name: fixstalevolume-sample
   namespace: ibm-object-csi-operator-system
 spec:
-  deploymentName: cos-csi-app-deployment
-  deploymentNamespace: default
+  deploymentData:
+    - deploymentName: cos-csi-app-deployment
+      deploymentNamespace: default

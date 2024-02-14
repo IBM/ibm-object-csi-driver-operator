@@ -119,6 +119,12 @@ rules:
   - watch
 - apiGroups:
   - apps
+  resources:
+  - deployments
+  verbs:
+  - patch
+- apiGroups:
+  - apps
   resourceNames:
   - ibm-object-csi-operator
   resources:

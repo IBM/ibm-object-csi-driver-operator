@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 )
@@ -17,6 +16,7 @@ func getLogEntry(log string) *LogEntry {
 	logPattern := regexp.MustCompile(`^([A-Z]\d{4} \d{2}:\d{2}:\d{2}\.\d{6})\s+\d+\s+([\w/.-]+:\d+)\]\s+(.*)$`)
 
 	matches := logPattern.FindStringSubmatch(log)
+
 	if len(matches) == 4 {
 		pid := matches[0]
 		timestamp := matches[1]
@@ -43,8 +43,6 @@ func parseLogs(nodePodLogs string) map[string]string {
 		logEntry := getLogEntry(log)
 		if logEntry != nil {
 			logMsg := logEntry.Message
-			fmt.Println(logMsg)
-			fmt.Println()
 
 			if strings.HasPrefix(logMsg, "NodeGetVolumeStats: Request:") {
 				logMsg = strings.TrimSpace(strings.Trim(logMsg, "NodeGetVolumeStats Request:{}"))
@@ -57,10 +55,8 @@ func parseLogs(nodePodLogs string) map[string]string {
 					}
 				}
 
-				fmt.Println(data["Id"], ind)
 				reqLog := logs[ind+2]
 				logEntry := getLogEntry(reqLog)
-
 				volumesStats[data["Id"]] = logEntry.Message
 			}
 		}
