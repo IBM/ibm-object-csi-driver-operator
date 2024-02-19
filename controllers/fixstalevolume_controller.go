@@ -45,28 +45,13 @@ type FixStaleVolumeReconciler struct {
 
 var staleVolLog = logf.Log.WithName("fixstalevolume_controller")
 var reconcileTime = 2 * time.Minute
-var logTailLines = int64(300)
-
-type RequiredData struct {
-	NodeName       string
-	NodeServerPod  string
-	DeploymentPods []string
-	VolumesInUse   []string
-}
-
-// nodeName: {
-// 	vol1:[pod1,pod2]
-// 	vol2:[pod1]
-// 	vol3:[pod3]
-// }
-
-// {nodeName:nodeServerPod}
+var csiOperatorNamespace = "ibm-object-csi-operator-system"
+var transportEndpointError = "transport endpoint is not connected"
 
 //+kubebuilder:rbac:groups=csi.ibm.com,resources=fixstalevolumes,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=csi.ibm.com,resources=fixstalevolumes/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=csi.ibm.com,resources=fixstalevolumes/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=pods/log,verbs=get
-//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -94,6 +79,12 @@ func (r *FixStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
+	var logTailLines = instance.Spec.NoOfLogLines
+	if logTailLines == 0 {
+		logTailLines = int64(300)
+	}
+	reqLogger.Info("Tail Log Lines to fetch", "number", logTailLines)
+
 	for _, data := range instance.Spec.Deployment {
 		deploymentName := data.DeploymentName
 		deploymentNamespace := data.DeploymentNamespace
@@ -115,7 +106,7 @@ func (r *FixStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		if err != nil {
 			if k8serr.IsNotFound(err) {
 				reqLogger.Info("Deployment not found.")
-				continue // ADD WHETHER TO RECONCILE OR IGNORE
+				continue
 			}
 			reqLogger.Error(err, "failed to get deployment")
 			return ctrl.Result{}, err
@@ -127,11 +118,15 @@ func (r *FixStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		podsList := &corev1.PodList{}
 		err = r.List(ctx, podsList, listOptions)
 		if err != nil {
+			reqLogger.Error(err, "failed to get pods list")
 			return ctrl.Result{}, err
 		}
 		reqLogger.Info("Successfully fetched deployment pods", "number-of-pods", len(podsList.Items))
 
-		requiredData := map[string]RequiredData{}
+		var csiNodeServerPods = map[string]string{}  // {nodeName1: csiNodePod1}
+		var nodeVolumeMap = map[string][]string{}    // {nodeName1: volSlice1}
+		var volumePodMap = map[string][]string{}     // {pvc1: podsSlice1, pvc2: podsSlice2}
+		var deploymentPods = map[string]corev1.Pod{} // {pod1: corev1.Pod{}, pod2: corev1.Pod}
 
 		for ind := range podsList.Items {
 			appPod := podsList.Items[ind]
@@ -150,7 +145,7 @@ func (r *FixStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 						if err != nil {
 							if k8serr.IsNotFound(err) {
 								reqLogger.Info("PVC not found.")
-								continue // ADD WHETHER TO RECONCILE OR IGNORE
+								continue
 							}
 							reqLogger.Error(err, "failed to get pvc")
 							return ctrl.Result{}, err
@@ -162,136 +157,81 @@ func (r *FixStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 						if strings.Contains(scName, "csi") {
 
 							nodeName := appPod.Spec.NodeName
-							val, ok := requiredData[nodeName]
+							volSlice, ok := nodeVolumeMap[nodeName]
 							if !ok {
-								requiredData[nodeName] = RequiredData{}
+								volSlice = []string{}
 							}
+							volumeName := pvc.Spec.VolumeName
+							if !contains(volSlice, volumeName) {
+								volSlice = append(volSlice, volumeName)
+							}
+							nodeVolumeMap[nodeName] = volSlice
 
-							volumes := val.VolumesInUse
-							if !contains(volumes, pvc.Spec.VolumeName) {
-								volumes = append(volumes, pvc.Spec.VolumeName)
+							podSlice, ok := volumePodMap[volumeName]
+							if !ok {
+								podSlice = []string{}
 							}
-							pods := val.DeploymentPods
-							if !contains(pods, appPod.Name) {
-								pods = append(pods, appPod.Name)
+							if !contains(podSlice, appPod.Name) {
+								podSlice = append(podSlice, appPod.Name)
 							}
+							volumePodMap[volumeName] = podSlice
 
-							requiredData[nodeName] = RequiredData{
-								NodeName:       nodeName,
-								DeploymentPods: pods,
-								VolumesInUse:   volumes,
-							}
+							deploymentPods[appPod.Name] = appPod
 						}
 					}
 				}
 			}
 		}
-		reqLogger.Info("node-names maped with user pods and volumes in use", "requiredData", requiredData)
+		reqLogger.Info("node-names maped with volumes in use", "nodeVolumeMap", nodeVolumeMap)
+		reqLogger.Info("volumes in use maped with pods", "volumePodMap", volumePodMap)
 
 		// If there is no csi-volume used, reconcile
-		if len(requiredData) == 0 {
+		if len(nodeVolumeMap) == 0 {
 			return ctrl.Result{RequeueAfter: reconcileTime}, nil
 		}
 
-		// Get Pods in "ibm-object-csi-operator-system" ns
-		var listOptions2 = &client.ListOptions{Namespace: "ibm-object-csi-operator-system"}
+		// Get Pods in csiOperatorNamespace ns
+		var listOptions2 = &client.ListOptions{Namespace: csiOperatorNamespace}
 		csiPodsList := &corev1.PodList{}
 		err = r.List(ctx, csiPodsList, listOptions2)
 		if err != nil {
+			reqLogger.Error(err, "failed to fetch csi pods")
 			return ctrl.Result{}, err
 		}
-		reqLogger.Info("Successfully fetched pods in ibm-object-csi-operator-system ns", "number-of-pods", len(csiPodsList.Items))
+		reqLogger.Info("Successfully fetched pods in csi-plugin-operator ns", "number-of-pods", len(csiPodsList.Items))
 
 		for ind := range csiPodsList.Items {
 			pod := csiPodsList.Items[ind]
 			if strings.HasPrefix(pod.Name, "ibm-object-csi-node") {
 				reqLogger.Info("NodeServer Pod", "name", pod.Name)
-
-				nodeName := pod.Spec.NodeName
-				val, ok := requiredData[nodeName]
-				if !ok {
-					continue
-				}
-
-				requiredData[nodeName] = RequiredData{
-					NodeName:       nodeName,
-					NodeServerPod:  pod.Name,
-					DeploymentPods: val.DeploymentPods,
-					VolumesInUse:   val.VolumesInUse,
-				}
+				csiNodeServerPods[pod.Spec.NodeName] = pod.Name
 			}
 		}
-		reqLogger.Info("node-names maped with required data", "requiredData", requiredData)
+		reqLogger.Info("node-names maped with node-server pods", "csiNodeServerPods", csiNodeServerPods)
 
-		isPodsRestarted := false
-
-		for _, data := range requiredData {
-			// Fetch Logs of the Node Server Pod having stale volumes mounted
-			podLogOpts := &corev1.PodLogOptions{
-				Container: "ibm-object-csi-node",
-				TailLines: &logTailLines,
-			}
-
-			k8sClient, err := createK8sClient()
+		for nodeName, volumesData := range nodeVolumeMap {
+			// Fetch volume stats from Logs of the Node Server Pod
+			getVolStatsFromLogs, err := fetchVolumeStatsFromNodeServerLogs(ctx, csiNodeServerPods[nodeName], logTailLines)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
-			request := k8sClient.CoreV1().Pods("ibm-object-csi-operator-system").GetLogs(data.NodeServerPod, podLogOpts)
-
-			nodePodLogs, err := request.Stream(ctx)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			defer nodePodLogs.Close()
-
-			buf := new(bytes.Buffer)
-			_, err = io.Copy(buf, nodePodLogs)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			nodeServerPodLogs := buf.String()
-
-			getVolStatsFromLogs := parseLogs(nodeServerPodLogs)
 			reqLogger.Info("Volume Stats from NodeServer Pod Logs", "volume-stas", getVolStatsFromLogs)
 
-			for _, volumeInUse := range data.VolumesInUse {
-				volStats, ok := getVolStatsFromLogs[volumeInUse]
+			for _, volume := range volumesData {
+				volStats, ok := getVolStatsFromLogs[volume]
 				if !ok {
 					continue
 				}
 
-				if strings.Contains(volStats, "transport endpoint is not connected") {
-					reqLogger.Info("Stale Volume Found", "volume", volumeInUse)
+				if strings.Contains(volStats, transportEndpointError) {
+					reqLogger.Info("Stale Volume Found", "volume", volume)
 
-					// reqLogger.Info("Restarting Deployment....")
-					// deploymentAnnotations := deployment.GetAnnotations()
-					// if deploymentAnnotations == nil {
-					// 	deploymentAnnotations = map[string]string{}
-					// }
-					// deploymentAnnotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
-					// deployment.SetAnnotations(deploymentAnnotations)
-					// // err = r.Update(ctx, deployment)
-					// err = r.Patch(ctx, deployment, client.MergeFrom(deployment))
-					// if err != nil {
-					// 	reqLogger.Error(err, "failed to restart deployment")
-					// 	return ctrl.Result{}, err
-					// }
-					// reqLogger.Info("Deployment Restarted!!")
-
-					reqLogger.Info("Restarting Pods....")
-					for _, podName := range data.DeploymentPods {
-						pod := &corev1.Pod{}
-						err = r.Get(ctx, types.NamespacedName{Name: podName, Namespace: deploymentNamespace}, pod)
-						if err != nil {
-							if k8serr.IsNotFound(err) {
-								reqLogger.Info("Pod not found.")
-								continue
-							}
-							reqLogger.Error(err, "failed to get pod")
-							return ctrl.Result{}, err
-						}
-
-						err = r.Delete(ctx, pod)
+					reqLogger.Info("Restarting Pods!!")
+					podsSlice := volumePodMap[volume]
+					for _, podName := range podsSlice {
+						reqLogger.Info("Pod using stale volume", "volume-name", volume, "pod-name", podName)
+						pod := deploymentPods[podName]
+						err = r.Delete(ctx, &pod)
 						if err != nil {
 							if k8serr.IsNotFound(err) {
 								reqLogger.Info("Pod not found.")
@@ -300,19 +240,10 @@ func (r *FixStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 							reqLogger.Error(err, "failed to delete pod")
 							return ctrl.Result{}, err
 						}
+						reqLogger.Info("Pod deleted.")
 					}
 					reqLogger.Info("Pods Restarted!!")
-					isPodsRestarted = true
-					break
 				}
-
-				if isPodsRestarted {
-					break
-				}
-			}
-
-			if isPodsRestarted {
-				break
 			}
 		}
 	}
@@ -348,4 +279,32 @@ func createK8sClient() (*kubernetes.Clientset, error) {
 	}
 
 	return clientset, nil
+}
+
+func fetchVolumeStatsFromNodeServerLogs(ctx context.Context, nodeServerPod string, logTailLines int64) (map[string]string, error) {
+	podLogOpts := &corev1.PodLogOptions{
+		Container: "ibm-object-csi-node",
+		TailLines: &logTailLines,
+	}
+
+	k8sClient, err := createK8sClient()
+	if err != nil {
+		return nil, err
+	}
+	request := k8sClient.CoreV1().Pods(csiOperatorNamespace).GetLogs(nodeServerPod, podLogOpts)
+
+	nodePodLogs, err := request.Stream(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer nodePodLogs.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, nodePodLogs)
+	if err != nil {
+		return nil, err
+	}
+	nodeServerPodLogs := buf.String()
+
+	return parseLogs(nodeServerPodLogs), nil
 }

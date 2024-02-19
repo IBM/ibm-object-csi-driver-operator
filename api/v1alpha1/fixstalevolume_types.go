@@ -26,7 +26,7 @@ import (
 // FixStaleVolumeSpec defines the desired state of FixStaleVolume
 
 type FixStaleVolumeSpec struct {
-	NoOfLogLines int              `json:"noOfLogLines,omitempty"`
+	NoOfLogLines int64            `json:"noOfLogLines,omitempty"`
 	Deployment   []DeploymentData `json:"deploymentData,omitempty"`
 }
 

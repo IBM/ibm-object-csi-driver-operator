@@ -48,9 +48,8 @@ spec:
                   type: object
                 type: array
               noOfLogLines:
+                format: int64
                 type: integer
-            required:
-            - noOfLogLines
             type: object
           status:
             description: FixStaleVolumeStatus defines the observed state of FixStaleVolume
