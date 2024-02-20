@@ -113,6 +113,21 @@ func (r *FixStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 		reqLogger.Info("Successfully fetched workload", "deployment", deployment)
 
+		var csiNodeServerPods = map[string]string{} // {nodeName1: csiNodePod1, nodeName2: csiNodePod2, ...}
+		var nodeVolumePodMapping = map[string]map[string][]string{}
+		/*
+			{
+				nodeName1: {
+					vol1: [pod1, pod2],
+					vol2: [pod1]
+				}
+				nodeName2: {
+					vol1: [pod3]
+				}
+			}
+		*/
+		var deploymentPods = map[string]corev1.Pod{} // {pod1: corev1.Pod{}, pod2: corev1.Pod}
+
 		// Fetch Pods in given namespace
 		var listOptions = &client.ListOptions{Namespace: deploymentNamespace}
 		podsList := &corev1.PodList{}
@@ -121,12 +136,7 @@ func (r *FixStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			reqLogger.Error(err, "failed to get pods list")
 			return ctrl.Result{}, err
 		}
-		reqLogger.Info("Successfully fetched deployment pods", "number-of-pods", len(podsList.Items))
-
-		var csiNodeServerPods = map[string]string{}  // {nodeName1: csiNodePod1}
-		var nodeVolumeMap = map[string][]string{}    // {nodeName1: volSlice1}
-		var volumePodMap = map[string][]string{}     // {pvc1: podsSlice1, pvc2: podsSlice2}
-		var deploymentPods = map[string]corev1.Pod{} // {pod1: corev1.Pod{}, pod2: corev1.Pod}
+		reqLogger.Info("Successfully fetched pods in workload namespace", "number-of-pods", len(podsList.Items))
 
 		for ind := range podsList.Items {
 			appPod := podsList.Items[ind]
@@ -157,38 +167,30 @@ func (r *FixStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 						if strings.Contains(scName, "csi") {
 
 							nodeName := appPod.Spec.NodeName
-							volSlice, ok := nodeVolumeMap[nodeName]
+							volumeData, ok := nodeVolumePodMapping[nodeName]
 							if !ok {
-								volSlice = []string{}
+								volumeData = map[string][]string{}
 							}
+
 							volumeName := pvc.Spec.VolumeName
-							if !contains(volSlice, volumeName) {
-								volSlice = append(volSlice, volumeName)
-							}
-							nodeVolumeMap[nodeName] = volSlice
-
-							podSlice, ok := volumePodMap[volumeName]
+							podData, ok := volumeData[volumeName]
 							if !ok {
-								podSlice = []string{}
+								podData = []string{}
 							}
-							if !contains(podSlice, appPod.Name) {
-								podSlice = append(podSlice, appPod.Name)
-							}
-							volumePodMap[volumeName] = podSlice
 
+							if !contains(podData, appPod.Name) {
+								podData = append(podData, appPod.Name)
+							}
+
+							volumeData[volumeName] = podData
+							nodeVolumePodMapping[nodeName] = volumeData
 							deploymentPods[appPod.Name] = appPod
 						}
 					}
 				}
 			}
 		}
-		reqLogger.Info("node-names maped with volumes in use", "nodeVolumeMap", nodeVolumeMap)
-		reqLogger.Info("volumes in use maped with pods", "volumePodMap", volumePodMap)
-
-		// If there is no csi-volume used, reconcile
-		if len(nodeVolumeMap) == 0 {
-			return ctrl.Result{RequeueAfter: reconcileTime}, nil
-		}
+		reqLogger.Info("node-names maped with volumes and deployment pods", "nodeVolumeMap", nodeVolumePodMapping)
 
 		// Get Pods in csiOperatorNamespace ns
 		var listOptions2 = &client.ListOptions{Namespace: csiOperatorNamespace}
@@ -209,7 +211,12 @@ func (r *FixStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 		reqLogger.Info("node-names maped with node-server pods", "csiNodeServerPods", csiNodeServerPods)
 
-		for nodeName, volumesData := range nodeVolumeMap {
+		// If CSI Driver Node Pods not found, reconcile
+		if len(csiNodeServerPods) == 0 {
+			return ctrl.Result{RequeueAfter: reconcileTime}, nil
+		}
+
+		for nodeName, volumesData := range nodeVolumePodMapping {
 			// Fetch volume stats from Logs of the Node Server Pod
 			getVolStatsFromLogs, err := fetchVolumeStatsFromNodeServerLogs(ctx, csiNodeServerPods[nodeName], logTailLines)
 			if err != nil {
@@ -217,7 +224,7 @@ func (r *FixStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			}
 			reqLogger.Info("Volume Stats from NodeServer Pod Logs", "volume-stas", getVolStatsFromLogs)
 
-			for _, volume := range volumesData {
+			for volume, podData := range volumesData {
 				volStats, ok := getVolStatsFromLogs[volume]
 				if !ok {
 					continue
@@ -227,11 +234,14 @@ func (r *FixStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 					reqLogger.Info("Stale Volume Found", "volume", volume)
 
 					reqLogger.Info("Restarting Pods!!")
-					podsSlice := volumePodMap[volume]
-					for _, podName := range podsSlice {
+					for _, podName := range podData {
 						reqLogger.Info("Pod using stale volume", "volume-name", volume, "pod-name", podName)
+
+						var zero int64 = 0
+						var deleteOptions = &client.DeleteOptions{GracePeriodSeconds: &zero}
+
 						pod := deploymentPods[podName]
-						err = r.Delete(ctx, &pod)
+						err = r.Delete(ctx, &pod, deleteOptions)
 						if err != nil {
 							if k8serr.IsNotFound(err) {
 								reqLogger.Info("Pod not found.")
