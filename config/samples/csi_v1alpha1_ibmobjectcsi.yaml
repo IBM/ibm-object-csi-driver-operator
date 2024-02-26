@@ -1,0 +1,63 @@
+apiVersion: csi.ibm.com/v1alpha1
+kind: IBMObjectCSI
+metadata:
+  name: ibm-object-csi
+  namespace: ibm-object-csi-operator-system
+  labels:
+    app.kubernetes.io/name: ibm-object-csi
+    app.kubernetes.io/instance: ibm-object-csi
+    app.kubernetes.io/managed-by: ibm-object-csi-operator
+    release: v1.0.0
+spec:
+  # controller is a deployment with ibm-object-csi-controller container
+  # and csi-provisioner, csi-attacher, csi-snapshotter and livenessprobe sidecars.
+  controller:
+    repository: icr.io/ibm/ibm-object-csi-driver
+    tag: "v1.0.1-alpha"
+    imagePullPolicy: IfNotPresent
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: kubernetes.io/arch
+                  operator: In
+                  values:
+                    - amd64
+
+  # node is a daemonSet with ibm-object-csi-node container
+  # and csi-node-driver-registrar and livenessprobe sidecars.
+  node:
+    repository: icr.io/ibm/ibm-object-csi-driver
+    tag: "v1.0.1-alpha"
+    imagePullPolicy: Always
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: kubernetes.io/arch
+                  operator: In
+                  values:
+                    - amd64
+
+    tolerations:
+      - operator: Exists
+
+  sidecars:
+  - name: csi-node-driver-registrar
+    repository: k8s.gcr.io/sig-storage/csi-node-driver-registrar
+    tag: "v2.6.3"
+    imagePullPolicy: IfNotPresent
+  - name: csi-provisioner
+    repository: k8s.gcr.io/sig-storage/csi-provisioner
+    tag: "v3.4.1"
+    imagePullPolicy: IfNotPresent
+  - name: livenessprobe
+    repository: k8s.gcr.io/sig-storage/livenessprobe
+    tag: "v2.9.0"
+    imagePullPolicy: IfNotPresent
+
+#  healthPort: 9808
+#  imagePullSecrets:
+#  - "secretName"
