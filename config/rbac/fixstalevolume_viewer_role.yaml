@@ -1,0 +1,27 @@
+# permissions for end users to view fixstalevolumes.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: fixstalevolume-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: ibm-object-csi-driver-operator
+    app.kubernetes.io/part-of: ibm-object-csi-driver-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: fixstalevolume-viewer-role
+rules:
+- apiGroups:
+  - csi.ibm.com
+  resources:
+  - fixstalevolumes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - csi.ibm.com
+  resources:
+  - fixstalevolumes/status
+  verbs:
+  - get

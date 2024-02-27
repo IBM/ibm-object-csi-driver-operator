@@ -1,0 +1,17 @@
+apiVersion: csi.ibm.com/v1alpha1
+kind: FixStaleVolume
+metadata:
+  labels:
+    app.kubernetes.io/name: fixstalevolume
+    app.kubernetes.io/instance: fixstalevolume-sample
+    app.kubernetes.io/part-of: ibm-object-csi-driver-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: ibm-object-csi-driver-operator
+  name: fixstalevolume-sample
+  namespace: ibm-object-csi-operator-system
+spec:
+  noOfLogLines: 100
+  deploymentData:
+    - deploymentName: cos-csi-app-deployment
+      deploymentNamespace: default
+    # - deploymentName: cos-csi-app-deployment-2

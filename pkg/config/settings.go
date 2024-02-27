@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	v1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
@@ -47,7 +46,7 @@ func getCrYamlFile(crPathEnvVariable string) ([]byte, error) {
 		return []byte{}, err
 	}
 
-	yamlFile, err := ioutil.ReadFile(crYamlPath)
+	yamlFile, err := os.ReadFile(crYamlPath)
 	if err != nil {
 		return []byte{}, fmt.Errorf("failed to read file %q: %v", yamlFile, err)
 	}
