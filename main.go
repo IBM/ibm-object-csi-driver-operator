@@ -44,7 +44,6 @@ var (
 	scheme               = runtime.NewScheme()
 	setupLog             = ctrl.Log.WithName("setup")
 	watchNamespaceEnvVar = "WATCH_NAMESPACE"
-	topologyPrefixes     = [...]string{"topology.cos.s3.csi.ibm.io"}
 	log                  = logf.Log.WithName("cmd")
 )
 

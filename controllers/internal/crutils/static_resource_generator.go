@@ -11,7 +11,6 @@ import (
 
 const (
 	securityOpenshiftApiGroup                string = "security.openshift.io"
-	storageApiGroup                          string = "storage.k8s.io"
 	rbacAuthorizationApiGroup                string = "rbac.authorization.k8s.io"
 	storageClassesResource                   string = "storageclasses"
 	persistentVolumesResource                string = "persistentvolumes"
@@ -90,7 +89,7 @@ func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRole() *rbacv1.ClusterR
 				Verbs:     []string{verbGet, verbList, verbWatch, verbUpdate},
 			},
 			{
-				APIGroups: []string{storageApiGroup},
+				APIGroups: []string{config.StorageApiGroup},
 				Resources: []string{storageClassesResource},
 				Verbs:     []string{verbGet, verbList, verbWatch},
 			},
@@ -100,7 +99,7 @@ func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRole() *rbacv1.ClusterR
 				Verbs:     []string{verbList, verbWatch, verbCreate, verbUpdate, verbPatch},
 			},
 			{
-				APIGroups: []string{storageApiGroup},
+				APIGroups: []string{config.StorageApiGroup},
 				Resources: []string{csiNodesResource},
 				Verbs:     []string{verbGet, verbList, verbWatch},
 			},

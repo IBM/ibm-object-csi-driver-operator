@@ -2,12 +2,12 @@ package boolptr
 
 // IsTrue returns true if and only if the bool pointer is non-nil and set to true.
 func IsTrue(b *bool) bool {
-	return b != nil && *b == true
+	return b != nil && *b
 }
 
 // IsFalse returns true if and only if the bool pointer is non-nil and set to false.
 func IsFalse(b *bool) bool {
-	return b != nil && *b == false
+	return b != nil && !*b
 }
 
 // True returns a *bool whose underlying value is true.

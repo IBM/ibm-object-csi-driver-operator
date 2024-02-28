@@ -65,26 +65,26 @@ type IBMObjectCSIReconciler struct {
 //+kubebuilder:rbac:groups=csi.ibm.com,resources=ibmobjectcsis,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=csi.ibm.com,resources=ibmobjectcsis/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=csi.ibm.com,resources=ibmobjectcsis/finalizers,verbs=update
-// +kubebuilder:rbac:groups="",resources=pods,verbs=get;delete;list;watch
-// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;create;delete
-// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
-// +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;update;patch
-// +kubebuilder:rbac:groups="",resources=persistentvolumeclaims/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=get;create
-// +kubebuilder:rbac:groups="",resources=persistentvolumeclaims/finalizers,verbs=update
-// +kubebuilder:rbac:groups="",resources=persistentvolumes,verbs=get;delete;list;watch;update;create;patch
-// +kubebuilder:rbac:groups="",resources=events,verbs=*
-// +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
-// +kubebuilder:rbac:groups=apps,resources=deployments;daemonsets;statefulsets,verbs=get;list;watch;update;create;delete
-// +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=create;delete;get;watch;list
-// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings,verbs=create;delete;get;watch;list;update
-// +kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch
-// +kubebuilder:rbac:groups=apps,resourceNames=ibm-object-csi-operator,resources=deployments/finalizers,verbs=update
-// +kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers,verbs=create;delete;get;watch;list
-// +kubebuilder:rbac:groups=storage.k8s.io,resources=csinodes,verbs=get;list;watch
-// +kubebuilder:rbac:groups=security.openshift.io,resourceNames=anyuid;privileged,resources=securitycontextconstraints,verbs=use
-// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=create;list;watch;delete
-// +kubebuilder:rbac:groups=csi.ibm.com,resources=*,verbs=*
+//+kubebuilder:rbac:groups="",resources=pods,verbs=get;delete;list;watch
+//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;create;delete
+//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups="",resources=persistentvolumeclaims/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=get;create
+//+kubebuilder:rbac:groups="",resources=persistentvolumeclaims/finalizers,verbs=update
+//+kubebuilder:rbac:groups="",resources=persistentvolumes,verbs=get;delete;list;watch;update;create;patch
+//+kubebuilder:rbac:groups="",resources=events,verbs=*
+//+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
+//+kubebuilder:rbac:groups=apps,resources=deployments;daemonsets;statefulsets,verbs=get;list;watch;update;create;delete
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=create;delete;get;watch;list
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings,verbs=create;delete;get;watch;list;update
+//+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch
+//+kubebuilder:rbac:groups=apps,resourceNames=ibm-object-csi-operator,resources=deployments/finalizers,verbs=update
+//+kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers,verbs=create;delete;get;watch;list
+//+kubebuilder:rbac:groups=storage.k8s.io,resources=csinodes,verbs=get;list;watch
+//+kubebuilder:rbac:groups=security.openshift.io,resourceNames=anyuid;privileged,resources=securitycontextconstraints,verbs=use
+//+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=create;list;watch;delete
+//+kubebuilder:rbac:groups=csi.ibm.com,resources=*,verbs=*
 //+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=create;get;list;watch;delete;update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -127,7 +127,6 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			err = fmt.Errorf("failed to update IBMObjectCSI CR: %v", err)
 			return reconcile.Result{}, err
 		}
-		return reconcile.Result{}, nil
 	}
 	if err := r.ControllerHelper.AddFinalizerIfNotPresent(
 		instance, instance.Unwrap()); err != nil {
@@ -378,14 +377,12 @@ func (r *IBMObjectCSIReconciler) reconcileServiceAccount(instance *crutils.IBMOb
 				if rErr != nil {
 					return rErr
 				}
-
 			}
 		} else if err != nil {
 			logger.Error(err, "Failed to get ServiceAccount", "Name", sa.GetName())
 			return err
 		} else {
-			// Resource already exists - don't requeue
-			//logger.Info("Skip reconcile: ServiceAccount already exists", "Namespace", sa.GetNamespace(), "Name", sa.GetName())
+			logger.Info("Skip reconcile: ServiceAccount already exists", "Namespace", sa.GetNamespace(), "Name", sa.GetName())
 		}
 	}
 
@@ -440,10 +437,8 @@ func (r *IBMObjectCSIReconciler) reconcileCSIDriver(instance *crutils.IBMObjectC
 	} else if err != nil {
 		logger.Error(err, "Failed to get CSIDriver", "Name", cd.GetName())
 		return err
-	} else {
-		// Resource already exists - don't requeue
 	}
-
+	logger.Info("Skip reconcile: CSIDriver already exists", "Namespace", cd.GetNamespace(), "Name", cd.GetName())
 	return nil
 }
 
