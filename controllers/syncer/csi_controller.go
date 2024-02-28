@@ -195,22 +195,6 @@ func (s *csiControllerSyncer) ensureContainer(name, image string, args []string)
 	}
 }
 
-func (s *csiControllerSyncer) envVarFromSecret(sctName, name, key string, opt bool) corev1.EnvVar {
-	env := corev1.EnvVar{
-		Name: name,
-		ValueFrom: &corev1.EnvVarSource{
-			SecretKeyRef: &corev1.SecretKeySelector{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: sctName,
-				},
-				Key:      key,
-				Optional: &opt,
-			},
-		},
-	}
-	return env
-}
-
 func (s *csiControllerSyncer) getEnvFor(name string) []corev1.EnvVar {
 
 	switch name {

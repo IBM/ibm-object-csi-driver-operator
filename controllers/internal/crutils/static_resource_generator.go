@@ -9,30 +9,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	securityOpenshiftApiGroup                string = "security.openshift.io"
-	storageApiGroup                          string = "storage.k8s.io"
-	rbacAuthorizationApiGroup                string = "rbac.authorization.k8s.io"
-	storageClassesResource                   string = "storageclasses"
-	persistentVolumesResource                string = "persistentvolumes"
-	persistentVolumeClaimsResource           string = "persistentvolumeclaims"
-	persistentVolumeClaimsStatusResource     string = "persistentvolumeclaims/status"
-	persistentVolumeClaimsFinalizersResource string = "persistentvolumeclaims/finalizers"
-	podsResource                             string = "pods"
-	eventsResource                           string = "events"
-	nodesResource                            string = "nodes"
-	csiNodesResource                         string = "csinodes"
-	secretsResource                          string = "secrets"
-	securityContextConstraintsResource       string = "securitycontextconstraints"
-	verbGet                                  string = "get"
-	verbList                                 string = "list"
-	verbWatch                                string = "watch"
-	verbCreate                               string = "create"
-	verbUpdate                               string = "update"
-	verbPatch                                string = "patch"
-	verbDelete                               string = "delete"
-)
-
 func (c *IBMObjectCSI) GenerateCSIDriver() *storagev1.CSIDriver {
 	defaultFSGroupPolicy := storagev1.FileFSGroupPolicy
 	return &storagev1.CSIDriver{
@@ -76,38 +52,38 @@ func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRole() *rbacv1.ClusterR
 		Rules: []rbacv1.PolicyRule{
 			{
 				APIGroups: []string{""},
-				Resources: []string{secretsResource},
-				Verbs:     []string{verbGet, verbList},
+				Resources: []string{config.SecretsResource},
+				Verbs:     []string{config.VerbGet, config.VerbList},
 			},
 			{
 				APIGroups: []string{""},
-				Resources: []string{persistentVolumesResource},
-				Verbs:     []string{verbGet, verbList, verbWatch, verbCreate, verbDelete},
+				Resources: []string{config.PersistentVolumesResource},
+				Verbs:     []string{config.VerbGet, config.VerbList, config.VerbWatch, config.VerbCreate, config.VerbDelete},
 			},
 			{
 				APIGroups: []string{""},
-				Resources: []string{persistentVolumeClaimsResource},
-				Verbs:     []string{verbGet, verbList, verbWatch, verbUpdate},
+				Resources: []string{config.PersistentVolumeClaimsResource},
+				Verbs:     []string{config.VerbGet, config.VerbList, config.VerbWatch, config.VerbUpdate},
 			},
 			{
-				APIGroups: []string{storageApiGroup},
-				Resources: []string{storageClassesResource},
-				Verbs:     []string{verbGet, verbList, verbWatch},
-			},
-			{
-				APIGroups: []string{""},
-				Resources: []string{eventsResource},
-				Verbs:     []string{verbList, verbWatch, verbCreate, verbUpdate, verbPatch},
-			},
-			{
-				APIGroups: []string{storageApiGroup},
-				Resources: []string{csiNodesResource},
-				Verbs:     []string{verbGet, verbList, verbWatch},
+				APIGroups: []string{config.StorageApiGroup},
+				Resources: []string{config.StorageClassesResource},
+				Verbs:     []string{config.VerbGet, config.VerbList, config.VerbWatch},
 			},
 			{
 				APIGroups: []string{""},
-				Resources: []string{nodesResource},
-				Verbs:     []string{verbGet, verbList, verbWatch},
+				Resources: []string{config.EventsResource},
+				Verbs:     []string{config.VerbList, config.VerbWatch, config.VerbCreate, config.VerbUpdate, config.VerbPatch},
+			},
+			{
+				APIGroups: []string{config.StorageApiGroup},
+				Resources: []string{config.CsiNodesResource},
+				Verbs:     []string{config.VerbGet, config.VerbList, config.VerbWatch},
+			},
+			{
+				APIGroups: []string{""},
+				Resources: []string{config.NodesResource},
+				Verbs:     []string{config.VerbGet, config.VerbList, config.VerbWatch},
 			},
 		},
 	}
@@ -128,7 +104,7 @@ func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRoleBinding() *rbacv1.C
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
 			Name:     config.GetNameForResource(config.ExternalProvisionerClusterRole, c.Name),
-			APIGroup: rbacAuthorizationApiGroup,
+			APIGroup: config.RbacAuthorizationApiGroup,
 		},
 	}
 }
@@ -140,8 +116,8 @@ func (c *IBMObjectCSI) GenerateSCCForControllerClusterRole() *rbacv1.ClusterRole
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
-				APIGroups:     []string{securityOpenshiftApiGroup},
-				Resources:     []string{securityContextConstraintsResource},
+				APIGroups:     []string{config.SecurityOpenshiftApiGroup},
+				Resources:     []string{config.SecurityContextConstraintsResource},
 				ResourceNames: []string{"anyuid"},
 				Verbs:         []string{"use"},
 			},
@@ -164,7 +140,7 @@ func (c *IBMObjectCSI) GenerateSCCForControllerClusterRoleBinding() *rbacv1.Clus
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
 			Name:     config.GetNameForResource(config.CSIControllerSCCClusterRole, c.Name),
-			APIGroup: rbacAuthorizationApiGroup,
+			APIGroup: config.RbacAuthorizationApiGroup,
 		},
 	}
 }
@@ -176,15 +152,15 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRole() *rbacv1.ClusterRole {
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
-				APIGroups:     []string{securityOpenshiftApiGroup},
-				Resources:     []string{securityContextConstraintsResource},
+				APIGroups:     []string{config.SecurityOpenshiftApiGroup},
+				Resources:     []string{config.SecurityContextConstraintsResource},
 				ResourceNames: []string{"privileged"},
 				Verbs:         []string{"use"},
 			},
 			{
 				APIGroups: []string{""},
-				Resources: []string{nodesResource},
-				Verbs:     []string{verbGet},
+				Resources: []string{config.NodesResource},
+				Verbs:     []string{config.VerbGet},
 			},
 		},
 	}
@@ -205,7 +181,7 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRoleBinding() *rbacv1.ClusterRol
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
 			Name:     config.GetNameForResource(config.CSINodeSCCClusterRole, c.Name),
-			APIGroup: rbacAuthorizationApiGroup,
+			APIGroup: config.RbacAuthorizationApiGroup,
 		},
 	}
 }

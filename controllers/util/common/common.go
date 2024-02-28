@@ -80,12 +80,10 @@ func (ch *ControllerHelper) ReconcileClusterRoleBinding(clusterRoleBindings []*r
 				return err
 			}
 		} else if err != nil {
-			logger.Error(err, "Failed to get ClusterRole", "Name", crb.GetName())
+			logger.Error(err, "Failed to get ClusterRoleBinding", "Name", crb.GetName())
 			return err
-		} else {
-			// Resource already exists - don't requeue
-			//ch.Log.Info("Skip reconcile: ClusterRoleBinding already exists", "Name", crb.GetName())
 		}
+		ch.Log.Info("Skip reconcile: ClusterRoleBinding already exists", "Name", crb.GetName())
 	}
 	return nil
 }
@@ -103,10 +101,8 @@ func (ch *ControllerHelper) ReconcileStorageClasses(storageclasses []*storagev1.
 		} else if err != nil {
 			logger.Error(err, "Failed to get StorageClass", "Name", sc.GetName())
 			return err
-		} else {
-			// Resource already exists - don't requeue
-			//ch.Log.Info("Skip reconcile: ClusterRoleBinding already exists", "Name", crb.GetName())
 		}
+		ch.Log.Info("Skip reconcile: StorageClass already exists", "Name", sc.GetName())
 	}
 	return nil
 }

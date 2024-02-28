@@ -322,14 +322,6 @@ func (s *csiNodeSyncer) getCSINodeDriverRegistrarPullPolicy() corev1.PullPolicy 
 	return corev1.PullIfNotPresent
 }
 
-func (s *csiNodeSyncer) getLivenessProbePullPolicy() corev1.PullPolicy {
-	sidecar := s.getSidecarByName(config.LivenessProbe)
-	if sidecar != nil && sidecar.ImagePullPolicy != "" {
-		return sidecar.ImagePullPolicy
-	}
-	return corev1.PullIfNotPresent
-}
-
 func ensureHostPathVolumeSource(path, pathType string) corev1.VolumeSource {
 	t := corev1.HostPathType(pathType)
 
