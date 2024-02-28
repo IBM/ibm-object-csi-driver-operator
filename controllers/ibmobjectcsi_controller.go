@@ -116,10 +116,6 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	//This ensures that the CR has all the required fields with default values before further processing or reconciliation by the operator.
 	r.Scheme.Default(instance.Unwrap())
 	changed := instance.SetDefaults()
-	if err := instance.Validate(); err != nil {
-		err = fmt.Errorf("wrong IBMObjectCSI options: %v", err)
-		return reconcile.Result{RequeueAfter: ReconcileTime}, err
-	}
 	// update CR if there was changes after defaulting
 	if changed {
 		err = r.Update(context.TODO(), instance.Unwrap())
