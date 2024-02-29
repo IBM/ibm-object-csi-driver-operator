@@ -1,20 +1,20 @@
-# permissions for end users to view restorestalevolumes.
+# permissions for end users to view recoverstalevolumes.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/name: clusterrole
-    app.kubernetes.io/instance: restorestalevolume-viewer-role
+    app.kubernetes.io/instance: recoverstalevolume-viewer-role
     app.kubernetes.io/component: rbac
     app.kubernetes.io/created-by: ibm-object-csi-driver-operator
     app.kubernetes.io/part-of: ibm-object-csi-driver-operator
     app.kubernetes.io/managed-by: kustomize
-  name: restorestalevolume-viewer-role
+  name: recoverstalevolume-viewer-role
 rules:
 - apiGroups:
   - objectdriver.csi.ibm.com
   resources:
-  - restorestalevolumes
+  - recoverstalevolumes
   verbs:
   - get
   - list
@@ -22,6 +22,6 @@ rules:
 - apiGroups:
   - objectdriver.csi.ibm.com
   resources:
-  - restorestalevolumes/status
+  - recoverstalevolumes/status
   verbs:
   - get

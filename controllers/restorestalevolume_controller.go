@@ -37,45 +37,45 @@ import (
 	csiv1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
 )
 
-// RestoreStaleVolumeReconciler reconciles a RestoreStaleVolume object
-type RestoreStaleVolumeReconciler struct {
+// RecoverStaleVolumeReconciler reconciles a RecoverStaleVolume object
+type RecoverStaleVolumeReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
 
-var staleVolLog = logf.Log.WithName("restorestalevolume_controller")
+var staleVolLog = logf.Log.WithName("recoverstalevolume_controller")
 var reconcileTime = 2 * time.Minute
 var csiOperatorNamespace = "ibm-object-csi-operator-system"
 var transportEndpointError = "transport endpoint is not connected"
 
-//+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=restorestalevolumes,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=restorestalevolumes/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=restorestalevolumes/finalizers,verbs=update
+//+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=recoverstalevolumes,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=recoverstalevolumes/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=recoverstalevolumes/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=pods/log,verbs=get
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the RestoreStaleVolume object against the actual cluster state, and then
+// the RecoverStaleVolume object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.4/pkg/reconcile
-func (r *RestoreStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	reqLogger := staleVolLog.WithValues("Request.Namespace", req.Namespace, "Request.Name", req.Name)
-	reqLogger.Info("Reconciling RestoreStaleVolume")
+	reqLogger.Info("Reconciling RecoverStaleVolume")
 
-	// Fetch RestoreStaleVolume instance
-	instance := &csiv1alpha1.RestoreStaleVolume{}
+	// Fetch RecoverStaleVolume instance
+	instance := &csiv1alpha1.RecoverStaleVolume{}
 	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if k8serr.IsNotFound(err) {
-			reqLogger.Info("RestoreStaleVolume resource not found. Ignoring since object must be deleted")
+			reqLogger.Info("RecoverStaleVolume resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object.
-		reqLogger.Error(err, "failed to get RestoreStaleVolume resource")
+		reqLogger.Error(err, "failed to get RecoverStaleVolume resource")
 		return ctrl.Result{}, err
 	}
 
@@ -262,9 +262,9 @@ func (r *RestoreStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *RestoreStaleVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *RecoverStaleVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&csiv1alpha1.RestoreStaleVolume{}).
+		For(&csiv1alpha1.RecoverStaleVolume{}).
 		Complete(r)
 }
 

@@ -167,7 +167,7 @@ rules:
 - apiGroups:
   - objectdriver.csi.ibm.com
   resources:
-  - restorestalevolumes
+  - recoverstalevolumes
   verbs:
   - create
   - delete
@@ -179,13 +179,13 @@ rules:
 - apiGroups:
   - objectdriver.csi.ibm.com
   resources:
-  - restorestalevolumes/finalizers
+  - recoverstalevolumes/finalizers
   verbs:
   - update
 - apiGroups:
   - objectdriver.csi.ibm.com
   resources:
-  - restorestalevolumes/status
+  - recoverstalevolumes/status
   verbs:
   - get
   - patch
