@@ -56,9 +56,7 @@ var csiLog = logf.Log.WithName("ibmobjectcsi_controller")
 type IBMObjectCSIReconciler struct {
 	client.Client
 	Scheme           *runtime.Scheme
-	Namespace        string
 	Recorder         record.EventRecorder
-	ServerVersion    string
 	ControllerHelper *common.ControllerHelper
 }
 
@@ -102,7 +100,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	r.ControllerHelper.Log = csiLog
 
 	// Fetch the CSIDriver instance
-	instance := crutils.New(&csiv1alpha1.IBMObjectCSI{}, r.ServerVersion)
+	instance := crutils.New(&csiv1alpha1.IBMObjectCSI{})
 	err := r.Get(context.TODO(), req.NamespacedName, instance.Unwrap())
 	if err != nil {
 		if errors.IsNotFound(err) {
