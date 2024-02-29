@@ -13,14 +13,12 @@ import (
 // IBMObjectCSI is the wrapper for csiv1alpha1.IBMObjectCSI type
 type IBMObjectCSI struct {
 	*csiv1alpha1.IBMObjectCSI
-	ServerVersion string
 }
 
 // New returns a wrapper for csiv1.IBMObjectCSI
-func New(c *csiv1alpha1.IBMObjectCSI, serverVersion string) *IBMObjectCSI {
+func New(c *csiv1alpha1.IBMObjectCSI) *IBMObjectCSI {
 	return &IBMObjectCSI{
-		IBMObjectCSI:  c,
-		ServerVersion: serverVersion,
+		IBMObjectCSI: c,
 	}
 }
 

@@ -178,15 +178,6 @@ func (ch *ControllerHelper) getClusterRole(cr *rbacv1.ClusterRole) (*rbacv1.Clus
 	return found, err
 }
 
-func (ch *ControllerHelper) HasFinalizer(instance crutils.Instance) (bool, error) {
-	accessor, finalizerName, err := ch.getAccessorAndFinalizerName(instance)
-	if err != nil {
-		return false, err
-	}
-
-	return util.Contains(accessor.GetFinalizers(), finalizerName), nil
-}
-
 func (ch *ControllerHelper) AddFinalizerIfNotPresent(instance crutils.Instance,
 	unwrappedInstance client.Object) error {
 	logger := ch.Log.WithName("AddFinalizerIfNotPresent")

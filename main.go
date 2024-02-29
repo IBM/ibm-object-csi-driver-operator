@@ -18,7 +18,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -41,10 +40,9 @@ import (
 )
 
 var (
-	scheme               = runtime.NewScheme()
-	setupLog             = ctrl.Log.WithName("setup")
-	watchNamespaceEnvVar = "WATCH_NAMESPACE"
-	log                  = logf.Log.WithName("cmd")
+	scheme   = runtime.NewScheme()
+	setupLog = ctrl.Log.WithName("setup")
+	log      = logf.Log.WithName("cmd")
 )
 
 func init() {
@@ -78,12 +76,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	namespace, err := getWatchNamespace()
-	if err != nil {
-		log.Error(err, "Failed to get watch namespace")
-		os.Exit(1)
-	}
-
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		Metrics:                metricsserver.Options{BindAddress: metricsAddr},
@@ -112,7 +104,6 @@ func main() {
 	if err = (&controllers.IBMObjectCSIReconciler{
 		Client:           mgr.GetClient(),
 		Scheme:           mgr.GetScheme(),
-		Namespace:        namespace,
 		ControllerHelper: controllerHelper,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "IBMObjectCSI")
@@ -141,12 +132,4 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
-}
-
-func getWatchNamespace() (string, error) {
-	ns, found := os.LookupEnv(watchNamespaceEnvVar)
-	if !found {
-		return "", fmt.Errorf("%s must be set", watchNamespaceEnvVar)
-	}
-	return ns, nil
 }

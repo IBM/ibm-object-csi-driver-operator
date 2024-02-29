@@ -56,9 +56,7 @@ var csiLog = logf.Log.WithName("ibmobjectcsi_controller")
 type IBMObjectCSIReconciler struct {
 	client.Client
 	Scheme           *runtime.Scheme
-	Namespace        string
 	Recorder         record.EventRecorder
-	ServerVersion    string
 	ControllerHelper *common.ControllerHelper
 }
 
@@ -102,7 +100,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	r.ControllerHelper.Log = csiLog
 
 	// Fetch the CSIDriver instance
-	instance := crutils.New(&csiv1alpha1.IBMObjectCSI{}, r.ServerVersion)
+	instance := crutils.New(&csiv1alpha1.IBMObjectCSI{})
 	err := r.Get(context.TODO(), req.NamespacedName, instance.Unwrap())
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -130,17 +128,11 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 	// If the deletion timestamp is set, perform cleanup operations and remove a finalizer before returning from the reconciliation process.
 	if !instance.GetDeletionTimestamp().IsZero() {
-		isFinalizerExists, err := r.ControllerHelper.HasFinalizer(instance)
-		if err != nil {
+		if err := r.deleteClusterRoleBindings(instance); err != nil {
 			return reconcile.Result{}, err
 		}
-		// If the finalizer doesn't exist, return early, indicating that no further action is needed.
 
-		if !isFinalizerExists {
-			return reconcile.Result{}, nil
-		}
-
-		if err := r.deleteClusterRolesAndBindings(instance); err != nil {
+		if err := r.deleteClusterRoles(instance); err != nil {
 			return reconcile.Result{}, err
 		}
 
@@ -457,17 +449,6 @@ func (r *IBMObjectCSIReconciler) deleteCSIDriver(instance *crutils.IBMObjectCSI)
 		return nil
 	} else {
 		logger.Error(err, "failed to get CSIDriver", "Name", csiDriver.GetName())
-		return err
-	}
-	return nil
-}
-
-func (r *IBMObjectCSIReconciler) deleteClusterRolesAndBindings(instance *crutils.IBMObjectCSI) error {
-	if err := r.deleteClusterRoleBindings(instance); err != nil {
-		return err
-	}
-
-	if err := r.deleteClusterRoles(instance); err != nil {
 		return err
 	}
 	return nil
