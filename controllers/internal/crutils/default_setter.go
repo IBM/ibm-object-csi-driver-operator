@@ -9,9 +9,7 @@ import (
 // Replace it with kubernetes native default setter when it is available.
 // https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#defaulting
 func (c *IBMObjectCSI) SetDefaults() bool {
-
 	c.setDefaultForNilSliceFields()
-
 	return c.setDefaults()
 }
 
@@ -35,7 +33,6 @@ func (c *IBMObjectCSI) setDefaults() bool {
 	}
 
 	changed = c.setDefaultSidecars() || changed
-
 	return changed
 }
 
@@ -57,11 +54,8 @@ func (c *IBMObjectCSI) setDefaultSidecars() bool {
 
 	if len(defaultSidecars) == len(c.Spec.Sidecars) {
 		for _, sidecar := range c.Spec.Sidecars {
-			if defaultSidecar, found := config.DefaultSidecarsByName[sidecar.Name]; found {
-				if sidecar != defaultSidecar {
-					change = true
-				}
-			} else {
+			defaultSidecar, found := config.DefaultSidecarsByName[sidecar.Name]
+			if (found && sidecar != defaultSidecar) || !found {
 				change = true
 			}
 		}

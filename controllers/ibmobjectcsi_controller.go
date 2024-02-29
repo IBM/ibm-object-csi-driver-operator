@@ -154,8 +154,6 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 	originalStatus := *instance.Status.DeepCopy()
 
-	fmt.Println(originalStatus)
-
 	// create the resources which never change if not exist
 	for _, rec := range []reconciler{
 		r.reconcileCSIDriver,

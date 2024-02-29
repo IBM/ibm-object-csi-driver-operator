@@ -33,7 +33,7 @@ func (c *IBMObjectCSI) GenerateNodeServiceAccount() *corev1.ServiceAccount {
 }
 
 func getServiceAccount(c *IBMObjectCSI, serviceAccountResourceName config.ResourceName) *corev1.ServiceAccount {
-	secrets := getImagePullSecrets(c.Spec.ImagePullSecrets)
+	secrets := GetImagePullSecrets(c.Spec.ImagePullSecrets)
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      config.GetNameForResource(serviceAccountResourceName, c.Name),
