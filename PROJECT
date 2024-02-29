@@ -2,7 +2,7 @@
 # This file is used to track the info used to scaffold your project
 # and allow the plugins properly work.
 # More info: https://book.kubebuilder.io/reference/project-config.html
-domain: ibm.com
+domain: csi.ibm.com
 layout:
 - go.kubebuilder.io/v3
 plugins:
@@ -15,8 +15,8 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: ibm.com
-  group: csi
+  domain: csi.ibm.com
+  group: objectdriver
   kind: IBMObjectCSI
   path: github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1
   version: v1alpha1
@@ -24,9 +24,9 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: ibm.com
-  group: csi
-  kind: FixStaleVolume
+  domain: csi.ibm.com
+  group: objectdriver
+  kind: RecoverStaleVolume
   path: github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1
   version: v1alpha1
 version: "3"

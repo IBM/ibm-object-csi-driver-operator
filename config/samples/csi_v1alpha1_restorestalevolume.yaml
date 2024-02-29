@@ -1,0 +1,17 @@
+apiVersion: objectdriver.csi.ibm.com/v1alpha1
+kind: RestoreStaleVolume
+metadata:
+  labels:
+    app.kubernetes.io/name: restorestalevolume
+    app.kubernetes.io/instance: restorestalevolume-sample
+    app.kubernetes.io/part-of: ibm-object-csi-driver-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: ibm-object-csi-driver-operator
+  name: restorestalevolume-sample
+  namespace: ibm-object-csi-operator-system
+spec:
+  noOfLogLines: 100
+  deploymentData:
+    - deploymentName: cos-csi-app-deployment
+      deploymentNamespace: default
+    # - deploymentName: cos-csi-app-deployment-2

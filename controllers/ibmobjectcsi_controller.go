@@ -25,7 +25,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/presslabs/controller-util/pkg/syncer"
-	csiv1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
+	objectdriverv1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
 	crutils "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/internal/crutils"
 	clustersyncer "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/syncer"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/util/common"
@@ -61,9 +61,9 @@ type IBMObjectCSIReconciler struct {
 	ControllerHelper *common.ControllerHelper
 }
 
-//+kubebuilder:rbac:groups=csi.ibm.com,resources=ibmobjectcsis,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=csi.ibm.com,resources=ibmobjectcsis/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=csi.ibm.com,resources=ibmobjectcsis/finalizers,verbs=update
+//+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=ibmobjectcsis,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=ibmobjectcsis/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=ibmobjectcsis/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;delete;list;watch
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;create;delete
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
@@ -83,7 +83,7 @@ type IBMObjectCSIReconciler struct {
 //+kubebuilder:rbac:groups=storage.k8s.io,resources=csinodes,verbs=get;list;watch
 //+kubebuilder:rbac:groups=security.openshift.io,resourceNames=anyuid;privileged,resources=securitycontextconstraints,verbs=use
 //+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=create;list;watch;delete
-//+kubebuilder:rbac:groups=csi.ibm.com,resources=*,verbs=*
+//+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=*,verbs=*
 //+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=create;get;list;watch;delete;update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -101,7 +101,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	r.ControllerHelper.Log = csiLog
 
 	// Fetch the CSIDriver instance
-	instance := crutils.New(&csiv1alpha1.IBMObjectCSI{})
+	instance := crutils.New(&objectdriverv1alpha1.IBMObjectCSI{}, r.ServerVersion)
 	err := r.Get(context.TODO(), req.NamespacedName, instance.Unwrap())
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -185,7 +185,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	return reconcile.Result{}, nil
 }
 
-func (r *IBMObjectCSIReconciler) updateStatus(instance *crutils.IBMObjectCSI, originalStatus csiv1alpha1.IBMObjectCSIStatus) error {
+func (r *IBMObjectCSIReconciler) updateStatus(instance *crutils.IBMObjectCSI, originalStatus objectdriverv1alpha1.IBMObjectCSIStatus) error {
 	logger := csiLog.WithName("updateStatus")
 
 	controllerDeployment, err := r.getControllerDeployment(instance)
@@ -200,9 +200,9 @@ func (r *IBMObjectCSIReconciler) updateStatus(instance *crutils.IBMObjectCSI, or
 
 	instance.Status.ControllerReady = r.isControllerReady(controllerDeployment)
 	instance.Status.NodeReady = r.isNodeReady(nodeDaemonSet)
-	phase := csiv1alpha1.DriverPhaseNone
+	phase := objectdriverv1alpha1.DriverPhaseNone
 	if instance.Status.ControllerReady && instance.Status.NodeReady {
-		phase = csiv1alpha1.DriverPhaseRunning
+		phase = objectdriverv1alpha1.DriverPhaseRunning
 	} else {
 		if !instance.Status.ControllerReady {
 
@@ -216,7 +216,7 @@ func (r *IBMObjectCSIReconciler) updateStatus(instance *crutils.IBMObjectCSI, or
 				r.restartControllerPodfromDeployment(logger, controllerDeployment, controllerPod)
 			}
 		}
-		phase = csiv1alpha1.DriverPhaseCreating
+		phase = objectdriverv1alpha1.DriverPhaseCreating
 	}
 	instance.Status.Phase = phase
 	instance.Status.Version = oversion.DriverVersion
@@ -506,7 +506,7 @@ func (r *IBMObjectCSIReconciler) getClusterRoles(instance *crutils.IBMObjectCSI)
 // SetupWithManager sets up the controller with the Manager.
 func (r *IBMObjectCSIReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&csiv1alpha1.IBMObjectCSI{}).
+		For(&objectdriver.v1alpha1.IBMObjectCSI{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&appsv1.DaemonSet{}).
 		Owns(&corev1.ServiceAccount{}).

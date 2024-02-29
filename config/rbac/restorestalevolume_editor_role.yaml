@@ -1,20 +1,20 @@
-# permissions for end users to edit ibmobjectcsis.
+# permissions for end users to edit restorestalevolumes.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/name: clusterrole
-    app.kubernetes.io/instance: ibmobjectcsi-editor-role
+    app.kubernetes.io/instance: restorestalevolume-editor-role
     app.kubernetes.io/component: rbac
     app.kubernetes.io/created-by: ibm-object-csi-driver-operator
     app.kubernetes.io/part-of: ibm-object-csi-driver-operator
     app.kubernetes.io/managed-by: kustomize
-  name: ibmobjectcsi-editor-role
+  name: restorestalevolume-editor-role
 rules:
 - apiGroups:
   - objectdriver.csi.ibm.com
   resources:
-  - ibmobjectcsis
+  - restorestalevolumes
   verbs:
   - create
   - delete
@@ -26,6 +26,6 @@ rules:
 - apiGroups:
   - objectdriver.csi.ibm.com
   resources:
-  - ibmobjectcsis/status
+  - restorestalevolumes/status
   verbs:
   - get
