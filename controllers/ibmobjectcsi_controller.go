@@ -506,7 +506,7 @@ func (r *IBMObjectCSIReconciler) getClusterRoles(instance *crutils.IBMObjectCSI)
 // SetupWithManager sets up the controller with the Manager.
 func (r *IBMObjectCSIReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&objectdriver.v1alpha1.IBMObjectCSI{}).
+		For(&objectdriverv1alpha1.IBMObjectCSI{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&appsv1.DaemonSet{}).
 		Owns(&corev1.ServiceAccount{}).
