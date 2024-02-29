@@ -58,7 +58,6 @@ type IBMObjectCSIReconciler struct {
 	Scheme           *runtime.Scheme
 	Namespace        string
 	Recorder         record.EventRecorder
-	ServerVersion    string
 	ControllerHelper *common.ControllerHelper
 }
 
@@ -102,7 +101,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	r.ControllerHelper.Log = csiLog
 
 	// Fetch the CSIDriver instance
-	instance := crutils.New(&csiv1alpha1.IBMObjectCSI{}, r.ServerVersion)
+	instance := crutils.New(&csiv1alpha1.IBMObjectCSI{})
 	err := r.Get(context.TODO(), req.NamespacedName, instance.Unwrap())
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -240,7 +239,6 @@ func (r *IBMObjectCSIReconciler) restartControllerPodfromDeployment(logger logr.
 		"ReadyReplicas", controllerDeployment.Status.ReadyReplicas,
 		"Replicas", controllerDeployment.Status.Replicas)
 	logger.Info("restarting csi controller")
-
 	return r.Delete(context.TODO(), controllerPod)
 }
 
@@ -311,6 +309,7 @@ func (r *IBMObjectCSIReconciler) reconcileStorageClasses(instance *crutils.IBMOb
 	storageClasses := r.getStorageClasses(instance)
 	return r.ControllerHelper.ReconcileStorageClasses(storageClasses)
 }
+
 func (r *IBMObjectCSIReconciler) reconcileClusterRole(instance *crutils.IBMObjectCSI) error {
 	clusterRoles := r.getClusterRoles(instance)
 	return r.ControllerHelper.ReconcileClusterRole(clusterRoles)
@@ -413,21 +412,21 @@ func (r *IBMObjectCSIReconciler) reconcileCSIDriver(instance *crutils.IBMObjectC
 
 	cd := instance.GenerateCSIDriver()
 	found := &storagev1.CSIDriver{}
-	err := r.Get(context.TODO(), types.NamespacedName{
-		Name:      cd.Name,
-		Namespace: "",
-	}, found)
-	if err != nil && errors.IsNotFound(err) {
-		logger.Info("Creating a new CSIDriver", "Name", cd.GetName())
-		err = r.Create(context.TODO(), cd)
-		if err != nil {
-			return err
+	err := r.Get(context.TODO(), types.NamespacedName{Name: cd.Name, Namespace: ""}, found)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			logger.Info("Creating a new CSIDriver", "Name", cd.GetName())
+			err = r.Create(context.TODO(), cd)
+			if err != nil {
+				return err
+			}
+			logger.Info("CSIDriver created", "Namespace", cd.GetNamespace(), "Name", cd.GetName())
+			return nil
 		}
-	} else if err != nil {
 		logger.Error(err, "Failed to get CSIDriver", "Name", cd.GetName())
 		return err
 	}
-	logger.Info("Skip reconcile: CSIDriver already exists", "Namespace", cd.GetNamespace(), "Name", cd.GetName())
+	logger.Info("CSIDriver already exists", "Namespace", cd.GetNamespace(), "Name", cd.GetName())
 	return nil
 }
 
