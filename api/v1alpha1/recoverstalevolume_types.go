@@ -44,7 +44,7 @@ type FixStaleVolumeStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// FixStaleVolume is the Schema for the fixstalevolumes API
+// FixStaleVolume is the Schema for the recoverstalevolumes API
 type FixStaleVolume struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
