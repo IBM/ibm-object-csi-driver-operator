@@ -8,13 +8,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-const (
-	EnvNameIBMObjectCSICrYaml = "IBMObjectCSI_CR_YAML"
-	DefaultLogLevel           = "DEBUG"
-	ControllerUserID          = int64(9999)
-
-	NodeAgentPort = "10086"
-)
+const EnvNameIBMObjectCSICrYaml = "IBMObjectCSI_CR_YAML"
 
 var DefaultIBMObjectCSICr v1alpha1.IBMObjectCSI
 

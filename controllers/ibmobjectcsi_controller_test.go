@@ -56,7 +56,7 @@ var (
 	reclaimPolicy        = corev1.PersistentVolumeReclaimRetain
 	secrets              = crutils.GetImagePullSecrets(ibmObjectCSICR.Spec.ImagePullSecrets)
 
-	reconcileRequest = reconcile.Request{
+	ibmObjectCSIReconcileRequest = reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      ibmObjectCSICRName,
 			Namespace: ibmObjectCSICRNamespace,
@@ -339,8 +339,7 @@ var (
 		ObjectMeta: metav1.ObjectMeta{
 			Name: config.GetNameForResource(config.RcloneStorageClass, ibmObjectCSICRName),
 		},
-		Provisioner: config.DriverName,
-		// ReclaimPolicy: &reclaimPolicy,
+		Provisioner:   config.DriverName,
 		ReclaimPolicy: &reclaimPolicy,
 		MountOptions: []string{
 			"acl=private",
@@ -404,7 +403,7 @@ func setupScheme() *runtime.Scheme {
 	return s
 }
 
-func TestReconcile(t *testing.T) {
+func TestIBMObjectCSIReconcile(t *testing.T) {
 	testCases := []struct {
 		testCaseName string
 		objects      []runtime.Object
@@ -612,25 +611,25 @@ func TestReconcile(t *testing.T) {
 		// 		ibmObjectCSICR,
 		// 		controllerSA,
 		// 		nodeSA,
-		// 		// &appsv1.Deployment{
-		// 		// 	ObjectMeta: controllerDeployment.ObjectMeta,
-		// 		// 	Spec:       controllerDeployment.Spec,
-		// 		// 	Status: appsv1.DeploymentStatus{
-		// 		// 		Replicas:      3,
-		// 		// 		ReadyReplicas: 0,
-		// 		// 	},
-		// 		// },
-		// 		// &corev1.Pod{
-		// 		// 	ObjectMeta: controllerPod.ObjectMeta,
-		// 		// 	Spec: corev1.PodSpec{
-		// 		// 		Containers: []corev1.Container{},
-		// 		// 	},
-		// 		// },
+		// &appsv1.Deployment{
+		// 	ObjectMeta: controllerDeployment.ObjectMeta,
+		// 	Spec:       controllerDeployment.Spec,
+		// 	Status: appsv1.DeploymentStatus{
+		// 		Replicas:      3,
+		// 		ReadyReplicas: 0,
+		// 	},
+		// },
+		// &corev1.Pod{
+		// 	ObjectMeta: controllerPod.ObjectMeta,
+		// 	Spec: corev1.PodSpec{
+		// 		Containers: []corev1.Container{},
+		// 	},
+		// },
 		// 	},
 		// 	clientFunc: func(objs []runtime.Object) client.WithWatch {
 		// 		fmt.Println("------", "IN this test case")
-		// 		// 	statusSubRes := ibmObjectCSICR
-		// 		// 	return fake.NewClientBuilder().WithRuntimeObjects(objs...).WithStatusSubresource(statusSubRes).Build()
+		// 	statusSubRes := ibmObjectCSICR
+		// 	return fake.NewClientBuilder().WithRuntimeObjects(objs...).WithStatusSubresource(statusSubRes).Build()
 		// 		return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 		// 	},
 		// 	expectedResp: reconcile.Result{},
@@ -719,11 +718,6 @@ func TestReconcile(t *testing.T) {
 			testLog.Info("Testcase being executed", "testcase", testcase.testCaseName)
 
 			scheme := setupScheme()
-			// 			if len(testcase.objects) > 0 {
-			// 				ibmCSIObj := testcase.objects[0]
-			// 				scheme.AddKnownTypes(v1alpha1.GroupVersion, ibmCSIObj)
-			// 			}
-
 			client := testcase.clientFunc(testcase.objects)
 
 			ibmObjectCSIReconciler := &IBMObjectCSIReconciler{
@@ -733,7 +727,7 @@ func TestReconcile(t *testing.T) {
 				ControllerHelper: common.NewControllerHelper(client),
 			}
 
-			res, err := ibmObjectCSIReconciler.Reconcile(testCtx, reconcileRequest)
+			res, err := ibmObjectCSIReconciler.Reconcile(testCtx, ibmObjectCSIReconcileRequest)
 			testLog.Info("Testcase return values", "result", res, "error", err)
 
 			assert.Equal(t, testcase.expectedResp, res)
