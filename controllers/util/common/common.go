@@ -3,7 +3,6 @@ package common
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/go-logr/logr"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/internal/crutils"
@@ -227,8 +226,9 @@ func (ch *ControllerHelper) RemoveFinalizer(instance crutils.Instance,
 
 func (ch *ControllerHelper) getAccessorAndFinalizerName(instance crutils.Instance) (metav1.Object, string, error) {
 	logger := ch.Log.WithName("getAccessorAndFinalizerName")
-	lowercaseKind := strings.ToLower(instance.GetObjectKind().GroupVersionKind().Kind)
-	finalizerName := fmt.Sprintf("%s.%s", lowercaseKind, oconfig.APIGroup)
+	// lowercaseKind := strings.ToLower(instance.GetObjectKind().GroupVersionKind().Kind)
+	// finalizerName := fmt.Sprintf("%s.%s", lowercaseKind, oconfig.APIGroup)
+	finalizerName := fmt.Sprintf("%s.%s", "ibmobjectcsi", oconfig.APIGroup)
 
 	accessor, err := meta.Accessor(instance)
 	if err != nil {

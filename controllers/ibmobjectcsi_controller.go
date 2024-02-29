@@ -130,17 +130,11 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 	// If the deletion timestamp is set, perform cleanup operations and remove a finalizer before returning from the reconciliation process.
 	if !instance.GetDeletionTimestamp().IsZero() {
-		isFinalizerExists, err := r.ControllerHelper.HasFinalizer(instance)
-		if err != nil {
+		if err := r.deleteClusterRoleBindings(instance); err != nil {
 			return reconcile.Result{}, err
 		}
-		// If the finalizer doesn't exist, return early, indicating that no further action is needed.
 
-		if !isFinalizerExists {
-			return reconcile.Result{}, nil
-		}
-
-		if err := r.deleteClusterRolesAndBindings(instance); err != nil {
+		if err := r.deleteClusterRoles(instance); err != nil {
 			return reconcile.Result{}, err
 		}
 
@@ -159,6 +153,8 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return reconcile.Result{}, nil
 	}
 	originalStatus := *instance.Status.DeepCopy()
+
+	fmt.Println(originalStatus)
 
 	// create the resources which never change if not exist
 	for _, rec := range []reconciler{
@@ -188,14 +184,13 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return reconcile.Result{}, err
 	}
 
-	// Resource created successfully - don't requeue
-
+	// Resources created successfully - don't requeue
 	return reconcile.Result{}, nil
 }
 
 func (r *IBMObjectCSIReconciler) updateStatus(instance *crutils.IBMObjectCSI, originalStatus csiv1alpha1.IBMObjectCSIStatus) error {
 	logger := csiLog.WithName("updateStatus")
-	controllerPod := &corev1.Pod{}
+
 	controllerDeployment, err := r.getControllerDeployment(instance)
 	if err != nil {
 		return err
@@ -205,6 +200,8 @@ func (r *IBMObjectCSIReconciler) updateStatus(instance *crutils.IBMObjectCSI, or
 	if err != nil {
 		return err
 	}
+
+	controllerPod := &corev1.Pod{}
 
 	instance.Status.ControllerReady = r.isControllerReady(controllerDeployment)
 	instance.Status.NodeReady = r.isNodeReady(nodeDaemonSet)
@@ -295,7 +292,6 @@ func (r *IBMObjectCSIReconciler) getNodeDaemonSet(instance *crutils.IBMObjectCSI
 		Name:      oconfig.GetNameForResource(oconfig.CSINode, instance.Name),
 		Namespace: instance.Namespace,
 	}, node)
-
 	return node, err
 }
 
@@ -305,7 +301,6 @@ func (r *IBMObjectCSIReconciler) getControllerDeployment(instance *crutils.IBMOb
 		Name:      oconfig.GetNameForResource(oconfig.CSIController, instance.Name),
 		Namespace: instance.Namespace,
 	}, controllerDeployment)
-
 	return controllerDeployment, err
 }
 
@@ -462,17 +457,6 @@ func (r *IBMObjectCSIReconciler) deleteCSIDriver(instance *crutils.IBMObjectCSI)
 	return nil
 }
 
-func (r *IBMObjectCSIReconciler) deleteClusterRolesAndBindings(instance *crutils.IBMObjectCSI) error {
-	if err := r.deleteClusterRoleBindings(instance); err != nil {
-		return err
-	}
-
-	if err := r.deleteClusterRoles(instance); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (r *IBMObjectCSIReconciler) deleteClusterRoleBindings(instance *crutils.IBMObjectCSI) error {
 	clusterRoleBindings := r.getClusterRoleBindings(instance)
 	return r.ControllerHelper.DeleteClusterRoleBindings(clusterRoleBindings)
@@ -485,7 +469,6 @@ func (r *IBMObjectCSIReconciler) deleteStorageClasses(instance *crutils.IBMObjec
 
 func (r *IBMObjectCSIReconciler) getClusterRoleBindings(instance *crutils.IBMObjectCSI) []*rbacv1.ClusterRoleBinding {
 	externalProvisioner := instance.GenerateExternalProvisionerClusterRoleBinding()
-
 	controllerSCC := instance.GenerateSCCForControllerClusterRoleBinding()
 	nodeSCC := instance.GenerateSCCForNodeClusterRoleBinding()
 
@@ -499,6 +482,7 @@ func (r *IBMObjectCSIReconciler) getClusterRoleBindings(instance *crutils.IBMObj
 func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCSI) []*storagev1.StorageClass {
 	rcloneSC := instance.GenerateRcloneSC()
 	s3fsSC := instance.Generates3fsSC()
+
 	return []*storagev1.StorageClass{
 		rcloneSC,
 		s3fsSC,
