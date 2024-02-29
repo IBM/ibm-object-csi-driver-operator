@@ -1,4 +1,4 @@
-apiVersion: csi.ibm.com/v1alpha1
+apiVersion: objectdriver.csi.ibm.com/v1alpha1
 kind: IBMObjectCSI
 metadata:
   name: ibm-object-csi

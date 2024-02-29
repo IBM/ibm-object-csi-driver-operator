@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	csiv1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
+	objectdriverv1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/util/common"
 	operatorConfig "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/config"
@@ -48,7 +48,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(csiv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(objectdriverv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -81,7 +81,7 @@ func main() {
 		Metrics:                metricsserver.Options{BindAddress: metricsAddr},
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "af88e983.ibm.com",
+		LeaderElectionID:       "af88e983.csi.ibm.com",
 
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
 		// when the Manager ends. This requires the binary to immediately end when the

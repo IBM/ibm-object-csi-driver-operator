@@ -2,8 +2,8 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- bases/csi.ibm.com_ibmobjectcsis.yaml
-- bases/csi.ibm.com_fixstalevolumes.yaml
+- bases/objectdriver.csi.ibm.com_ibmobjectcsis.yaml
+- bases/objectdriver.csi.ibm.com_restorestalevolumes.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
