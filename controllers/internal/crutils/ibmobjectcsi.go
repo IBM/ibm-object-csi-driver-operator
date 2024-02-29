@@ -15,9 +15,8 @@ type IBMObjectCSI struct {
 	*objectdriverv1alpha1.IBMObjectCSI
 }
 
-
 // New returns a wrapper for objectdriverv1.IBMObjectCSI
-func New(c *objectdriverv1alpha1.IBMObjectCSI, serverVersion string) *IBMObjectCSI {
+func New(c *objectdriverv1alpha1.IBMObjectCSI) *IBMObjectCSI {
 	return &IBMObjectCSI{
 		IBMObjectCSI: c,
 	}
