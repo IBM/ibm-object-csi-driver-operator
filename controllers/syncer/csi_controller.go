@@ -23,8 +23,8 @@ import (
 const (
 	socketVolumeName                           = "socket-dir"
 	ControllerContainerName                    = "ibm-object-csi-controller"
-	provisionerContainerName                   = "csi-provisioner"
-	controllerLivenessProbeContainerName       = "livenessprobe"
+	ProvisionerContainerName                   = "csi-provisioner"
+	ControllerLivenessProbeContainerName       = "livenessprobe"
 	controllerContainerHealthPortName          = "healthz"
 	controllerContainerDefaultHealthPortNumber = 9808
 )
@@ -139,13 +139,13 @@ func (s *csiControllerSyncer) ensureContainersSpec() []corev1.Container {
 		"--v=5",
 		"--timeout=120s",
 	}
-	provisioner := s.ensureContainer(provisionerContainerName,
+	provisioner := s.ensureContainer(ProvisionerContainerName,
 		s.getCSIProvisionerImage(),
 		provisionerArgs,
 	)
 	provisioner.ImagePullPolicy = s.getCSIProvisionerPullPolicy()
 	healthPortArg := fmt.Sprintf("--health-port=%v", healthPort)
-	livenessProbe := s.ensureContainer(controllerLivenessProbeContainerName,
+	livenessProbe := s.ensureContainer(ControllerLivenessProbeContainerName,
 		s.getLivenessProbeImage(),
 		[]string{
 			"--csi-address=/csi/csi.sock",
@@ -206,7 +206,7 @@ func (s *csiControllerSyncer) getEnvFor(name string) []corev1.EnvVar {
 			},
 		}
 
-	case provisionerContainerName:
+	case ProvisionerContainerName:
 		return []corev1.EnvVar{
 			{
 				Name:  "ADDRESS",
@@ -219,7 +219,7 @@ func (s *csiControllerSyncer) getEnvFor(name string) []corev1.EnvVar {
 
 func (s *csiControllerSyncer) getVolumeMountsFor(name string) []corev1.VolumeMount {
 	switch name {
-	case ControllerContainerName, provisionerContainerName:
+	case ControllerContainerName, ProvisionerContainerName:
 		return []corev1.VolumeMount{
 			{
 				Name:      socketVolumeName,
@@ -227,7 +227,7 @@ func (s *csiControllerSyncer) getVolumeMountsFor(name string) []corev1.VolumeMou
 			},
 		}
 
-	case controllerLivenessProbeContainerName:
+	case ControllerLivenessProbeContainerName:
 		return []corev1.VolumeMount{
 			{
 				Name:      socketVolumeName,
