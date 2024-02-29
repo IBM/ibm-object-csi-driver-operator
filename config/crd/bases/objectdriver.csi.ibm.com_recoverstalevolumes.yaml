@@ -4,7 +4,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.14.0
-  name: recoverstalevolume.objectdriver.csi.ibm.com
+  name: recoverstalevolumes.objectdriver.csi.ibm.com
 spec:
   group: objectdriver.csi.ibm.com
   names:
@@ -17,7 +17,8 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: RecoverStaleVolume is the Schema for the recoverstalevolumes API
+        description: RecoverStaleVolume is the Schema for the recoverstalevolumes
+          API
         properties:
           apiVersion:
             description: |-
