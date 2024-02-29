@@ -100,7 +100,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	r.ControllerHelper.Log = csiLog
 
 	// Fetch the CSIDriver instance
-	instance := crutils.New(&objectdriverv1alpha1.IBMObjectCSI{}, r.ServerVersion)
+	instance := crutils.New(&objectdriverv1alpha1.IBMObjectCSI{})
 	err := r.Get(context.TODO(), req.NamespacedName, instance.Unwrap())
 	if err != nil {
 		if errors.IsNotFound(err) {
