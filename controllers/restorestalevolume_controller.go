@@ -43,14 +43,14 @@ type FixStaleVolumeReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-var staleVolLog = logf.Log.WithName("fixstalevolume_controller")
+var staleVolLog = logf.Log.WithName("restorestalevolume_controller")
 var reconcileTime = 2 * time.Minute
 var csiOperatorNamespace = "ibm-object-csi-operator-system"
 var transportEndpointError = "transport endpoint is not connected"
 
-//+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=fixstalevolumes,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=fixstalevolumes/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=fixstalevolumes/finalizers,verbs=update
+//+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=restorestalevolumes,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=restorestalevolumes/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=restorestalevolumes/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=pods/log,verbs=get
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to

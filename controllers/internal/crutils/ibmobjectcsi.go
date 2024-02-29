@@ -3,27 +3,28 @@ package crutils
 import (
 	"fmt"
 
-	csiv1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
+	objectdriverv1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/internal/common"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/config"
 	csiversion "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/version"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
-// IBMObjectCSI is the wrapper for csiv1alpha1.IBMObjectCSI type
+// IBMObjectCSI is the wrapper for objectdriverv1alpha1.IBMObjectCSI type
 type IBMObjectCSI struct {
-	*csiv1alpha1.IBMObjectCSI
+	*objectdriverv1alpha1.IBMObjectCSI
 }
 
-// New returns a wrapper for csiv1.IBMObjectCSI
-func New(c *csiv1alpha1.IBMObjectCSI) *IBMObjectCSI {
+
+// New returns a wrapper for objectdriverv1.IBMObjectCSI
+func New(c *objectdriverv1alpha1.IBMObjectCSI, serverVersion string) *IBMObjectCSI {
 	return &IBMObjectCSI{
 		IBMObjectCSI: c,
 	}
 }
 
-// Unwrap returns the csiv1.IBMObjectCSI object
-func (c *IBMObjectCSI) Unwrap() *csiv1alpha1.IBMObjectCSI {
+// Unwrap returns the objectdriverv1.IBMObjectCSI object
+func (c *IBMObjectCSI) Unwrap() *objectdriverv1alpha1.IBMObjectCSI {
 	return c.IBMObjectCSI
 }
 
