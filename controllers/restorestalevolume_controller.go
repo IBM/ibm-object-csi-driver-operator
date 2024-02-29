@@ -37,8 +37,8 @@ import (
 	csiv1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
 )
 
-// FixStaleVolumeReconciler reconciles a FixStaleVolume object
-type FixStaleVolumeReconciler struct {
+// RestoreStaleVolumeReconciler reconciles a RestoreStaleVolume object
+type RestoreStaleVolumeReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
@@ -56,26 +56,26 @@ var transportEndpointError = "transport endpoint is not connected"
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the FixStaleVolume object against the actual cluster state, and then
+// the RestoreStaleVolume object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.4/pkg/reconcile
-func (r *FixStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *RestoreStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	reqLogger := staleVolLog.WithValues("Request.Namespace", req.Namespace, "Request.Name", req.Name)
-	reqLogger.Info("Reconciling FixStaleVolume")
+	reqLogger.Info("Reconciling RestoreStaleVolume")
 
-	// Fetch FixStaleVolume instance
-	instance := &csiv1alpha1.FixStaleVolume{}
+	// Fetch RestoreStaleVolume instance
+	instance := &csiv1alpha1.RestoreStaleVolume{}
 	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if k8serr.IsNotFound(err) {
-			reqLogger.Info("FixStaleVolume resource not found. Ignoring since object must be deleted")
+			reqLogger.Info("RestoreStaleVolume resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object.
-		reqLogger.Error(err, "failed to get FixStaleVolume resource")
+		reqLogger.Error(err, "failed to get RestoreStaleVolume resource")
 		return ctrl.Result{}, err
 	}
 
@@ -262,9 +262,9 @@ func (r *FixStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *FixStaleVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *RestoreStaleVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&csiv1alpha1.FixStaleVolume{}).
+		For(&csiv1alpha1.RestoreStaleVolume{}).
 		Complete(r)
 }
 

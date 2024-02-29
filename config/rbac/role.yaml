@@ -126,32 +126,6 @@ rules:
   verbs:
   - update
 - apiGroups:
-  - objectdriver.csi.ibm.com
-  resources:
-  - restorestalevolumes
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - objectdriver.csi.ibm.com
-  resources:
-  - restorestalevolumes/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - objectdriver.csi.ibm.com
-  resources:
-  - restorestalevolumes/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
   - monitoring.coreos.com
   resources:
   - servicemonitors
@@ -186,6 +160,32 @@ rules:
   - objectdriver.csi.ibm.com
   resources:
   - ibmobjectcsis/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - objectdriver.csi.ibm.com
+  resources:
+  - restorestalevolumes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - objectdriver.csi.ibm.com
+  resources:
+  - restorestalevolumes/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - objectdriver.csi.ibm.com
+  resources:
+  - restorestalevolumes/status
   verbs:
   - get
   - patch
