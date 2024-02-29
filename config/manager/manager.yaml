@@ -73,12 +73,6 @@ spec:
         image: controller:latest
         imagePullPolicy: Always
         name: manager
-        env:
-        - name: WATCH_NAMESPACE
-          #value: default
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

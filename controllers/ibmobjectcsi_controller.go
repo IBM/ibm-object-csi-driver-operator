@@ -56,7 +56,6 @@ var csiLog = logf.Log.WithName("ibmobjectcsi_controller")
 type IBMObjectCSIReconciler struct {
 	client.Client
 	Scheme           *runtime.Scheme
-	Namespace        string
 	Recorder         record.EventRecorder
 	ControllerHelper *common.ControllerHelper
 }

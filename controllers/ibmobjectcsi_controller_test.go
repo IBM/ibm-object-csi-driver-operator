@@ -7,19 +7,18 @@ import (
 	"os"
 	"testing"
 
-	fakedeletecr "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_delete/clusterrole"
-	fakedeletecrb "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_delete/clusterrolebinding"
-	fakedeletecsidriver "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_delete/csidriver"
-	fakedeletesc "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_delete/storageclass"
-	fakeget "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_get"
-	fakeupdate "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_update"
-
 	"github.com/stretchr/testify/assert"
 	csiv1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
+	fakecreate "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_create"
+	fakedelete "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_delete"
+	fakeget "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_get"
+	fakegetcsidriver "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_get/csidriver"
+	fakegetsa "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_get/serviceaccount"
+	fakeupdate "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_update"
+	crutils "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/internal/crutils"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/util/common"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/config"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/util/boolptr"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -28,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -36,9 +34,12 @@ import (
 )
 
 const (
+	CreateError = "failed to create"
 	DeleteError = "failed to delete"
 	GetError    = "failed to get"
 	UpdateError = "failed to update"
+
+	NotFoundError = "not found"
 )
 
 var (
@@ -51,8 +52,9 @@ var (
 	ibmObjectCSICRNamespace = "test-namespace"
 	ibmObjectCSIfinalizer   = "ibmobjectcsi.csi.ibm.com"
 
-	reclaimPolicy        = corev1.PersistentVolumeReclaimRetain
 	defaultFSGroupPolicy = storagev1.FileFSGroupPolicy
+	reclaimPolicy        = corev1.PersistentVolumeReclaimRetain
+	secrets              = crutils.GetImagePullSecrets(ibmObjectCSICR.Spec.ImagePullSecrets)
 
 	reconcileRequest = reconcile.Request{
 		NamespacedName: types.NamespacedName{
@@ -173,6 +175,34 @@ var (
 			Name:      fmt.Sprintf("%s-0", controllerDeployment.Name),
 			Namespace: ibmObjectCSICRNamespace,
 		},
+	}
+
+	csiDriver = &storagev1.CSIDriver{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   config.DriverName,
+			Labels: map[string]string{"app.kubernetes.io/name": "ibm-object-csi"},
+		},
+		Spec: storagev1.CSIDriverSpec{
+			AttachRequired: boolptr.False(),
+			PodInfoOnMount: boolptr.True(),
+			FSGroupPolicy:  &defaultFSGroupPolicy,
+		},
+	}
+
+	controllerSA = &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      config.GetNameForResource(config.CSIControllerServiceAccount, ibmObjectCSICRName),
+			Namespace: ibmObjectCSICRNamespace,
+		},
+		ImagePullSecrets: secrets,
+	}
+
+	nodeSA = &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      config.GetNameForResource(config.CSINodeServiceAccount, ibmObjectCSICRName),
+			Namespace: ibmObjectCSICRNamespace,
+		},
+		ImagePullSecrets: secrets,
 	}
 
 	externalProvisionerCRB = &rbacv1.ClusterRoleBinding{
@@ -356,18 +386,6 @@ var (
 			"csi.storage.k8s.io/node-publish-secret-namespace": "${pvc.namespace}",
 		},
 	}
-
-	csiDriver = &storagev1.CSIDriver{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   config.DriverName,
-			Labels: map[string]string{"app.kubernetes.io/name": "ibm-object-csi"},
-		},
-		Spec: storagev1.CSIDriverSpec{
-			AttachRequired: boolptr.False(),
-			PodInfoOnMount: boolptr.True(),
-			FSGroupPolicy:  &defaultFSGroupPolicy,
-		},
-	}
 )
 
 func TestMain(m *testing.M) {
@@ -419,6 +437,28 @@ func TestReconcile(t *testing.T) {
 			expectedErr:  nil,
 		},
 		{
+			testCaseName: "Positive: Sync controller deployment & pod containers and update status in IBMObjectCSI CR",
+			objects: []runtime.Object{
+				ibmObjectCSICR,
+				csiNode,
+				&appsv1.Deployment{
+					ObjectMeta: controllerDeployment.ObjectMeta,
+					Spec:       controllerDeployment.Spec,
+					Status: appsv1.DeploymentStatus{
+						Replicas:      3,
+						ReadyReplicas: 0,
+					},
+				},
+				controllerPod,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				statusSubRes := ibmObjectCSICR
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).WithStatusSubresource(statusSubRes).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  nil,
+		},
+		{
 			testCaseName: "Positive: Successfully removed finaliser from IBMObjectCSI CR",
 			objects: []runtime.Object{
 				ibmObjectCSICR_WithDeletionTS,
@@ -430,7 +470,7 @@ func TestReconcile(t *testing.T) {
 			expectedErr:  nil,
 		},
 		{
-			testCaseName: "Negative: Failed to fetch IBMObjectCSI CR",
+			testCaseName: "Negative: Failed to get IBMObjectCSI CR",
 			objects:      []runtime.Object{},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fakeget.NewClientBuilder().WithRuntimeObjects(objs...).Build()
@@ -478,6 +518,125 @@ func TestReconcile(t *testing.T) {
 			expectedErr:  errors.New(UpdateError),
 		},
 		{
+			testCaseName: "Negative: Failed to create CSI driver while reconciling",
+			objects: []runtime.Object{
+				ibmObjectCSICR,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fakecreate.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(CreateError),
+		},
+		{
+			testCaseName: "Negative: Failed to get CSI driver while reconciling",
+			objects: []runtime.Object{
+				ibmObjectCSICR,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fakegetcsidriver.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(GetError),
+		},
+		{
+			testCaseName: "Negative: Failed to create service account while reconciling",
+			objects: []runtime.Object{
+				ibmObjectCSICR,
+				csiDriver,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fakecreate.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(CreateError),
+		},
+		{
+			testCaseName: "Failed to get node daemon set while reconciling",
+			objects: []runtime.Object{
+				ibmObjectCSICR,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(NotFoundError),
+		},
+		{
+			testCaseName: "Failed to get controller deployment set while reconciling",
+			objects: []runtime.Object{
+				ibmObjectCSICR,
+				csiNode,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(NotFoundError),
+		},
+		{
+			testCaseName: "Negative: Failed to restart node while reconciling",
+			objects: []runtime.Object{
+				&csiv1alpha1.IBMObjectCSI{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:       ibmObjectCSICRName,
+						Namespace:  ibmObjectCSICRNamespace,
+						Finalizers: []string{ibmObjectCSIfinalizer},
+					},
+					Spec: ibmObjectCSICR.Spec,
+				},
+				csiNode,
+				controllerDeployment,
+				controllerPod,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fakeupdate.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(UpdateError),
+		},
+		{
+			testCaseName: "Failed to get service account while reconciling",
+			objects: []runtime.Object{
+				ibmObjectCSICR,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fakegetsa.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(GetError),
+		},
+		// {
+		// 	testCaseName: "Negative: Failed to update status in IBMObjectCSI CR",
+		// 	objects: []runtime.Object{
+		// 		ibmObjectCSICR,
+		// 		controllerSA,
+		// 		nodeSA,
+		// 		// &appsv1.Deployment{
+		// 		// 	ObjectMeta: controllerDeployment.ObjectMeta,
+		// 		// 	Spec:       controllerDeployment.Spec,
+		// 		// 	Status: appsv1.DeploymentStatus{
+		// 		// 		Replicas:      3,
+		// 		// 		ReadyReplicas: 0,
+		// 		// 	},
+		// 		// },
+		// 		// &corev1.Pod{
+		// 		// 	ObjectMeta: controllerPod.ObjectMeta,
+		// 		// 	Spec: corev1.PodSpec{
+		// 		// 		Containers: []corev1.Container{},
+		// 		// 	},
+		// 		// },
+		// 	},
+		// 	clientFunc: func(objs []runtime.Object) client.WithWatch {
+		// 		fmt.Println("------", "IN this test case")
+		// 		// 	statusSubRes := ibmObjectCSICR
+		// 		// 	return fake.NewClientBuilder().WithRuntimeObjects(objs...).WithStatusSubresource(statusSubRes).Build()
+		// 		return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+		// 	},
+		// 	expectedResp: reconcile.Result{},
+		// 	expectedErr:  nil,
+		// },
+		{
 			testCaseName: "Negative: IBMObjectCSI CR is deleted and failed to delete cluster role binding",
 			objects: []runtime.Object{
 				ibmObjectCSICR_WithDeletionTS,
@@ -486,7 +645,7 @@ func TestReconcile(t *testing.T) {
 				nodeSCCCRB,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
-				return fakedeletecrb.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+				return fakedelete.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 			},
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(DeleteError),
@@ -500,7 +659,7 @@ func TestReconcile(t *testing.T) {
 				nodeSCCCR,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
-				return fakedeletecr.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+				return fakedelete.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 			},
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(DeleteError),
@@ -513,7 +672,7 @@ func TestReconcile(t *testing.T) {
 				s3fsSC,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
-				return fakedeletesc.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+				return fakedelete.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 			},
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(DeleteError),
@@ -525,7 +684,7 @@ func TestReconcile(t *testing.T) {
 				csiDriver,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
-				return fakedeletecsidriver.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+				return fakedelete.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 			},
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(DeleteError),
@@ -545,9 +704,11 @@ func TestReconcile(t *testing.T) {
 			expectedErr:  errors.New(UpdateError),
 		},
 		// {
-		// 	testCaseName: "Negative: Failed to get ",
+		// 	testCaseName: "Negative: Failed to get CSI driver while deleting",
 		// 	objects:      []runtime.Object{},
-		// 	clientFunc:   func(objs []runtime.Object) client.WithWatch {},
+		// 	clientFunc: func(objs []runtime.Object) client.WithWatch {
+		// 		return fakegetcsidriver.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+		// 	},
 		// 	expectedResp: reconcile.Result{},
 		// 	expectedErr:  nil,
 		// },
@@ -568,9 +729,7 @@ func TestReconcile(t *testing.T) {
 			ibmObjectCSIReconciler := &IBMObjectCSIReconciler{
 				Client: client,
 				Scheme: scheme,
-				// Namespace: "",
 				// Recorder: record.NewFakeRecorder(0),
-				// ServerVersion: "",
 				ControllerHelper: common.NewControllerHelper(client),
 			}
 
