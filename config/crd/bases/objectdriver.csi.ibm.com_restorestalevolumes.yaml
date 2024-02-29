@@ -52,7 +52,7 @@ spec:
                 type: integer
             type: object
           status:
-            description: RestoreStaleVolumeStatus defines the observed state of RestoreStaleVolume
+            description: RecoverStaleVolumeStatus defines the observed state of RecoverStaleVolume
             type: object
         type: object
     served: true

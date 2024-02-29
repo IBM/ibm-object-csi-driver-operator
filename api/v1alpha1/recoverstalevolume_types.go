@@ -23,9 +23,9 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// RestoreStaleVolumeSpec defines the desired state of RestoreStaleVolume
+// RecoverStaleVolumeSpec defines the desired state of RecoverStaleVolume
 
-type RestoreStaleVolumeSpec struct {
+type RecoverStaleVolumeSpec struct {
 	NoOfLogLines int64            `json:"noOfLogLines,omitempty"`
 	Deployment   []DeploymentData `json:"deploymentData,omitempty"`
 }
@@ -35,8 +35,8 @@ type DeploymentData struct {
 	DeploymentNamespace string `json:"deploymentNamespace,omitempty"`
 }
 
-// RestoreStaleVolumeStatus defines the observed state of RestoreStaleVolume
-type RestoreStaleVolumeStatus struct {
+// RecoverStaleVolumeStatus defines the observed state of RecoverStaleVolume
+type RecoverStaleVolumeStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
@@ -44,24 +44,24 @@ type RestoreStaleVolumeStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// RestoreStaleVolume is the Schema for the recoverstalevolumes API
-type RestoreStaleVolume struct {
+// RecoverStaleVolume is the Schema for the recoverstalevolumes API
+type RecoverStaleVolume struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   RestoreStaleVolumeSpec   `json:"spec,omitempty"`
-	Status RestoreStaleVolumeStatus `json:"status,omitempty"`
+	Spec   RecoverStaleVolumeSpec   `json:"spec,omitempty"`
+	Status RecoverStaleVolumeStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// RestoreStaleVolumeList contains a list of RestoreStaleVolume
-type RestoreStaleVolumeList struct {
+// RecoverStaleVolumeList contains a list of RecoverStaleVolume
+type RecoverStaleVolumeList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []RestoreStaleVolume `json:"items"`
+	Items           []RecoverStaleVolume `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&RestoreStaleVolume{}, &RestoreStaleVolumeList{})
+	SchemeBuilder.Register(&RecoverStaleVolume{}, &RecoverStaleVolumeList{})
 }

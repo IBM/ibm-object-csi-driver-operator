@@ -109,11 +109,11 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "IBMObjectCSI")
 		os.Exit(1)
 	}
-	if err = (&controllers.RestoreStaleVolumeReconciler{
+	if err = (&controllers.RecoverStaleVolumeReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "RestoreStaleVolume")
+		setupLog.Error(err, "unable to create controller", "controller", "RecoverStaleVolume")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
