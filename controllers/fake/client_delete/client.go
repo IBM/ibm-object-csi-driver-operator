@@ -34,7 +34,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
-	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -654,45 +653,15 @@ func (c *fakeClient) IsObjectNamespaced(obj runtime.Object) (bool, error) {
 }
 
 func (c *fakeClient) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
-	switch obj.(type) {
-	case *storagev1.CSIDriver:
-		return errors.New("failed to create csidriver")
-	default:
-		createOptions := &client.CreateOptions{}
-		createOptions.ApplyOptions(opts)
+	createOptions := &client.CreateOptions{}
+	createOptions.ApplyOptions(opts)
 
-		for _, dryRunOpt := range createOptions.DryRun {
-			if dryRunOpt == metav1.DryRunAll {
-				return nil
-			}
+	for _, dryRunOpt := range createOptions.DryRun {
+		if dryRunOpt == metav1.DryRunAll {
+			return nil
 		}
-
-		gvr, err := getGVRFromObject(obj, c.scheme)
-		if err != nil {
-			return err
-		}
-		accessor, err := meta.Accessor(obj)
-		if err != nil {
-			return err
-		}
-
-		if accessor.GetName() == "" && accessor.GetGenerateName() != "" {
-			base := accessor.GetGenerateName()
-			if len(base) > maxGeneratedNameLength {
-				base = base[:maxGeneratedNameLength]
-			}
-			accessor.SetName(fmt.Sprintf("%s%s", base, utilrand.String(randomLength)))
-		}
-		// Ignore attempts to set deletion timestamp
-		if !accessor.GetDeletionTimestamp().IsZero() {
-			accessor.SetDeletionTimestamp(nil)
-		}
-
-		return c.tracker.Create(gvr, obj, accessor.GetNamespace())
 	}
-}
 
-func (c *fakeClient) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
 	gvr, err := getGVRFromObject(obj, c.scheme)
 	if err != nil {
 		return err
@@ -701,38 +670,24 @@ func (c *fakeClient) Delete(ctx context.Context, obj client.Object, opts ...clie
 	if err != nil {
 		return err
 	}
-	delOptions := client.DeleteOptions{}
-	delOptions.ApplyOptions(opts)
 
-	for _, dryRunOpt := range delOptions.DryRun {
-		if dryRunOpt == metav1.DryRunAll {
-			return nil
+	if accessor.GetName() == "" && accessor.GetGenerateName() != "" {
+		base := accessor.GetGenerateName()
+		if len(base) > maxGeneratedNameLength {
+			base = base[:maxGeneratedNameLength]
 		}
+		accessor.SetName(fmt.Sprintf("%s%s", base, utilrand.String(randomLength)))
+	}
+	// Ignore attempts to set deletion timestamp
+	if !accessor.GetDeletionTimestamp().IsZero() {
+		accessor.SetDeletionTimestamp(nil)
 	}
 
-	// Check the ResourceVersion if that Precondition was specified.
-	if delOptions.Preconditions != nil && delOptions.Preconditions.ResourceVersion != nil {
-		name := accessor.GetName()
-		dbObj, err := c.tracker.Get(gvr, accessor.GetNamespace(), name)
-		if err != nil {
-			return err
-		}
-		oldAccessor, err := meta.Accessor(dbObj)
-		if err != nil {
-			return err
-		}
-		actualRV := oldAccessor.GetResourceVersion()
-		expectRV := *delOptions.Preconditions.ResourceVersion
-		if actualRV != expectRV {
-			msg := fmt.Sprintf(
-				"the ResourceVersion in the precondition (%s) does not match the ResourceVersion in record (%s). "+
-					"The object might have been modified",
-				expectRV, actualRV)
-			return apierrors.NewConflict(gvr.GroupResource(), name, errors.New(msg))
-		}
-	}
+	return c.tracker.Create(gvr, obj, accessor.GetNamespace())
+}
 
-	return c.deleteObject(gvr, accessor)
+func (c *fakeClient) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
+	return errors.New("failed to delete object")
 }
 
 func (c *fakeClient) DeleteAllOf(ctx context.Context, obj client.Object, opts ...client.DeleteAllOfOption) error {
