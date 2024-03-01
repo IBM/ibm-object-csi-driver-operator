@@ -243,13 +243,7 @@ func (r *IBMObjectCSIReconciler) restartControllerPodfromDeployment(logger logr.
 
 func (r *IBMObjectCSIReconciler) getControllerPod(controllerDeployment *appsv1.Deployment, controllerPod *corev1.Pod) error {
 	controllerPodName := fmt.Sprintf("%s-0", controllerDeployment.Name)
-	err := r.Get(context.TODO(), types.NamespacedName{
-		Name:      controllerPodName,
-		Namespace: controllerDeployment.Namespace,
-	}, controllerPod)
-	if errors.IsNotFound(err) {
-		return nil
-	}
+	err := r.Get(context.TODO(), types.NamespacedName{Name: controllerPodName, Namespace: controllerDeployment.Namespace}, controllerPod)
 	return err
 }
 
@@ -349,7 +343,6 @@ func (r *IBMObjectCSIReconciler) reconcileServiceAccount(instance *crutils.IBMOb
 
 			if controllerServiceAccountName == sa.Name {
 				rErr := r.restartControllerPod(logger, instance)
-
 				if rErr != nil {
 					return rErr
 				}
@@ -360,7 +353,6 @@ func (r *IBMObjectCSIReconciler) reconcileServiceAccount(instance *crutils.IBMOb
 					"NumberAvailable", nodeDaemonSet.Status.NumberAvailable)
 				logger.Info("csi node stopped being ready - restarting it")
 				rErr := r.rolloutRestartNode(nodeDaemonSet)
-
 				if rErr != nil {
 					return rErr
 				}
