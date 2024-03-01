@@ -16,6 +16,7 @@ import (
 	fakegetpod "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_get/pod"
 	fakegetsa "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_get/serviceaccount"
 	fakeupdate "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_update"
+	fakeupdateibmobjcsi "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_update/ibmobjectcsi"
 	crutils "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/internal/crutils"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/syncer"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/util/common"
@@ -33,7 +34,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	// fakeupdateibmobjcsi "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_update/ibmobjectcsi"
 )
 
 const (
@@ -447,28 +447,28 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			expectedResp: reconcile.Result{},
 			expectedErr:  nil,
 		},
-		{
-			// 	testCaseName: "Positive: Sync controller deployment & pod containers and update status in IBMObjectCSI CR",
-			// 	objects: []runtime.Object{
-			// 		ibmObjectCSICR,
-			// 		csiNode,
-			// 		&appsv1.Deployment{
-			// 			ObjectMeta: controllerDeployment.ObjectMeta,
-			// 			Spec:       controllerDeployment.Spec,
-			// 			Status: appsv1.DeploymentStatus{
-			// 				Replicas:      3,
-			// 				ReadyReplicas: 0,
-			// 			},
-			// 		},
-			// 		controllerPod,
-			// 	},
-			// 	clientFunc: func(objs []runtime.Object) client.WithWatch {
-			// 		statusSubRes := ibmObjectCSICR
-			// 		return fake.NewClientBuilder().WithRuntimeObjects(objs...).WithStatusSubresource(statusSubRes).Build()
-			// 	},
-			// 	expectedResp: reconcile.Result{},
-			// 	expectedErr:  nil,
-		},
+		// {
+		// 	testCaseName: "Positive: Sync controller deployment & pod containers and update status in IBMObjectCSI CR",
+		// 	objects: []runtime.Object{
+		// 		ibmObjectCSICR,
+		// 		csiNode,
+		// 		&appsv1.Deployment{
+		// 			ObjectMeta: controllerDeployment.ObjectMeta,
+		// 			Spec:       controllerDeployment.Spec,
+		// 			Status: appsv1.DeploymentStatus{
+		// 				Replicas:      3,
+		// 				ReadyReplicas: 0,
+		// 			},
+		// 		},
+		// 		controllerPod,
+		// 	},
+		// 	clientFunc: func(objs []runtime.Object) client.WithWatch {
+		// 		statusSubRes := ibmObjectCSICR
+		// 		return fake.NewClientBuilder().WithRuntimeObjects(objs...).WithStatusSubresource(statusSubRes).Build()
+		// 	},
+		// 	expectedResp: reconcile.Result{},
+		// 	expectedErr:  nil,
+		// },
 		{
 			testCaseName: "Positive: Successfully updated status in IBMObjectCSI CR after validating if pod images are in sync",
 			objects: []runtime.Object{
@@ -712,44 +712,44 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(UpdateError),
 		},
-		// 	{
-		// 		testCaseName: "Negative: Failed to update status in IBMObjectCSI CR",
-		// 		objects: []runtime.Object{
-		// 			ibmObjectCSICR_WithFinaliser,
-		// 			controllerSA,
-		// 			nodeSA,
-		// 			&appsv1.Deployment{
-		// 				ObjectMeta: controllerDeployment.ObjectMeta,
-		// 				Spec:       controllerDeployment.Spec,
-		// 				Status: appsv1.DeploymentStatus{
-		// 					Replicas:      1,
-		// 					ReadyReplicas: 0,
-		// 				},
-		// 			},
-		// 			&corev1.Pod{
-		// 				ObjectMeta: controllerPod.ObjectMeta,
-		// 				Spec: corev1.PodSpec{
-		// 					Containers: []corev1.Container{
-		// 						{
-		// 							Name: syncer.ControllerContainerName,
-		// 						},
-		// 						{
-		// 							Name: syncer.ProvisionerContainerName,
-		// 						},
-		// 						{
-		// 							Name: syncer.ControllerLivenessProbeContainerName,
-		// 						},
-		// 					},
-		// 				},
-		// 			},
-		// 		},
-		// 		clientFunc: func(objs []runtime.Object) client.WithWatch {
-		// 			statusSubRes := ibmObjectCSICR_WithFinaliser
-		// 			return fakeupdateibmobjcsi.NewClientBuilder().WithRuntimeObjects(objs...).WithStatusSubresource(statusSubRes).Build()
-		// 		},
-		// 		expectedResp: reconcile.Result{},
-		// 		expectedErr:  errors.New(UpdateError),
-		// 	},
+		{
+			testCaseName: "Negative: Failed to update status in IBMObjectCSI CR",
+			objects: []runtime.Object{
+				ibmObjectCSICR_WithFinaliser,
+				controllerSA,
+				nodeSA,
+				&appsv1.Deployment{
+					ObjectMeta: controllerDeployment.ObjectMeta,
+					Spec:       controllerDeployment.Spec,
+					Status: appsv1.DeploymentStatus{
+						Replicas:      1,
+						ReadyReplicas: 0,
+					},
+				},
+				&corev1.Pod{
+					ObjectMeta: controllerPod.ObjectMeta,
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{
+							{
+								Name: syncer.ControllerContainerName,
+							},
+							{
+								Name: syncer.ProvisionerContainerName,
+							},
+							{
+								Name: syncer.ControllerLivenessProbeContainerName,
+							},
+						},
+					},
+				},
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				statusSubRes := ibmObjectCSICR_WithFinaliser
+				return fakeupdateibmobjcsi.NewClientBuilder().WithRuntimeObjects(objs...).WithStatusSubresource(statusSubRes).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(UpdateError),
+		},
 		{
 			testCaseName: "Negative: IBMObjectCSI CR is deleted and failed to delete cluster role binding",
 			objects: []runtime.Object{
