@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"testing"
 
@@ -13,8 +12,8 @@ import (
 	fakedelete "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_delete"
 	fakeget "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_get"
 	fakegetcsidriver "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_get/csidriver"
-	fakegetpod "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_get/pod"
 	fakegetsa "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_get/serviceaccount"
+	fakelist "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_list"
 	fakeupdate "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_update"
 	fakeupdateibmobjcsi "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_update/ibmobjectcsi"
 	crutils "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/internal/crutils"
@@ -34,12 +33,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	// fakegetpod "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_get/pod"
 )
 
 const (
 	CreateError = "failed to create"
 	DeleteError = "failed to delete"
 	GetError    = "failed to get"
+	ListError   = "failed to list"
 	UpdateError = "failed to update"
 
 	NotFoundError = "not found"
@@ -184,7 +185,7 @@ var (
 
 	controllerPod = &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-0", controllerDeployment.Name),
+			Name:      controllerDeployment.Name + "-pod",
 			Namespace: ibmObjectCSICRNamespace,
 		},
 	}
@@ -615,17 +616,6 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			expectedErr:  errors.New(NotFoundError),
 		},
 		{
-			testCaseName: "Failed to get service account while reconciling",
-			objects: []runtime.Object{
-				ibmObjectCSICR,
-			},
-			clientFunc: func(objs []runtime.Object) client.WithWatch {
-				return fakegetsa.NewClientBuilder().WithRuntimeObjects(objs...).Build()
-			},
-			expectedResp: reconcile.Result{},
-			expectedErr:  errors.New(GetError),
-		},
-		{
 			testCaseName: "Failed to get controller deployment while reconciling",
 			objects: []runtime.Object{
 				ibmObjectCSICR,
@@ -652,6 +642,17 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			expectedErr:  errors.New(UpdateError),
 		},
 		{
+			testCaseName: "Failed to get service account while reconciling",
+			objects: []runtime.Object{
+				ibmObjectCSICR,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fakegetsa.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(GetError),
+		},
+		{
 			testCaseName: "Negative: Failed to get controller pod while reconciling",
 			objects: []runtime.Object{
 				ibmObjectCSICR_WithFinaliser,
@@ -659,24 +660,24 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 				controllerDeployment,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
-				return fakegetpod.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+				return fakelist.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 			},
 			expectedResp: reconcile.Result{},
-			expectedErr:  errors.New(GetError),
+			expectedErr:  errors.New(ListError),
 		},
-		// {
-		// 	testCaseName: "Negative: Controller pod not found while reconciling",
-		// 	objects: []runtime.Object{
-		// 		ibmObjectCSICR_WithFinaliser,
-		// 		csiNode,
-		// 		controllerDeployment,
-		// 	},
-		// 	clientFunc: func(objs []runtime.Object) client.WithWatch {
-		// 		return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
-		// 	},
-		// 	expectedResp: reconcile.Result{},
-		// 	expectedErr:  errors.New(NotFoundError),
-		// },
+		{
+			testCaseName: "Negative: Controller pod not found while reconciling",
+			objects: []runtime.Object{
+				ibmObjectCSICR_WithFinaliser,
+				csiNode,
+				controllerDeployment,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(NotFoundError),
+		},
 		{
 			testCaseName: "Negative: Failed to sync CSI Controller",
 			objects: []runtime.Object{

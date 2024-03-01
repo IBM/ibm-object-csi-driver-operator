@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -197,8 +198,6 @@ func (r *IBMObjectCSIReconciler) updateStatus(instance *crutils.IBMObjectCSI, or
 		return err
 	}
 
-	controllerPod := &corev1.Pod{}
-
 	instance.Status.ControllerReady = r.isControllerReady(controllerDeployment)
 	instance.Status.NodeReady = r.isNodeReady(nodeDaemonSet)
 	phase := csiv1alpha1.DriverPhaseNone
@@ -206,7 +205,8 @@ func (r *IBMObjectCSIReconciler) updateStatus(instance *crutils.IBMObjectCSI, or
 		phase = csiv1alpha1.DriverPhaseRunning
 	} else {
 		if !instance.Status.ControllerReady {
-			err := r.getControllerPod(controllerDeployment, controllerPod)
+
+			controllerPod, err := r.getControllerPod(controllerDeployment)
 			if err != nil {
 				logger.Error(err, "failed to get controller pod")
 				return err
@@ -241,10 +241,20 @@ func (r *IBMObjectCSIReconciler) restartControllerPodfromDeployment(logger logr.
 	return r.Delete(context.TODO(), controllerPod)
 }
 
-func (r *IBMObjectCSIReconciler) getControllerPod(controllerDeployment *appsv1.Deployment, controllerPod *corev1.Pod) error {
-	controllerPodName := fmt.Sprintf("%s-0", controllerDeployment.Name)
-	err := r.Get(context.TODO(), types.NamespacedName{Name: controllerPodName, Namespace: controllerDeployment.Namespace}, controllerPod)
-	return err
+func (r *IBMObjectCSIReconciler) getControllerPod(controllerDeployment *appsv1.Deployment) (*corev1.Pod, error) {
+	var listOptions = &client.ListOptions{Namespace: controllerDeployment.Namespace}
+	podsList := &corev1.PodList{}
+	err := r.List(context.TODO(), podsList, listOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, pod := range podsList.Items {
+		if strings.HasPrefix(pod.Name, controllerDeployment.Name) {
+			return &pod, nil
+		}
+	}
+	return nil, fmt.Errorf("controller pod not found")
 }
 
 func (r *IBMObjectCSIReconciler) areAllPodImagesSynced(controllerDeployment *appsv1.Deployment, controllerPod *corev1.Pod) bool {
@@ -376,7 +386,6 @@ func (r *IBMObjectCSIReconciler) rolloutRestartNode(node *appsv1.DaemonSet) erro
 }
 
 func (r *IBMObjectCSIReconciler) restartControllerPod(logger logr.Logger, instance *crutils.IBMObjectCSI) error {
-	controllerPod := &corev1.Pod{}
 	controllerDeployment, err := r.getControllerDeployment(instance)
 	if err != nil {
 		return err
@@ -387,7 +396,7 @@ func (r *IBMObjectCSIReconciler) restartControllerPod(logger logr.Logger, instan
 		"Replicas", controllerDeployment.Status.Replicas)
 	logger.Info("restarting csi controller")
 
-	err = r.getControllerPod(controllerDeployment, controllerPod)
+	controllerPod, err := r.getControllerPod(controllerDeployment)
 	if errors.IsNotFound(err) {
 		return nil
 	} else if err != nil {
