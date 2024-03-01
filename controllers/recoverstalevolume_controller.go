@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	csiv1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
+	objectdriverv1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
 )
 
 // RecoverStaleVolumeReconciler reconciles a RecoverStaleVolume object
@@ -67,7 +67,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 	reqLogger.Info("Reconciling RecoverStaleVolume")
 
 	// Fetch RecoverStaleVolume instance
-	instance := &csiv1alpha1.RecoverStaleVolume{}
+	instance := &objectdriverv1alpha1.RecoverStaleVolume{}
 	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if k8serr.IsNotFound(err) {
@@ -264,7 +264,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 // SetupWithManager sets up the controller with the Manager.
 func (r *RecoverStaleVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&csiv1alpha1.RecoverStaleVolume{}).
+		For(&objectdriverv1alpha1.RecoverStaleVolume{}).
 		Complete(r)
 }
 
