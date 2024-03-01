@@ -126,39 +126,20 @@ rules:
   verbs:
   - update
 - apiGroups:
-  - csi.ibm.com
+  - monitoring.coreos.com
   resources:
-  - '*'
-  verbs:
-  - '*'
-- apiGroups:
-  - csi.ibm.com
-  resources:
-  - fixstalevolumes
+  - servicemonitors
   verbs:
   - create
-  - delete
   - get
-  - list
-  - patch
-  - update
-  - watch
 - apiGroups:
-  - csi.ibm.com
+  - objectdriver.csi.ibm.com
   resources:
-  - fixstalevolumes/finalizers
+  - '*'
   verbs:
-  - update
+  - '*'
 - apiGroups:
-  - csi.ibm.com
-  resources:
-  - fixstalevolumes/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - csi.ibm.com
+  - objectdriver.csi.ibm.com
   resources:
   - ibmobjectcsis
   verbs:
@@ -170,13 +151,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - csi.ibm.com
+  - objectdriver.csi.ibm.com
   resources:
   - ibmobjectcsis/finalizers
   verbs:
   - update
 - apiGroups:
-  - csi.ibm.com
+  - objectdriver.csi.ibm.com
   resources:
   - ibmobjectcsis/status
   verbs:
@@ -184,12 +165,31 @@ rules:
   - patch
   - update
 - apiGroups:
-  - monitoring.coreos.com
+  - objectdriver.csi.ibm.com
   resources:
-  - servicemonitors
+  - recoverstalevolumes
   verbs:
   - create
+  - delete
   - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - objectdriver.csi.ibm.com
+  resources:
+  - recoverstalevolumes/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - objectdriver.csi.ibm.com
+  resources:
+  - recoverstalevolumes/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:

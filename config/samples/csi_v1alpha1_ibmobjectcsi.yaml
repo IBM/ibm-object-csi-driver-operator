@@ -1,4 +1,4 @@
-apiVersion: csi.ibm.com/v1alpha1
+apiVersion: objectdriver.csi.ibm.com/v1alpha1
 kind: IBMObjectCSI
 metadata:
   name: ibm-object-csi
@@ -13,7 +13,7 @@ spec:
   # and csi-provisioner, csi-attacher, csi-snapshotter and livenessprobe sidecars.
   controller:
     repository: icr.io/ibm/ibm-object-csi-driver
-    tag: "v1.0.1-alpha"
+    tag: "v1.0.2-alpha"
     imagePullPolicy: IfNotPresent
     affinity:
       nodeAffinity:
@@ -29,7 +29,7 @@ spec:
   # and csi-node-driver-registrar and livenessprobe sidecars.
   node:
     repository: icr.io/ibm/ibm-object-csi-driver
-    tag: "v1.0.1-alpha"
+    tag: "v1.0.2-alpha"
     imagePullPolicy: Always
     affinity:
       nodeAffinity:

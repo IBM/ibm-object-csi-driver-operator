@@ -4,20 +4,21 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.14.0
-  name: fixstalevolumes.csi.ibm.com
+  name: recoverstalevolumes.objectdriver.csi.ibm.com
 spec:
-  group: csi.ibm.com
+  group: objectdriver.csi.ibm.com
   names:
-    kind: FixStaleVolume
-    listKind: FixStaleVolumeList
-    plural: fixstalevolumes
-    singular: fixstalevolume
+    kind: RecoverStaleVolume
+    listKind: RecoverStaleVolumeList
+    plural: recoverstalevolumes
+    singular: recoverstalevolume
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: FixStaleVolume is the Schema for the fixstalevolumes API
+        description: RecoverStaleVolume is the Schema for the recoverstalevolumes
+          API
         properties:
           apiVersion:
             description: |-
@@ -52,7 +53,7 @@ spec:
                 type: integer
             type: object
           status:
-            description: FixStaleVolumeStatus defines the observed state of FixStaleVolume
+            description: RecoverStaleVolumeStatus defines the observed state of RecoverStaleVolume
             type: object
         type: object
     served: true

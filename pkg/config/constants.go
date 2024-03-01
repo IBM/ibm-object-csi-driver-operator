@@ -2,7 +2,7 @@ package config
 
 // Add a field here if it never changes, if it changes over time, put it to settings.go
 const (
-	APIGroup    = "csi.ibm.com"
+	APIGroup    = "objectdriver.csi.ibm.com"
 	APIVersion  = "v1"
 	Name        = "ibm-object-csi-operator"
 	DriverName  = "cos.s3.csi.ibm.io"
