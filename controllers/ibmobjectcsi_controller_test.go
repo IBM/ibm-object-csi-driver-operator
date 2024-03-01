@@ -53,7 +53,7 @@ var (
 
 	ibmObjectCSICRName      = "test-csi-cr"
 	ibmObjectCSICRNamespace = "test-namespace"
-	ibmObjectCSIfinalizer   = "ibmobjectcsi.csi.ibm.com"
+	ibmObjectCSIfinalizer   = "ibmobjectcsi.objectdriver.csi.ibm.com"
 
 	defaultFSGroupPolicy = storagev1.FileFSGroupPolicy
 	reclaimPolicy        = corev1.PersistentVolumeReclaimRetain
@@ -92,13 +92,13 @@ var (
 		Spec: v1alpha1.IBMObjectCSISpec{
 			Controller: v1alpha1.IBMObjectCSIControllerSpec{
 				Repository:      "icr.io/ibm/ibm-object-csi-driver",
-				Tag:             "v1.0.1-alpha",
+				Tag:             "v1.0.2-alpha",
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				Affinity:        affinity,
 			},
 			Node: v1alpha1.IBMObjectCSINodeSpec{
 				Repository:      "icr.io/ibm/ibm-object-csi-driver",
-				Tag:             "v1.0.1-alpha",
+				Tag:             "v1.0.2-alpha",
 				ImagePullPolicy: corev1.PullAlways,
 				Affinity:        affinity,
 				Tolerations: []corev1.Toleration{
@@ -804,7 +804,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			expectedErr:  errors.New(DeleteError),
 		},
 		{
-			testCaseName: "Negative: Failed to remove finaliser from IBMObjectCSI CR",
+			testCaseName: "Negative: Failed to get CSI driver while deleting",
 			objects: []runtime.Object{
 				&v1alpha1.IBMObjectCSI{
 					ObjectMeta: ibmObjectCSICR_WithDeletionTS.ObjectMeta,
@@ -812,20 +812,26 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 				},
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fakegetcsidriver.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(GetError),
+		},
+		{
+			testCaseName: "Negative: Failed to remove finaliser from IBMObjectCSI CR",
+			objects: []runtime.Object{
+				&v1alpha1.IBMObjectCSI{
+					ObjectMeta: ibmObjectCSICR_WithDeletionTS.ObjectMeta,
+					Spec:       ibmObjectCSICR.Spec,
+				},
+				csiDriver,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fakeupdate.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 			},
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(UpdateError),
 		},
-		// {
-		// 	testCaseName: "Negative: Failed to get CSI driver while deleting",
-		// 	objects:      []runtime.Object{},
-		// 	clientFunc: func(objs []runtime.Object) client.WithWatch {
-		// 		return fakegetcsidriver.NewClientBuilder().WithRuntimeObjects(objs...).Build()
-		// 	},
-		// 	expectedResp: reconcile.Result{},
-		// 	expectedErr:  nil,
-		// },
 	}
 
 	for _, testcase := range testCases {

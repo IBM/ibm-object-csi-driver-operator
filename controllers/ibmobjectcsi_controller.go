@@ -371,7 +371,7 @@ func (r *IBMObjectCSIReconciler) reconcileServiceAccount(instance *crutils.IBMOb
 			logger.Error(err, "Failed to get ServiceAccount", "Name", sa.GetName())
 			return err
 		} else {
-			logger.Info("Skip reconcile: ServiceAccount already exists", "Namespace", sa.GetNamespace(), "Name", sa.GetName())
+			logger.Info("ServiceAccount already exists", "Namespace", sa.GetNamespace(), "Name", sa.GetName())
 		}
 	}
 
