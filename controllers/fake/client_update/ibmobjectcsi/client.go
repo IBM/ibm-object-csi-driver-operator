@@ -56,7 +56,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
-	csiv1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
+	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
 )
 
 type versionedTracker struct {
@@ -775,7 +775,7 @@ func (c *fakeClient) DeleteAllOf(ctx context.Context, obj client.Object, opts ..
 
 func (c *fakeClient) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
 	switch obj.(type) {
-	case *csiv1alpha1.IBMObjectCSI:
+	case *v1alpha1.IBMObjectCSI:
 		return errors.New("failed to update object")
 	default:
 		return c.update(obj, false, opts...)
@@ -1102,7 +1102,7 @@ func (sw *fakeSubResourceClient) Create(ctx context.Context, obj client.Object, 
 
 func (sw *fakeSubResourceClient) Update(ctx context.Context, obj client.Object, opts ...client.SubResourceUpdateOption) error {
 	switch obj.(type) {
-	case *csiv1alpha1.IBMObjectCSI:
+	case *v1alpha1.IBMObjectCSI:
 		return errors.New("failed to update object")
 	default:
 		updateOptions := client.SubResourceUpdateOptions{}

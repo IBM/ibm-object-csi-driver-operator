@@ -13,7 +13,7 @@ import (
 
 	"github.com/presslabs/controller-util/pkg/mergo/transformers"
 	"github.com/presslabs/controller-util/pkg/syncer"
-	csiv1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
+	objectdriverv1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/internal/crutils"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/config"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/util/boolptr"
@@ -294,7 +294,7 @@ func (s *csiNodeSyncer) ensureVolumes() []corev1.Volume {
 	}
 }
 
-func (s *csiNodeSyncer) getSidecarByName(name string) *csiv1alpha1.CSISidecar {
+func (s *csiNodeSyncer) getSidecarByName(name string) *objectdriverv1alpha1.CSISidecar {
 	return getSidecarByName(s.driver, name)
 }
 

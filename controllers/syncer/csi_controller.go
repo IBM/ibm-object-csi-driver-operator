@@ -14,7 +14,7 @@ import (
 
 	"github.com/presslabs/controller-util/pkg/mergo/transformers"
 	"github.com/presslabs/controller-util/pkg/syncer"
-	csiv1lpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
+	objectdriverv1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/internal/crutils"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/config"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/util/boolptr"
@@ -246,7 +246,7 @@ func (s *csiControllerSyncer) ensureVolumes() []corev1.Volume {
 	}
 }
 
-func (s *csiControllerSyncer) getSidecarByName(name string) *csiv1lpha1.CSISidecar {
+func (s *csiControllerSyncer) getSidecarByName(name string) *objectdriverv1alpha1.CSISidecar {
 	return getSidecarByName(s.driver, name)
 }
 
@@ -304,7 +304,7 @@ func ensureVolume(name string, source corev1.VolumeSource) corev1.Volume {
 	}
 }
 
-func getSidecarByName(driver *crutils.IBMObjectCSI, name string) *csiv1lpha1.CSISidecar {
+func getSidecarByName(driver *crutils.IBMObjectCSI, name string) *objectdriverv1alpha1.CSISidecar {
 	for _, sidecar := range driver.Spec.Sidecars {
 		if sidecar.Name == name {
 			return &sidecar

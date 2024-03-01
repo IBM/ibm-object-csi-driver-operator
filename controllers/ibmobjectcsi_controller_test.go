@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	csiv1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
+	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
 	fakecreate "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_create"
 	fakedelete "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_delete"
 	fakeget "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_get"
@@ -33,7 +33,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	// fakegetpod "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_get/pod"
 )
 
 const (
@@ -85,19 +84,19 @@ var (
 		},
 	}
 
-	ibmObjectCSICR = &csiv1alpha1.IBMObjectCSI{
+	ibmObjectCSICR = &v1alpha1.IBMObjectCSI{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ibmObjectCSICRName,
 			Namespace: ibmObjectCSICRNamespace,
 		},
-		Spec: csiv1alpha1.IBMObjectCSISpec{
-			Controller: csiv1alpha1.IBMObjectCSIControllerSpec{
+		Spec: v1alpha1.IBMObjectCSISpec{
+			Controller: v1alpha1.IBMObjectCSIControllerSpec{
 				Repository:      "icr.io/ibm/ibm-object-csi-driver",
 				Tag:             "v1.0.1-alpha",
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				Affinity:        affinity,
 			},
-			Node: csiv1alpha1.IBMObjectCSINodeSpec{
+			Node: v1alpha1.IBMObjectCSINodeSpec{
 				Repository:      "icr.io/ibm/ibm-object-csi-driver",
 				Tag:             "v1.0.1-alpha",
 				ImagePullPolicy: corev1.PullAlways,
@@ -108,7 +107,7 @@ var (
 					},
 				},
 			},
-			Sidecars: []csiv1alpha1.CSISidecar{
+			Sidecars: []v1alpha1.CSISidecar{
 				{
 					Name:            "csi-node-driver-registrar",
 					Repository:      "k8s.gcr.io/sig-storage/csi-node-driver-registrar",
@@ -133,7 +132,7 @@ var (
 		},
 	}
 
-	ibmObjectCSICR_WithDeletionTS = &csiv1alpha1.IBMObjectCSI{
+	ibmObjectCSICR_WithDeletionTS = &v1alpha1.IBMObjectCSI{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              ibmObjectCSICRName,
 			Namespace:         ibmObjectCSICRNamespace,
@@ -142,7 +141,7 @@ var (
 		},
 	}
 
-	ibmObjectCSICR_WithFinaliser = &csiv1alpha1.IBMObjectCSI{
+	ibmObjectCSICR_WithFinaliser = &v1alpha1.IBMObjectCSI{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       ibmObjectCSICRName,
 			Namespace:  ibmObjectCSICRNamespace,
@@ -412,7 +411,7 @@ func TestMain(m *testing.M) {
 
 func setupScheme() *runtime.Scheme {
 	s := scheme.Scheme
-	_ = csiv1alpha1.AddToScheme(s)
+	_ = v1alpha1.AddToScheme(s)
 	return s
 }
 
@@ -534,18 +533,18 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: Failed to update IBMObjectCSI CR after defaulting",
 			objects: []runtime.Object{
-				&csiv1alpha1.IBMObjectCSI{
+				&v1alpha1.IBMObjectCSI{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      ibmObjectCSICRName,
 						Namespace: ibmObjectCSICRNamespace,
 					},
-					Spec: csiv1alpha1.IBMObjectCSISpec{
-						Controller: csiv1alpha1.IBMObjectCSIControllerSpec{
+					Spec: v1alpha1.IBMObjectCSISpec{
+						Controller: v1alpha1.IBMObjectCSIControllerSpec{
 							Repository:      "icr.io/ibm/ibm-object-csi-driver",
 							Tag:             "v1.0.1",
 							ImagePullPolicy: corev1.PullIfNotPresent,
 						},
-						Node: csiv1alpha1.IBMObjectCSINodeSpec{
+						Node: v1alpha1.IBMObjectCSINodeSpec{
 							Repository:      "icr.io/ibm/ibm-object-csi-driver",
 							Tag:             "v1.0.1",
 							ImagePullPolicy: corev1.PullAlways,
@@ -807,7 +806,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: Failed to remove finaliser from IBMObjectCSI CR",
 			objects: []runtime.Object{
-				&csiv1alpha1.IBMObjectCSI{
+				&v1alpha1.IBMObjectCSI{
 					ObjectMeta: ibmObjectCSICR_WithDeletionTS.ObjectMeta,
 					Spec:       ibmObjectCSICR.Spec,
 				},
