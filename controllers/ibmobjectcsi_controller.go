@@ -37,6 +37,7 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -254,7 +255,9 @@ func (r *IBMObjectCSIReconciler) getControllerPod(controllerDeployment *appsv1.D
 			return &pod, nil
 		}
 	}
-	return nil, fmt.Errorf("controller pod not found")
+
+	err = errors.NewNotFound(schema.GroupResource{Group: "", Resource: "pods"}, "controller pod")
+	return nil, err
 }
 
 func (r *IBMObjectCSIReconciler) areAllPodImagesSynced(controllerDeployment *appsv1.Deployment, controllerPod *corev1.Pod) bool {
@@ -397,9 +400,10 @@ func (r *IBMObjectCSIReconciler) restartControllerPod(logger logr.Logger, instan
 	logger.Info("restarting csi controller")
 
 	controllerPod, err := r.getControllerPod(controllerDeployment)
-	if errors.IsNotFound(err) {
-		return nil
-	} else if err != nil {
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
 		logger.Error(err, "failed to get controller pod")
 		return err
 	}

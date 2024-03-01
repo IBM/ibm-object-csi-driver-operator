@@ -447,28 +447,34 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			expectedResp: reconcile.Result{},
 			expectedErr:  nil,
 		},
-		// {
-		// 	testCaseName: "Positive: Sync controller deployment & pod containers and update status in IBMObjectCSI CR",
-		// 	objects: []runtime.Object{
-		// 		ibmObjectCSICR,
-		// 		csiNode,
-		// 		&appsv1.Deployment{
-		// 			ObjectMeta: controllerDeployment.ObjectMeta,
-		// 			Spec:       controllerDeployment.Spec,
-		// 			Status: appsv1.DeploymentStatus{
-		// 				Replicas:      3,
-		// 				ReadyReplicas: 0,
-		// 			},
-		// 		},
-		// 		controllerPod,
-		// 	},
-		// 	clientFunc: func(objs []runtime.Object) client.WithWatch {
-		// 		statusSubRes := ibmObjectCSICR
-		// 		return fake.NewClientBuilder().WithRuntimeObjects(objs...).WithStatusSubresource(statusSubRes).Build()
-		// 	},
-		// 	expectedResp: reconcile.Result{},
-		// 	expectedErr:  nil,
-		// },
+		{
+			testCaseName: "Positive: Sync controller deployment & pod containers and update status in IBMObjectCSI CR",
+			objects: []runtime.Object{
+				ibmObjectCSICR,
+				csiNode,
+				&appsv1.Deployment{
+					ObjectMeta: controllerDeployment.ObjectMeta,
+					Spec:       controllerDeployment.Spec,
+					Status: appsv1.DeploymentStatus{
+						Replicas:      3,
+						ReadyReplicas: 0,
+					},
+				},
+				controllerPod,
+				&corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      controllerDeployment.Name + "-pod2",
+						Namespace: ibmObjectCSICRNamespace,
+					},
+				},
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				statusSubRes := ibmObjectCSICR
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).WithStatusSubresource(statusSubRes).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  nil,
+		},
 		{
 			testCaseName: "Positive: Successfully updated status in IBMObjectCSI CR after validating if pod images are in sync",
 			objects: []runtime.Object{
