@@ -5,4 +5,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: ambikanair/ibm-object-csi-driver-operator
-  newTag: rename
+  newTag: debug

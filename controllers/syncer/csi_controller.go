@@ -255,7 +255,7 @@ func (s *csiControllerSyncer) getSidecarImageByName(name string) string {
 	if sidecar != nil {
 		return fmt.Sprintf("%s:%s", sidecar.Repository, sidecar.Tag)
 	}
-	return s.driver.GetDefaultSidecarImageByName(name)
+	return ""
 }
 
 func (s *csiControllerSyncer) getCSIProvisionerImage() string {
