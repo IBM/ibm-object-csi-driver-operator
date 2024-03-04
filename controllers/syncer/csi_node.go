@@ -303,7 +303,7 @@ func (s *csiNodeSyncer) getCSINodeDriverRegistrarImage() string {
 	if sidecar != nil {
 		return fmt.Sprintf("%s:%s", sidecar.Repository, sidecar.Tag)
 	}
-	return s.driver.GetDefaultSidecarImageByName(config.CSINodeDriverRegistrar)
+	return ""
 }
 
 func (s *csiNodeSyncer) getLivenessProbeImage() string {
@@ -311,7 +311,7 @@ func (s *csiNodeSyncer) getLivenessProbeImage() string {
 	if sidecar != nil {
 		return fmt.Sprintf("%s:%s", sidecar.Repository, sidecar.Tag)
 	}
-	return s.driver.GetDefaultSidecarImageByName(config.LivenessProbe)
+	return ""
 }
 
 func (s *csiNodeSyncer) getCSINodeDriverRegistrarPullPolicy() corev1.PullPolicy {
