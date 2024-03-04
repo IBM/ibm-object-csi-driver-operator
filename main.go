@@ -35,7 +35,6 @@ import (
 	objectdriverv1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/util/common"
-	//operatorConfig "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/config"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -69,12 +68,6 @@ func main() {
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
-
-	/*err := operatorConfig.LoadDefaultsOfIBMObjectCSI()
-	if err != nil {
-		log.Error(err, "Failed to load default IBMObjectCSI custom resource config")
-		os.Exit(1)
-	}*/
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
