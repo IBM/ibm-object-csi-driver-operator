@@ -33,11 +33,8 @@ FROM gcr.io/distroless/static:nonroot
 
 ENV OPERATOR=/usr/local/bin/ibm-object-csi-operator \
     USER_UID=1001 \
-    USER_NAME=ibm-object-csi-operator \
-    IBMObjectCSI_CR_YAML=/usr/local/etc/csi_v1alpha1_ibmobjectcsi.yaml
+    USER_NAME=ibm-object-csi-operator
 
-COPY --from=builder  /workspace/config/samples/csi_v1alpha1_ibmobjectcsi.yaml  ${IBMObjectCSI_CR_YAML}
-#RUN chmod 0444 ${IBMObjectCSI_CR_YAML}
 
 
 WORKDIR /

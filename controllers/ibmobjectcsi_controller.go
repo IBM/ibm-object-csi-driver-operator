@@ -115,15 +115,6 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	//setting default values for a Kubernetes Custom Resource using the Scheme's Default() method, based on the Go type definition of the Custom Resource.
 	//This ensures that the CR has all the required fields with default values before further processing or reconciliation by the operator.
 	r.Scheme.Default(instance.Unwrap())
-	changed := instance.SetDefaults()
-	// update CR if there was changes after defaulting
-	if changed {
-		err = r.Update(context.TODO(), instance.Unwrap())
-		if err != nil {
-			err = fmt.Errorf("failed to update IBMObjectCSI CR: %v", err)
-			return reconcile.Result{}, err
-		}
-	}
 	if err := r.ControllerHelper.AddFinalizerIfNotPresent(
 		instance, instance.Unwrap()); err != nil {
 		return reconcile.Result{}, err

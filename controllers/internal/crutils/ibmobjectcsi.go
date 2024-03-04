@@ -83,13 +83,6 @@ func (c *IBMObjectCSI) GetCSINodeImage() string {
 	return c.Spec.Node.Repository + ":" + c.Spec.Node.Tag
 }
 
-func (c *IBMObjectCSI) GetDefaultSidecarImageByName(name string) string {
-	if sidecar, found := config.DefaultSidecarsByName[name]; found {
-		return fmt.Sprintf("%s:%s", sidecar.Repository, sidecar.Tag)
-	}
-	return ""
-}
-
 func (c *IBMObjectCSI) GetCSIControllerSelectorLabels() labels.Set {
 	return common.GetSelectorLabels(config.CSIController.String())
 }
