@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	"errors"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -399,16 +398,6 @@ var (
 	}
 )
 
-func TestMain(m *testing.M) {
-	os.Setenv(config.EnvNameIBMObjectCSICrYaml, "../config/samples/csi_v1alpha1_ibmobjectcsi.yaml")
-	err := config.LoadDefaultsOfIBMObjectCSI()
-	if err != nil {
-		os.Exit(1)
-	}
-
-	os.Exit(m.Run())
-}
-
 func setupScheme() *runtime.Scheme {
 	s := scheme.Scheme
 	_ = v1alpha1.AddToScheme(s)
@@ -535,34 +524,6 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			},
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(GetError),
-		},
-		{
-			testCaseName: "Negative: Failed to update IBMObjectCSI CR after defaulting",
-			objects: []runtime.Object{
-				&v1alpha1.IBMObjectCSI{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      ibmObjectCSICRName,
-						Namespace: ibmObjectCSICRNamespace,
-					},
-					Spec: v1alpha1.IBMObjectCSISpec{
-						Controller: v1alpha1.IBMObjectCSIControllerSpec{
-							Repository:      "icr.io/ibm/ibm-object-csi-driver",
-							Tag:             "v1.0.1",
-							ImagePullPolicy: corev1.PullIfNotPresent,
-						},
-						Node: v1alpha1.IBMObjectCSINodeSpec{
-							Repository:      "icr.io/ibm/ibm-object-csi-driver",
-							Tag:             "v1.0.1",
-							ImagePullPolicy: corev1.PullAlways,
-						},
-					},
-				},
-			},
-			clientFunc: func(objs []runtime.Object) client.WithWatch {
-				return fakeupdate.NewClientBuilder().WithRuntimeObjects(objs...).Build()
-			},
-			expectedResp: reconcile.Result{},
-			expectedErr:  errors.New(UpdateError),
 		},
 		{
 			testCaseName: "Negative: Failed to Add Finalizer in IBMObjectCSI CR",
