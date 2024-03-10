@@ -45,8 +45,7 @@ const (
 )
 
 var (
-	testLog = log.Log.WithName("ibmobjectcsi_controller_test")
-	testCtx = context.TODO()
+	ibmobjectcsiTestLog = log.Log.WithName("ibmobjectcsi_controller_test")
 
 	currentTime = metav1.Now()
 
@@ -803,7 +802,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 
 	for _, testcase := range testCases {
 		t.Run(testcase.testCaseName, func(t *testing.T) {
-			testLog.Info("Testcase being executed", "testcase", testcase.testCaseName)
+			ibmobjectcsiTestLog.Info("Testcase being executed", "testcase", testcase.testCaseName)
 
 			scheme := setupScheme()
 			client := testcase.clientFunc(testcase.objects)
@@ -815,8 +814,8 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 				ControllerHelper: common.NewControllerHelper(client),
 			}
 
-			res, err := ibmObjectCSIReconciler.Reconcile(testCtx, ibmObjectCSIReconcileRequest)
-			testLog.Info("Testcase return values", "result", res, "error", err)
+			res, err := ibmObjectCSIReconciler.Reconcile(context.TODO(), ibmObjectCSIReconcileRequest)
+			ibmobjectcsiTestLog.Info("Testcase return values", "result", res, "error", err)
 
 			assert.Equal(t, testcase.expectedResp, res)
 
