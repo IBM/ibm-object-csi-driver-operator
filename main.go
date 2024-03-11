@@ -103,6 +103,7 @@ func main() {
 	if err = (&controllers.RecoverStaleVolumeReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		IsTest: false,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "RecoverStaleVolume")
 		os.Exit(1)

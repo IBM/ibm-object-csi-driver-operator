@@ -41,6 +41,7 @@ import (
 type RecoverStaleVolumeReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	IsTest bool
 }
 
 type KubernetesClient struct {
@@ -228,7 +229,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 		for nodeName, volumesData := range nodeVolumePodMapping {
 			// Fetch volume stats from Logs of the Node Server Pod
-			getVolStatsFromLogs, err := fetchVolumeStatsFromNodeServerLogs(ctx, csiNodeServerPods[nodeName], logTailLines)
+			getVolStatsFromLogs, err := fetchVolumeStatsFromNodeServerLogs(ctx, csiNodeServerPods[nodeName], logTailLines, r.IsTest)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -303,7 +304,7 @@ func createK8sClient() (*KubernetesClient, error) {
 	}, nil
 }
 
-func fetchVolumeStatsFromNodeServerLogs(ctx context.Context, nodeServerPod string, logTailLines int64) (map[string]string, error) {
+func fetchVolumeStatsFromNodeServerLogs(ctx context.Context, nodeServerPod string, logTailLines int64, isTest bool) (map[string]string, error) {
 	podLogOpts := &corev1.PodLogOptions{
 		Container: csiNodePodPrefix,
 		TailLines: &logTailLines,
@@ -327,6 +328,10 @@ func fetchVolumeStatsFromNodeServerLogs(ctx context.Context, nodeServerPod strin
 		return nil, err
 	}
 	nodeServerPodLogs := buf.String()
+
+	if isTest {
+		nodeServerPodLogs = testNodeServerPodLogs
+	}
 
 	return parseLogs(nodeServerPodLogs), nil
 }

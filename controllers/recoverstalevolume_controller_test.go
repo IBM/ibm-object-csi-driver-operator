@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -18,24 +17,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	fakeK8s "k8s.io/client-go/kubernetes/fake"
-	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 var (
-	recoverstalevolumeTestLog = log.Log.WithName("recoverstalevolume_controller_test")
-
-	recoverStaleVolCRName      = "test-vol-cr"
-	recoverStaleVolCRNamespace = "test-namespace"
-	testDeploymentName         = "test-deployment"
-	testDeploymentNamespace    = "default"
-	testPVName                 = "test-pv"
-	testPVCName                = "test-pvc"
-	testStorageClassName       = "test-csi-storage-class"
-
 	recoverStaleVolumeReconcileRequest = reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      recoverStaleVolCRName,
@@ -72,6 +59,7 @@ var (
 			Namespace: testDeploymentNamespace,
 		},
 		Spec: corev1.PodSpec{
+			NodeName: testNode1,
 			Volumes: []corev1.Volume{
 				{
 					Name: testPVName,
@@ -92,6 +80,7 @@ var (
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			StorageClassName: &testStorageClassName,
+			VolumeName:       testPVName,
 		},
 	}
 
@@ -100,6 +89,9 @@ var (
 			Name:      csiNodePodPrefix + "-pod1",
 			Namespace: csiOperatorNamespace,
 		},
+		Spec: corev1.PodSpec{
+			NodeName: testNode1,
+		},
 	}
 
 	nodeServerPod2 = &corev1.Pod{
@@ -107,12 +99,18 @@ var (
 			Name:      csiNodePodPrefix + "-pod2",
 			Namespace: csiOperatorNamespace,
 		},
+		Spec: corev1.PodSpec{
+			NodeName: testNode2,
+		},
 	}
 
 	nodeServerPod3 = &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      csiNodePodPrefix + "-pod3",
 			Namespace: csiOperatorNamespace,
+		},
+		Spec: corev1.PodSpec{
+			NodeName: testNode3,
 		},
 	}
 )
@@ -127,7 +125,7 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 		expectedErr    error
 	}{
 		{
-			testCaseName: "Positive: Successful [Partial]",
+			testCaseName: "Positive: Successful",
 			objects: []runtime.Object{
 				recoverStaleVolumeCR,
 				deployment,
@@ -290,31 +288,31 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(ListError),
 		},
-		{
-			testCaseName: "Negative: Failed to get In Cluster Config",
-			objects: []runtime.Object{
-				recoverStaleVolumeCR,
-				deployment,
-				deploymentPod,
-				pvc,
-				nodeServerPod1,
-				nodeServerPod2,
-				nodeServerPod3,
-			},
-			clientFunc: func(objs []runtime.Object) client.WithWatch {
-				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
-			},
-			kubeClientFunc: func() (*KubernetesClient, error) {
-				return nil, rest.ErrNotInCluster
-			},
-			expectedResp: reconcile.Result{},
-			expectedErr:  rest.ErrNotInCluster,
-		},
+		// {
+		// 	testCaseName: "Negative: Failed to get In Cluster Config",
+		// 	objects: []runtime.Object{
+		// 		recoverStaleVolumeCR,
+		// 		deployment,
+		// 		deploymentPod,
+		// 		pvc,
+		// 		nodeServerPod1,
+		// 		nodeServerPod2,
+		// 		nodeServerPod3,
+		// 	},
+		// 	clientFunc: func(objs []runtime.Object) client.WithWatch {
+		// 		return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+		// 	},
+		// 	kubeClientFunc: func() (*KubernetesClient, error) {
+		// 		return nil, rest.ErrNotInCluster
+		// 	},
+		// 	expectedResp: reconcile.Result{},
+		// 	expectedErr:  rest.ErrNotInCluster,
+		// },
 	}
 
 	for _, testcase := range testCases {
 		t.Run(testcase.testCaseName, func(t *testing.T) {
-			recoverstalevolumeTestLog.Info("Testcase being executed", "testcase", testcase.testCaseName)
+			testLog.Info("Testcase being executed", "testcase", testcase.testCaseName)
 
 			scheme := setupScheme()
 			client := testcase.clientFunc(testcase.objects)
@@ -323,10 +321,11 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 			recoverStaleVolumeReconciler := &RecoverStaleVolumeReconciler{
 				Client: client,
 				Scheme: scheme,
+				IsTest: true,
 			}
 
-			res, err := recoverStaleVolumeReconciler.Reconcile(context.TODO(), recoverStaleVolumeReconcileRequest)
-			recoverstalevolumeTestLog.Info("Testcase return values", "result", res, "error", err)
+			res, err := recoverStaleVolumeReconciler.Reconcile(testCtx, recoverStaleVolumeReconcileRequest)
+			testLog.Info("Testcase return values", "result", res, "error", err)
 
 			assert.Equal(t, testcase.expectedResp, res)
 

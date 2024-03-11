@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -27,32 +26,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const (
-	CreateError = "failed to create"
-	DeleteError = "failed to delete"
-	GetError    = "failed to get"
-	ListError   = "failed to list"
-	UpdateError = "failed to update"
-
-	NotFoundError = "not found"
-)
-
 var (
-	ibmobjectcsiTestLog = log.Log.WithName("ibmobjectcsi_controller_test")
-
-	currentTime = metav1.Now()
-
-	ibmObjectCSICRName      = "test-csi-cr"
-	ibmObjectCSICRNamespace = "test-namespace"
-	ibmObjectCSIfinalizer   = "ibmobjectcsi.objectdriver.csi.ibm.com"
-
 	defaultFSGroupPolicy = storagev1.FileFSGroupPolicy
 	reclaimPolicy        = corev1.PersistentVolumeReclaimRetain
 	secrets              = crutils.GetImagePullSecrets(ibmObjectCSICR.Spec.ImagePullSecrets)
@@ -396,12 +375,6 @@ var (
 		},
 	}
 )
-
-func setupScheme() *runtime.Scheme {
-	s := scheme.Scheme
-	_ = v1alpha1.AddToScheme(s)
-	return s
-}
 
 func TestIBMObjectCSIReconcile(t *testing.T) {
 	testCases := []struct {
@@ -802,7 +775,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 
 	for _, testcase := range testCases {
 		t.Run(testcase.testCaseName, func(t *testing.T) {
-			ibmobjectcsiTestLog.Info("Testcase being executed", "testcase", testcase.testCaseName)
+			testLog.Info("Testcase being executed", "testcase", testcase.testCaseName)
 
 			scheme := setupScheme()
 			client := testcase.clientFunc(testcase.objects)
@@ -814,8 +787,8 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 				ControllerHelper: common.NewControllerHelper(client),
 			}
 
-			res, err := ibmObjectCSIReconciler.Reconcile(context.TODO(), ibmObjectCSIReconcileRequest)
-			ibmobjectcsiTestLog.Info("Testcase return values", "result", res, "error", err)
+			res, err := ibmObjectCSIReconciler.Reconcile(testCtx, ibmObjectCSIReconcileRequest)
+			testLog.Info("Testcase return values", "result", res, "error", err)
 
 			assert.Equal(t, testcase.expectedResp, res)
 
