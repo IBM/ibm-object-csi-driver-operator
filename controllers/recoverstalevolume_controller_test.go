@@ -2,10 +2,12 @@ package controllers
 
 import (
 	"errors"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
+	fakedelete "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_delete"
 	fakeget "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_get"
 	fakegetdeploy "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_get/deployment"
 	fakegetpvc "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_get/pvc"
@@ -17,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	fakeK8s "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -41,6 +44,10 @@ var (
 				{
 					DeploymentName: testDeploymentName,
 				},
+				{
+					DeploymentName:      "deployment-not-existing",
+					DeploymentNamespace: testDeploymentNamespace,
+				},
 			},
 		},
 	}
@@ -53,7 +60,7 @@ var (
 		Spec: appsv1.DeploymentSpec{},
 	}
 
-	deploymentPod = &corev1.Pod{
+	deploymentPod1 = &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testDeploymentName + "-pod1",
 			Namespace: testDeploymentNamespace,
@@ -62,10 +69,18 @@ var (
 			NodeName: testNode1,
 			Volumes: []corev1.Volume{
 				{
-					Name: testPVName,
+					Name: testPVName1,
 					VolumeSource: corev1.VolumeSource{
 						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-							ClaimName: testPVCName,
+							ClaimName: testPVCName1,
+						},
+					},
+				},
+				{
+					Name: "pvc-not-existing",
+					VolumeSource: corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+							ClaimName: "pv-not-existing",
 						},
 					},
 				},
@@ -73,14 +88,45 @@ var (
 		},
 	}
 
-	pvc = &corev1.PersistentVolumeClaim{
+	deploymentPod2 = &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      testPVCName,
+			Name:      testDeploymentName + "-pod2",
+			Namespace: testDeploymentNamespace,
+		},
+		Spec: corev1.PodSpec{
+			NodeName: testNode1,
+			Volumes: []corev1.Volume{
+				{
+					Name: testPVName2,
+					VolumeSource: corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+							ClaimName: testPVCName2,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	pvc1 = &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testPVCName1,
 			Namespace: testDeploymentNamespace,
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			StorageClassName: &testStorageClassName,
-			VolumeName:       testPVName,
+			VolumeName:       testPVName1,
+		},
+	}
+
+	pvc2 = &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testPVCName2,
+			Namespace: testDeploymentNamespace,
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			StorageClassName: &testStorageClassName,
+			VolumeName:       testPVName2,
 		},
 	}
 
@@ -129,8 +175,10 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 			objects: []runtime.Object{
 				recoverStaleVolumeCR,
 				deployment,
-				deploymentPod,
-				pvc,
+				deploymentPod1,
+				deploymentPod2,
+				pvc1,
+				pvc2,
 				nodeServerPod1,
 				nodeServerPod2,
 				nodeServerPod3,
@@ -179,8 +227,8 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 			objects: []runtime.Object{
 				recoverStaleVolumeCR,
 				deployment,
-				deploymentPod,
-				pvc,
+				deploymentPod1,
+				pvc1,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
@@ -260,7 +308,7 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 			objects: []runtime.Object{
 				recoverStaleVolumeCR,
 				deployment,
-				deploymentPod,
+				deploymentPod1,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fakegetpvc.NewClientBuilder().WithRuntimeObjects(objs...).Build()
@@ -276,8 +324,8 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 			objects: []runtime.Object{
 				recoverStaleVolumeCR,
 				deployment,
-				deploymentPod,
-				pvc,
+				deploymentPod1,
+				pvc1,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fakelistnodeserverpod.NewClientBuilder().WithRuntimeObjects(objs...).Build()
@@ -288,26 +336,48 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(ListError),
 		},
-		// {
-		// 	testCaseName: "Negative: Failed to get In Cluster Config",
-		// 	objects: []runtime.Object{
-		// 		recoverStaleVolumeCR,
-		// 		deployment,
-		// 		deploymentPod,
-		// 		pvc,
-		// 		nodeServerPod1,
-		// 		nodeServerPod2,
-		// 		nodeServerPod3,
-		// 	},
-		// 	clientFunc: func(objs []runtime.Object) client.WithWatch {
-		// 		return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
-		// 	},
-		// 	kubeClientFunc: func() (*KubernetesClient, error) {
-		// 		return nil, rest.ErrNotInCluster
-		// 	},
-		// 	expectedResp: reconcile.Result{},
-		// 	expectedErr:  rest.ErrNotInCluster,
-		// },
+		{
+			testCaseName: "Negative: Failed to get In Cluster Config",
+			objects: []runtime.Object{
+				recoverStaleVolumeCR,
+				deployment,
+				deploymentPod1,
+				pvc1,
+				nodeServerPod1,
+				nodeServerPod2,
+				nodeServerPod3,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			kubeClientFunc: func() (*KubernetesClient, error) {
+				return nil, rest.ErrNotInCluster
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  rest.ErrNotInCluster,
+		},
+		{
+			testCaseName: "Negative: Failed to delete pod",
+			objects: []runtime.Object{
+				recoverStaleVolumeCR,
+				deployment,
+				deploymentPod1,
+				pvc1,
+				nodeServerPod1,
+				nodeServerPod2,
+				nodeServerPod3,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fakedelete.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			kubeClientFunc: func() (*KubernetesClient, error) {
+				return &KubernetesClient{
+					Clientset: fakeK8s.NewSimpleClientset(),
+				}, nil
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(DeleteError),
+		},
 	}
 
 	for _, testcase := range testCases {
@@ -350,5 +420,16 @@ func TestContains(t *testing.T) {
 	t.Run("Positive: Successful", func(t *testing.T) {
 		res := contains([]string{"ele1", "ele2"}, "ele1")
 		assert.True(t, res)
+	})
+}
+
+func TestCreateK8sClient(t *testing.T) {
+	t.Run("", func(t *testing.T) {
+		os.Setenv("KUBERNETES_SERVICE_HOST", "test-service-host")
+		os.Setenv("KUBERNETES_SERVICE_PORT", "test-service-port")
+
+		client, err := createK8sClient()
+		assert.Nil(t, client)
+		assert.Error(t, err)
 	})
 }
