@@ -167,7 +167,11 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 							return ctrl.Result{}, err
 						}
 
-						scName := *pvc.Spec.StorageClassName
+						storageClass := pvc.Spec.StorageClassName
+						scName := ""
+						if storageClass != nil {
+							scName = *storageClass
+						}
 						reqLogger.Info("PVC using Storage-class", "pvc-name", pvcName, "sc-name", scName)
 						// Check if the volume is using csi storage-class
 						if strings.Contains(scName, "csi") {
