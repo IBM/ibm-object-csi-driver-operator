@@ -11,7 +11,7 @@ type Instance interface {
 	GetObjectKind() schema.ObjectKind
 }
 
-func getImagePullSecrets(imagePullSecrets []string) []corev1.LocalObjectReference {
+func GetImagePullSecrets(imagePullSecrets []string) []corev1.LocalObjectReference {
 	secrets := []corev1.LocalObjectReference{}
 	if len(imagePullSecrets) > 0 {
 		for _, secretName := range imagePullSecrets {

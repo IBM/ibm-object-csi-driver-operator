@@ -16,6 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
 type ControllerHelper struct {
@@ -182,7 +183,7 @@ func (ch *ControllerHelper) AddFinalizerIfNotPresent(instance crutils.Instance,
 	unwrappedInstance client.Object) error {
 	logger := ch.Log.WithName("AddFinalizerIfNotPresent")
 
-	accessor, finalizerName, err := ch.getAccessorAndFinalizerName(instance)
+	accessor, finalizerName, err := ch.getAccessorAndFinalizerName(instance, unwrappedInstance)
 	if err != nil {
 		return err
 	}
@@ -203,7 +204,7 @@ func (ch *ControllerHelper) RemoveFinalizer(instance crutils.Instance,
 	unwrappedInstance client.Object) error {
 	logger := ch.Log.WithName("RemoveFinalizer")
 
-	accessor, finalizerName, err := ch.getAccessorAndFinalizerName(instance)
+	accessor, finalizerName, err := ch.getAccessorAndFinalizerName(instance, unwrappedInstance)
 	if err != nil {
 		return err
 	}
@@ -216,10 +217,15 @@ func (ch *ControllerHelper) RemoveFinalizer(instance crutils.Instance,
 	return nil
 }
 
-func (ch *ControllerHelper) getAccessorAndFinalizerName(instance crutils.Instance) (metav1.Object, string, error) {
+func (ch *ControllerHelper) getAccessorAndFinalizerName(instance crutils.Instance, unwrappedInstance client.Object) (metav1.Object, string, error) {
 	logger := ch.Log.WithName("getAccessorAndFinalizerName")
-	lowercaseKind := strings.ToLower(instance.GetObjectKind().GroupVersionKind().Kind)
-	finalizerName := fmt.Sprintf("%s.%s", lowercaseKind, oconfig.APIGroup)
+
+	gvk, err := apiutil.GVKForObject(unwrappedInstance, ch.Scheme())
+	if err != nil {
+		logger.Error(err, "failed to get group version kink information of instance")
+		return nil, "", err
+	}
+	finalizerName := fmt.Sprintf("%s.%s", strings.ToLower(gvk.Kind), oconfig.APIGroup)
 
 	accessor, err := meta.Accessor(instance)
 	if err != nil {

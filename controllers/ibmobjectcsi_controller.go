@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -36,6 +37,7 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -171,14 +173,13 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return reconcile.Result{}, err
 	}
 
-	// Resource created successfully - don't requeue
-
+	// Resources created successfully - don't requeue
 	return reconcile.Result{}, nil
 }
 
 func (r *IBMObjectCSIReconciler) updateStatus(instance *crutils.IBMObjectCSI, originalStatus objectdriverv1alpha1.IBMObjectCSIStatus) error {
 	logger := csiLog.WithName("updateStatus")
-	controllerPod := &corev1.Pod{}
+
 	controllerDeployment, err := r.getControllerDeployment(instance)
 	if err != nil {
 		return err
@@ -196,7 +197,8 @@ func (r *IBMObjectCSIReconciler) updateStatus(instance *crutils.IBMObjectCSI, or
 		phase = objectdriverv1alpha1.DriverPhaseRunning
 	} else {
 		if !instance.Status.ControllerReady {
-			err := r.getControllerPod(controllerDeployment, controllerPod)
+
+			controllerPod, err := r.getControllerPod(controllerDeployment)
 			if err != nil {
 				logger.Error(err, "failed to get controller pod")
 				return err
@@ -228,20 +230,25 @@ func (r *IBMObjectCSIReconciler) restartControllerPodfromDeployment(logger logr.
 		"ReadyReplicas", controllerDeployment.Status.ReadyReplicas,
 		"Replicas", controllerDeployment.Status.Replicas)
 	logger.Info("restarting csi controller")
-
 	return r.Delete(context.TODO(), controllerPod)
 }
 
-func (r *IBMObjectCSIReconciler) getControllerPod(controllerDeployment *appsv1.Deployment, controllerPod *corev1.Pod) error {
-	controllerPodName := fmt.Sprintf("%s-0", controllerDeployment.Name)
-	err := r.Get(context.TODO(), types.NamespacedName{
-		Name:      controllerPodName,
-		Namespace: controllerDeployment.Namespace,
-	}, controllerPod)
-	if errors.IsNotFound(err) {
-		return nil
+func (r *IBMObjectCSIReconciler) getControllerPod(controllerDeployment *appsv1.Deployment) (*corev1.Pod, error) {
+	var listOptions = &client.ListOptions{Namespace: controllerDeployment.Namespace}
+	podsList := &corev1.PodList{}
+	err := r.List(context.TODO(), podsList, listOptions)
+	if err != nil {
+		return nil, err
 	}
-	return err
+
+	for _, pod := range podsList.Items {
+		if strings.HasPrefix(pod.Name, controllerDeployment.Name) {
+			return &pod, nil
+		}
+	}
+
+	err = errors.NewNotFound(schema.GroupResource{Group: "", Resource: "pods"}, "controller pod")
+	return nil, err
 }
 
 func (r *IBMObjectCSIReconciler) areAllPodImagesSynced(controllerDeployment *appsv1.Deployment, controllerPod *corev1.Pod) bool {
@@ -278,7 +285,6 @@ func (r *IBMObjectCSIReconciler) getNodeDaemonSet(instance *crutils.IBMObjectCSI
 		Name:      oconfig.GetNameForResource(oconfig.CSINode, instance.Name),
 		Namespace: instance.Namespace,
 	}, node)
-
 	return node, err
 }
 
@@ -288,7 +294,6 @@ func (r *IBMObjectCSIReconciler) getControllerDeployment(instance *crutils.IBMOb
 		Name:      oconfig.GetNameForResource(oconfig.CSIController, instance.Name),
 		Namespace: instance.Namespace,
 	}, controllerDeployment)
-
 	return controllerDeployment, err
 }
 
@@ -301,6 +306,7 @@ func (r *IBMObjectCSIReconciler) reconcileStorageClasses(instance *crutils.IBMOb
 	storageClasses := r.getStorageClasses(instance)
 	return r.ControllerHelper.ReconcileStorageClasses(storageClasses)
 }
+
 func (r *IBMObjectCSIReconciler) reconcileClusterRole(instance *crutils.IBMObjectCSI) error {
 	clusterRoles := r.getClusterRoles(instance)
 	return r.ControllerHelper.ReconcileClusterRole(clusterRoles)
@@ -341,7 +347,6 @@ func (r *IBMObjectCSIReconciler) reconcileServiceAccount(instance *crutils.IBMOb
 
 			if controllerServiceAccountName == sa.Name {
 				rErr := r.restartControllerPod(logger, instance)
-
 				if rErr != nil {
 					return rErr
 				}
@@ -352,7 +357,6 @@ func (r *IBMObjectCSIReconciler) reconcileServiceAccount(instance *crutils.IBMOb
 					"NumberAvailable", nodeDaemonSet.Status.NumberAvailable)
 				logger.Info("csi node stopped being ready - restarting it")
 				rErr := r.rolloutRestartNode(nodeDaemonSet)
-
 				if rErr != nil {
 					return rErr
 				}
@@ -361,7 +365,7 @@ func (r *IBMObjectCSIReconciler) reconcileServiceAccount(instance *crutils.IBMOb
 			logger.Error(err, "Failed to get ServiceAccount", "Name", sa.GetName())
 			return err
 		} else {
-			logger.Info("Skip reconcile: ServiceAccount already exists", "Namespace", sa.GetNamespace(), "Name", sa.GetName())
+			logger.Info("ServiceAccount already exists", "Namespace", sa.GetNamespace(), "Name", sa.GetName())
 		}
 	}
 
@@ -376,7 +380,6 @@ func (r *IBMObjectCSIReconciler) rolloutRestartNode(node *appsv1.DaemonSet) erro
 }
 
 func (r *IBMObjectCSIReconciler) restartControllerPod(logger logr.Logger, instance *crutils.IBMObjectCSI) error {
-	controllerPod := &corev1.Pod{}
 	controllerDeployment, err := r.getControllerDeployment(instance)
 	if err != nil {
 		return err
@@ -387,10 +390,11 @@ func (r *IBMObjectCSIReconciler) restartControllerPod(logger logr.Logger, instan
 		"Replicas", controllerDeployment.Status.Replicas)
 	logger.Info("restarting csi controller")
 
-	err = r.getControllerPod(controllerDeployment, controllerPod)
-	if errors.IsNotFound(err) {
-		return nil
-	} else if err != nil {
+	controllerPod, err := r.getControllerPod(controllerDeployment)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
 		logger.Error(err, "failed to get controller pod")
 		return err
 	}
@@ -403,21 +407,21 @@ func (r *IBMObjectCSIReconciler) reconcileCSIDriver(instance *crutils.IBMObjectC
 
 	cd := instance.GenerateCSIDriver()
 	found := &storagev1.CSIDriver{}
-	err := r.Get(context.TODO(), types.NamespacedName{
-		Name:      cd.Name,
-		Namespace: "",
-	}, found)
-	if err != nil && errors.IsNotFound(err) {
-		logger.Info("Creating a new CSIDriver", "Name", cd.GetName())
-		err = r.Create(context.TODO(), cd)
-		if err != nil {
-			return err
+	err := r.Get(context.TODO(), types.NamespacedName{Name: cd.Name, Namespace: ""}, found)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			logger.Info("Creating a new CSIDriver", "Name", cd.GetName())
+			err = r.Create(context.TODO(), cd)
+			if err != nil {
+				return err
+			}
+			logger.Info("CSIDriver created", "Namespace", cd.GetNamespace(), "Name", cd.GetName())
+			return nil
 		}
-	} else if err != nil {
 		logger.Error(err, "Failed to get CSIDriver", "Name", cd.GetName())
 		return err
 	}
-	logger.Info("Skip reconcile: CSIDriver already exists", "Namespace", cd.GetNamespace(), "Name", cd.GetName())
+	logger.Info("CSIDriver already exists", "Namespace", cd.GetNamespace(), "Name", cd.GetName())
 	return nil
 }
 
@@ -457,7 +461,6 @@ func (r *IBMObjectCSIReconciler) deleteStorageClasses(instance *crutils.IBMObjec
 
 func (r *IBMObjectCSIReconciler) getClusterRoleBindings(instance *crutils.IBMObjectCSI) []*rbacv1.ClusterRoleBinding {
 	externalProvisioner := instance.GenerateExternalProvisionerClusterRoleBinding()
-
 	controllerSCC := instance.GenerateSCCForControllerClusterRoleBinding()
 	nodeSCC := instance.GenerateSCCForNodeClusterRoleBinding()
 
@@ -471,6 +474,7 @@ func (r *IBMObjectCSIReconciler) getClusterRoleBindings(instance *crutils.IBMObj
 func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCSI) []*storagev1.StorageClass {
 	rcloneSC := instance.GenerateRcloneSC()
 	s3fsSC := instance.Generates3fsSC()
+
 	return []*storagev1.StorageClass{
 		rcloneSC,
 		s3fsSC,
