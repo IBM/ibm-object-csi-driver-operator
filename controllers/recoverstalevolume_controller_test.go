@@ -346,3 +346,10 @@ func TestRecoverStaleVolumeSetupWithManager(t *testing.T) {
 		recoverStaleVolumeReconciler.SetupWithManager(nil)
 	})
 }
+
+func TestContains(t *testing.T) {
+	t.Run("Positive: Successful", func(t *testing.T) {
+		res := contains([]string{"ele1", "ele2"}, "ele1")
+		assert.True(t, res)
+	})
+}
