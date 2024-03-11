@@ -17,6 +17,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	fakeK8s "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -92,35 +94,68 @@ var (
 			StorageClassName: &testStorageClassName,
 		},
 	}
+
+	nodeServerPod1 = &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      csiNodePodPrefix + "-pod1",
+			Namespace: csiOperatorNamespace,
+		},
+	}
+
+	nodeServerPod2 = &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      csiNodePodPrefix + "-pod2",
+			Namespace: csiOperatorNamespace,
+		},
+	}
+
+	nodeServerPod3 = &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      csiNodePodPrefix + "-pod3",
+			Namespace: csiOperatorNamespace,
+		},
+	}
 )
 
 func TestRecoverStaleVolumeReconcile(t *testing.T) {
 	testCases := []struct {
-		testCaseName string
-		objects      []runtime.Object
-		clientFunc   func(objs []runtime.Object) client.WithWatch
-		expectedResp reconcile.Result
-		expectedErr  error
+		testCaseName   string
+		objects        []runtime.Object
+		clientFunc     func(objs []runtime.Object) client.WithWatch
+		kubeClientFunc func() (*KubernetesClient, error)
+		expectedResp   reconcile.Result
+		expectedErr    error
 	}{
-		// {
-		// 	testCaseName: "Positive: Successful",
-		// 	objects: []runtime.Object{
-		// 		recoverStaleVolumeCR,
-		// 		deployment,
-		// 		deploymentPod,
-		// 		pvc,
-		// 	},
-		// 	clientFunc: func(objs []runtime.Object) client.WithWatch {
-		// 		return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
-		// 	},
-		// 	expectedResp: reconcile.Result{RequeueAfter: reconcileTime},
-		// 	expectedErr:  nil,
-		// },
+		{
+			testCaseName: "Positive: Successful [Partial]",
+			objects: []runtime.Object{
+				recoverStaleVolumeCR,
+				deployment,
+				deploymentPod,
+				pvc,
+				nodeServerPod1,
+				nodeServerPod2,
+				nodeServerPod3,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			kubeClientFunc: func() (*KubernetesClient, error) {
+				return &KubernetesClient{
+					Clientset: fakeK8s.NewSimpleClientset(),
+				}, nil
+			},
+			expectedResp: reconcile.Result{RequeueAfter: reconcileTime},
+			expectedErr:  nil,
+		},
 		{
 			testCaseName: "Positive: RecoverStaleVolume CR not found",
 			objects:      []runtime.Object{},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			kubeClientFunc: func() (*KubernetesClient, error) {
+				return nil, nil
 			},
 			expectedResp: reconcile.Result{},
 			expectedErr:  nil,
@@ -135,6 +170,26 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 			},
+			kubeClientFunc: func() (*KubernetesClient, error) {
+				return nil, nil
+			},
+			expectedResp: reconcile.Result{RequeueAfter: reconcileTime},
+			expectedErr:  nil,
+		},
+		{
+			testCaseName: "Positive: Node Server Pods not found",
+			objects: []runtime.Object{
+				recoverStaleVolumeCR,
+				deployment,
+				deploymentPod,
+				pvc,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			kubeClientFunc: func() (*KubernetesClient, error) {
+				return nil, nil
+			},
 			expectedResp: reconcile.Result{RequeueAfter: reconcileTime},
 			expectedErr:  nil,
 		},
@@ -143,6 +198,9 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 			objects:      []runtime.Object{},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fakeget.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			kubeClientFunc: func() (*KubernetesClient, error) {
+				return nil, nil
 			},
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(GetError),
@@ -164,6 +222,9 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 			},
+			kubeClientFunc: func() (*KubernetesClient, error) {
+				return nil, nil
+			},
 			expectedResp: reconcile.Result{RequeueAfter: reconcileTime},
 			expectedErr:  nil,
 		},
@@ -174,6 +235,9 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fakegetdeploy.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			kubeClientFunc: func() (*KubernetesClient, error) {
+				return nil, nil
 			},
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(GetError),
@@ -187,6 +251,9 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fakelist.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 			},
+			kubeClientFunc: func() (*KubernetesClient, error) {
+				return nil, nil
+			},
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(ListError),
 		},
@@ -199,6 +266,9 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fakegetpvc.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			kubeClientFunc: func() (*KubernetesClient, error) {
+				return nil, nil
 			},
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(GetError),
@@ -214,8 +284,31 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fakelistnodeserverpod.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 			},
+			kubeClientFunc: func() (*KubernetesClient, error) {
+				return nil, nil
+			},
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(ListError),
+		},
+		{
+			testCaseName: "Negative: Failed to get In Cluster Config",
+			objects: []runtime.Object{
+				recoverStaleVolumeCR,
+				deployment,
+				deploymentPod,
+				pvc,
+				nodeServerPod1,
+				nodeServerPod2,
+				nodeServerPod3,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			kubeClientFunc: func() (*KubernetesClient, error) {
+				return nil, rest.ErrNotInCluster
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  rest.ErrNotInCluster,
 		},
 	}
 
@@ -225,6 +318,7 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 
 			scheme := setupScheme()
 			client := testcase.clientFunc(testcase.objects)
+			kubeClient = testcase.kubeClientFunc
 
 			recoverStaleVolumeReconciler := &RecoverStaleVolumeReconciler{
 				Client: client,
