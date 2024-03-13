@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	objectdriverv1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
+	objectdriverv1alpha1 "github.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
 )
 
 // RecoverStaleVolumeReconciler reconciles a RecoverStaleVolume object

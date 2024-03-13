@@ -3,10 +3,10 @@ package crutils
 import (
 	"fmt"
 
-	objectdriverv1alpha1 "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
-	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/internal/common"
-	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/config"
-	csiversion "github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/version"
+	objectdriverv1alpha1 "github.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
+	"github.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/internal/common"
+	"github.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/config"
+	csiversion "github.com/alchemy-containers/ibm-object-csi-driver-operator/version"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
