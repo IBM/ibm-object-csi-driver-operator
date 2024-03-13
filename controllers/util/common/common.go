@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/internal/crutils"
-	"github.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/util"
-	oconfig "github.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/config"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/crutils"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util"
+	oconfig "github.com/IBM/ibm-object-csi-driver-operator/pkg/config"
 	"github.com/go-logr/logr"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"

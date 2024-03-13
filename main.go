@@ -31,9 +31,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	objectdriverv1alpha1 "github.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
-	"github.com/alchemy-containers/ibm-object-csi-driver-operator/controllers"
-	"github.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/util/common"
+	objectdriverv1alpha1 "github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util/common"
 	//+kubebuilder:scaffold:imports
 )
 

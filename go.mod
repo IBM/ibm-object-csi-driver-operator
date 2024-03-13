@@ -1,4 +1,4 @@
-module github.com/alchemy-containers/ibm-object-csi-driver-operator
+module github.com/IBM/ibm-object-csi-driver-operator
 
 go 1.21
 
