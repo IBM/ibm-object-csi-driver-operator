@@ -3,7 +3,7 @@ package controllers
 import (
 	"context"
 
-	"github.ibm.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
+	"github.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
