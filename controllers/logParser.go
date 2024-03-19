@@ -59,7 +59,7 @@ func parseLogs(nodePodLogs string) map[string]string {
 						data := strings.Split(kv, ":")
 						if data[0] == "Error" {
 							errMsg = data[1]
-						} else {
+						} else if data[0] == "VolumeId" {
 							volumeID = data[1]
 						}
 					} else {
