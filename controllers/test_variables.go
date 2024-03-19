@@ -44,9 +44,7 @@ var (
 	testNode3                  = "test-node-3"
 )
 
-var testNodeServerPodLogs = `I0207 09:02:14.466230       1 nodeserver.go:188] NodeGetVolumeStats: Request: {VolumeId:test-pv-1 VolumePath:/var/data/kubelet/pods/360289c4-6eca-4275-a9ce-14938335117e/volumes/kubernetes.io~csi/pvc-7400b05a-12a4-43ac-bfda-a5ce6445b6ef/mount StagingTargetPath: XXX_NoUnkeyedLiteral:{} XXX_unrecognized:[] XXX_sizecache:0}
-I0207 09:02:14.466270       1 nodeserver.go:198] NodeGetVolumeStats: Start getting Stats
-E0207 09:02:14.466335       1 server.go:158] GRPC error: transport endpoint is not connected`
+var testNodeServerPodLogs = `E0319 05:32:00.429871       1 nodeserver.go:245] NodeGetVolumeStats: error occurred while getting volume stats map[Error:transport endpoint is not connected VolumeId:test-pv-1]`
 
 func setupScheme() *runtime.Scheme {
 	s := scheme.Scheme
