@@ -39,25 +39,35 @@ func parseLogs(nodePodLogs string) map[string]string {
 
 	volumesStats := map[string]string{}
 
-	for ind, log := range logs {
+	for _, log := range logs {
 		logEntry := getLogEntry(log)
+
 		if logEntry != nil {
 			logMsg := logEntry.Message
 
-			if strings.HasPrefix(logMsg, "NodeGetVolumeStats: Request:") {
-				logMsg = strings.TrimSpace(strings.Trim(logMsg, "NodeGetVolumeStats Request:{}"))
-				slice := strings.Fields(logMsg)
-				data := map[string]string{}
-				for _, val := range slice {
-					kv := strings.Split(val, ":")
-					if len(kv) == 2 {
-						data[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
+			regexToGetMap := regexp.MustCompile(`map\[(.*?)\]`)
+			matches := regexToGetMap.FindStringSubmatch(logMsg)
+
+			if len(matches) == 2 {
+				mapContent := matches[1]
+				pairs := strings.Fields(mapContent)
+				volumeID := ""
+				errMsg := ""
+
+				for _, kv := range pairs {
+					if strings.Contains(kv, ":") {
+						data := strings.Split(kv, ":")
+						if data[0] == "Error" {
+							errMsg = data[1]
+						} else {
+							volumeID = data[1]
+						}
+					} else {
+						errMsg += " " + kv
 					}
 				}
 
-				reqLog := logs[ind+2]
-				logEntry := getLogEntry(reqLog)
-				volumesStats[data["Id"]] = logEntry.Message
+				volumesStats[volumeID] = errMsg
 			}
 		}
 	}
