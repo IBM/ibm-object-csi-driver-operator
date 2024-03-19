@@ -1,8 +1,8 @@
 package crutils
 
 import (
-	"github.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/config"
-	"github.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/util/boolptr"
+	"github.com/IBM/ibm-object-csi-driver-operator/pkg/config"
+	"github.com/IBM/ibm-object-csi-driver-operator/pkg/util/boolptr"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"

@@ -57,6 +57,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 )
 
+var csiOperatorNamespace = "ibm-object-csi-operator-system"
+
 type versionedTracker struct {
 	testing.ObjectTracker
 	scheme                *runtime.Scheme
@@ -453,39 +455,34 @@ func (t versionedTracker) update(gvr schema.GroupVersionResource, obj runtime.Ob
 }
 
 func (c *fakeClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-	switch obj.(type) {
-	case *corev1.ServiceAccount:
-		return errors.New("failed to get serviceaccount")
-	default:
-		gvr, err := getGVRFromObject(obj, c.scheme)
-		if err != nil {
-			return err
-		}
-		o, err := c.tracker.Get(gvr, key.Namespace, key.Name)
-		if err != nil {
-			return err
-		}
-
-		if _, isUnstructured := obj.(runtime.Unstructured); isUnstructured {
-			gvk, err := apiutil.GVKForObject(obj, c.scheme)
-			if err != nil {
-				return err
-			}
-			ta, err := meta.TypeAccessor(o)
-			if err != nil {
-				return err
-			}
-			ta.SetKind(gvk.Kind)
-			ta.SetAPIVersion(gvk.GroupVersion().String())
-		}
-
-		j, err := json.Marshal(o)
-		if err != nil {
-			return err
-		}
-		zero(obj)
-		return json.Unmarshal(j, obj)
+	gvr, err := getGVRFromObject(obj, c.scheme)
+	if err != nil {
+		return err
 	}
+	o, err := c.tracker.Get(gvr, key.Namespace, key.Name)
+	if err != nil {
+		return err
+	}
+
+	if _, isUnstructured := obj.(runtime.Unstructured); isUnstructured {
+		gvk, err := apiutil.GVKForObject(obj, c.scheme)
+		if err != nil {
+			return err
+		}
+		ta, err := meta.TypeAccessor(o)
+		if err != nil {
+			return err
+		}
+		ta.SetKind(gvk.Kind)
+		ta.SetAPIVersion(gvk.GroupVersion().String())
+	}
+
+	j, err := json.Marshal(o)
+	if err != nil {
+		return err
+	}
+	zero(obj)
+	return json.Unmarshal(j, obj)
 }
 
 func (c *fakeClient) Watch(ctx context.Context, list client.ObjectList, opts ...client.ListOption) (watch.Interface, error) {
@@ -504,6 +501,16 @@ func (c *fakeClient) Watch(ctx context.Context, list client.ObjectList, opts ...
 }
 
 func (c *fakeClient) List(ctx context.Context, obj client.ObjectList, opts ...client.ListOption) error {
+	listOpts := client.ListOptions{}
+	listOpts.ApplyOptions(opts)
+
+	switch obj.(type) {
+	case *corev1.PodList:
+		if listOpts.Namespace == csiOperatorNamespace {
+			return errors.New("failed to list object")
+		}
+	}
+
 	gvk, err := apiutil.GVKForObject(obj, c.scheme)
 	if err != nil {
 		return err
@@ -520,9 +527,6 @@ func (c *fakeClient) List(ctx context.Context, obj client.ObjectList, opts ...cl
 		c.scheme.AddKnownTypeWithName(gvk.GroupVersion().WithKind(gvk.Kind+"List"), &unstructured.UnstructuredList{})
 		c.schemeWriteLock.Unlock()
 	}
-
-	listOpts := client.ListOptions{}
-	listOpts.ApplyOptions(opts)
 
 	gvr, _ := meta.UnsafeGuessKindToResource(gvk)
 	o, err := c.tracker.List(gvr, gvk, listOpts.Namespace)

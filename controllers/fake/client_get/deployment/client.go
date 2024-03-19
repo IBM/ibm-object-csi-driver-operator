@@ -31,6 +31,7 @@ import (
 
 	// Using v4 to match upstream
 	jsonpatch "github.com/evanphx/json-patch/v5"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
@@ -454,8 +455,8 @@ func (t versionedTracker) update(gvr schema.GroupVersionResource, obj runtime.Ob
 
 func (c *fakeClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	switch obj.(type) {
-	case *corev1.ServiceAccount:
-		return errors.New("failed to get serviceaccount")
+	case *appsv1.Deployment:
+		return errors.New("failed to get deployment")
 	default:
 		gvr, err := getGVRFromObject(obj, c.scheme)
 		if err != nil {

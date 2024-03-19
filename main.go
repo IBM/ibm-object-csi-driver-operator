@@ -31,9 +31,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	objectdriverv1alpha1 "github.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
-	"github.com/alchemy-containers/ibm-object-csi-driver-operator/controllers"
-	"github.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/util/common"
+	objectdriverv1alpha1 "github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util/common"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -103,6 +103,7 @@ func main() {
 	if err = (&controllers.RecoverStaleVolumeReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		IsTest: false,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "RecoverStaleVolume")
 		os.Exit(1)
