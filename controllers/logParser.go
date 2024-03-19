@@ -50,22 +50,12 @@ func parseLogs(nodePodLogs string) map[string]string {
 
 			if len(matches) == 2 {
 				mapContent := matches[1]
-				pairs := strings.Fields(mapContent)
-				volumeID := ""
-				errMsg := ""
 
-				for _, kv := range pairs {
-					if strings.Contains(kv, ":") {
-						data := strings.Split(kv, ":")
-						if data[0] == "Error" {
-							errMsg = data[1]
-						} else if data[0] == "VolumeId" {
-							volumeID = data[1]
-						}
-					} else {
-						errMsg += " " + kv
-					}
-				}
+				getVolumeID := regexp.MustCompile(`VolumeId:\\S+`).FindStringSubmatch(mapContent)
+				volumeID := strings.Split(getVolumeID[0], ":")[1]
+
+				getErrMsg := strings.ReplaceAll(mapContent, getVolumeID[0], "")
+				errMsg := strings.Split(getErrMsg, ":")[1]
 
 				volumesStats[volumeID] = errMsg
 			}
