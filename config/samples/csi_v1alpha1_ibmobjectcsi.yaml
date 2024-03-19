@@ -12,8 +12,8 @@ spec:
   # controller is a deployment with ibm-object-csi-controller container
   # and csi-provisioner, csi-attacher, csi-snapshotter and livenessprobe sidecars.
   controller:
-    repository: ambikanair/ibm-object-csi-driver
-    tag: "ashima3"
+    repository: icr.io/ibm/ibm-object-csi-driver
+    tag: "v1.0.1-alpha"
     imagePullPolicy: IfNotPresent
     affinity:
       nodeAffinity:
@@ -28,8 +28,8 @@ spec:
   # node is a daemonSet with ibm-object-csi-node container
   # and csi-node-driver-registrar and livenessprobe sidecars.
   node:
-    repository: ambikanair/ibm-object-csi-driver
-    tag: "ashima3"
+    repository: icr.io/ibm/ibm-object-csi-driver
+    tag: "v1.0.1-alpha"
     imagePullPolicy: Always
     affinity:
       nodeAffinity:
