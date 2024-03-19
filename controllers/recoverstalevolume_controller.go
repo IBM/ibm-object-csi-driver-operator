@@ -34,19 +34,26 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	objectdriverv1alpha1 "github.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
+	objectdriverv1alpha1 "github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
 )
 
 // RecoverStaleVolumeReconciler reconciles a RecoverStaleVolume object
 type RecoverStaleVolumeReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	IsTest bool
+}
+
+type KubernetesClient struct {
+	Clientset kubernetes.Interface
 }
 
 var staleVolLog = logf.Log.WithName("recoverstalevolume_controller")
 var reconcileTime = 2 * time.Minute
 var csiOperatorNamespace = "ibm-object-csi-operator-system"
+var csiNodePodPrefix = "ibm-object-csi-node"
 var transportEndpointError = "transport endpoint is not connected"
+var kubeClient = createK8sClient
 
 //+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=recoverstalevolumes,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=recoverstalevolumes/status,verbs=get;update;patch
@@ -161,7 +168,11 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 							return ctrl.Result{}, err
 						}
 
-						scName := *pvc.Spec.StorageClassName
+						storageClass := pvc.Spec.StorageClassName
+						scName := ""
+						if storageClass != nil {
+							scName = *storageClass
+						}
 						reqLogger.Info("PVC using Storage-class", "pvc-name", pvcName, "sc-name", scName)
 						// Check if the volume is using csi storage-class
 						if strings.Contains(scName, "csi") {
@@ -204,7 +215,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 		for ind := range csiPodsList.Items {
 			pod := csiPodsList.Items[ind]
-			if strings.HasPrefix(pod.Name, "ibm-object-csi-node") {
+			if strings.HasPrefix(pod.Name, csiNodePodPrefix) {
 				reqLogger.Info("NodeServer Pod", "name", pod.Name)
 				csiNodeServerPods[pod.Spec.NodeName] = pod.Name
 			}
@@ -218,7 +229,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 		for nodeName, volumesData := range nodeVolumePodMapping {
 			// Fetch volume stats from Logs of the Node Server Pod
-			getVolStatsFromLogs, err := fetchVolumeStatsFromNodeServerLogs(ctx, csiNodeServerPods[nodeName], logTailLines)
+			getVolStatsFromLogs, err := fetchVolumeStatsFromNodeServerLogs(ctx, csiNodeServerPods[nodeName], logTailLines, r.IsTest)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -277,7 +288,7 @@ func contains(slice []string, value string) bool {
 	return false
 }
 
-func createK8sClient() (*kubernetes.Clientset, error) {
+func createK8sClient() (*KubernetesClient, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, err
@@ -288,20 +299,22 @@ func createK8sClient() (*kubernetes.Clientset, error) {
 		return nil, err
 	}
 
-	return clientset, nil
+	return &KubernetesClient{
+		Clientset: clientset,
+	}, nil
 }
 
-func fetchVolumeStatsFromNodeServerLogs(ctx context.Context, nodeServerPod string, logTailLines int64) (map[string]string, error) {
+func fetchVolumeStatsFromNodeServerLogs(ctx context.Context, nodeServerPod string, logTailLines int64, isTest bool) (map[string]string, error) {
 	podLogOpts := &corev1.PodLogOptions{
-		Container: "ibm-object-csi-node",
+		Container: csiNodePodPrefix,
 		TailLines: &logTailLines,
 	}
 
-	k8sClient, err := createK8sClient()
+	k8sClient, err := kubeClient()
 	if err != nil {
 		return nil, err
 	}
-	request := k8sClient.CoreV1().Pods(csiOperatorNamespace).GetLogs(nodeServerPod, podLogOpts)
+	request := k8sClient.Clientset.CoreV1().Pods(csiOperatorNamespace).GetLogs(nodeServerPod, podLogOpts)
 
 	nodePodLogs, err := request.Stream(ctx)
 	if err != nil {
@@ -315,6 +328,10 @@ func fetchVolumeStatsFromNodeServerLogs(ctx context.Context, nodeServerPod strin
 		return nil, err
 	}
 	nodeServerPodLogs := buf.String()
+
+	if isTest {
+		nodeServerPodLogs = testNodeServerPodLogs
+	}
 
 	return parseLogs(nodeServerPodLogs), nil
 }

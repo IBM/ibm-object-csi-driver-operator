@@ -12,10 +12,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	objectdriverv1alpha1 "github.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
-	"github.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/internal/crutils"
-	"github.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/config"
-	"github.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/util/boolptr"
+	objectdriverv1alpha1 "github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/crutils"
+	"github.com/IBM/ibm-object-csi-driver-operator/pkg/config"
+	"github.com/IBM/ibm-object-csi-driver-operator/pkg/util/boolptr"
 	"github.com/presslabs/controller-util/pkg/mergo/transformers"
 	"github.com/presslabs/controller-util/pkg/syncer"
 )

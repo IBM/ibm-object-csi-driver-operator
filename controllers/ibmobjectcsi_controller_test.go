@@ -1,24 +1,23 @@
 package controllers
 
 import (
-	"context"
 	"errors"
 	"testing"
 
-	"github.com/alchemy-containers/ibm-object-csi-driver-operator/api/v1alpha1"
-	fakecreate "github.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_create"
-	fakedelete "github.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_delete"
-	fakeget "github.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_get"
-	fakegetcsidriver "github.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_get/csidriver"
-	fakegetsa "github.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_get/serviceaccount"
-	fakelist "github.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_list"
-	fakeupdate "github.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_update"
-	fakeupdateibmobjcsi "github.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/fake/client_update/ibmobjectcsi"
-	crutils "github.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/internal/crutils"
-	"github.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/syncer"
-	"github.com/alchemy-containers/ibm-object-csi-driver-operator/controllers/util/common"
-	"github.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/config"
-	"github.com/alchemy-containers/ibm-object-csi-driver-operator/pkg/util/boolptr"
+	"github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
+	fakecreate "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_create"
+	fakedelete "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_delete"
+	fakeget "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_get"
+	fakegetcsidriver "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_get/csidriver"
+	fakegetsa "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_get/serviceaccount"
+	fakelist "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_list"
+	fakeupdate "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_update"
+	fakeupdateibmobjcsi "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_update/ibmobjectcsi"
+	crutils "github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/crutils"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/syncer"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util/common"
+	"github.com/IBM/ibm-object-csi-driver-operator/pkg/config"
+	"github.com/IBM/ibm-object-csi-driver-operator/pkg/util/boolptr"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -27,33 +26,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const (
-	CreateError = "failed to create"
-	DeleteError = "failed to delete"
-	GetError    = "failed to get"
-	ListError   = "failed to list"
-	UpdateError = "failed to update"
-
-	NotFoundError = "not found"
-)
-
 var (
-	testLog = log.Log.WithName("ibmobjectcsi_controller_test")
-	testCtx = context.TODO()
-
-	currentTime = metav1.Now()
-
-	ibmObjectCSICRName      = "test-csi-cr"
-	ibmObjectCSICRNamespace = "test-namespace"
-	ibmObjectCSIfinalizer   = "ibmobjectcsi.objectdriver.csi.ibm.com"
-
 	defaultFSGroupPolicy = storagev1.FileFSGroupPolicy
 	reclaimPolicy        = corev1.PersistentVolumeReclaimRetain
 	secrets              = crutils.GetImagePullSecrets(ibmObjectCSICR.Spec.ImagePullSecrets)
@@ -397,12 +375,6 @@ var (
 		},
 	}
 )
-
-func setupScheme() *runtime.Scheme {
-	s := scheme.Scheme
-	_ = v1alpha1.AddToScheme(s)
-	return s
-}
 
 func TestIBMObjectCSIReconcile(t *testing.T) {
 	testCases := []struct {

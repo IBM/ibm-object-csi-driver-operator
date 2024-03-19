@@ -454,8 +454,8 @@ func (t versionedTracker) update(gvr schema.GroupVersionResource, obj runtime.Ob
 
 func (c *fakeClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	switch obj.(type) {
-	case *corev1.ServiceAccount:
-		return errors.New("failed to get serviceaccount")
+	case *corev1.PersistentVolumeClaim:
+		return errors.New("failed to get persistentvolumeclaim")
 	default:
 		gvr, err := getGVRFromObject(obj, c.scheme)
 		if err != nil {
