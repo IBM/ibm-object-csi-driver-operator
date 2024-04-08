@@ -35,8 +35,6 @@ type IBMObjectCSISpec struct {
 	// +kubebuilder:validation:Optional
 	ImagePullSecrets []string `json:"imagePullSecrets,omitempty"`
 
-	//Resources ResourcesSpec `json:"resources,omitempty"`
-
 	HealthPort uint16 `json:"healthPort,omitempty"`
 
 	Resources ResourcesSpec `json:"resources,omitempty"`
