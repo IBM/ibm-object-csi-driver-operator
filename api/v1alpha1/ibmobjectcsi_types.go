@@ -35,7 +35,21 @@ type IBMObjectCSISpec struct {
 	// +kubebuilder:validation:Optional
 	ImagePullSecrets []string `json:"imagePullSecrets,omitempty"`
 
+	//Resources ResourcesSpec `json:"resources,omitempty"`
+
 	HealthPort uint16 `json:"healthPort,omitempty"`
+
+	Resources ResourcesSpec `json:"resources,omitempty"`
+}
+
+type ResourcesSpec struct {
+	Limits   ReqLimits `json:"limits"`
+	Requests ReqLimits `json:"requests"`
+}
+
+type ReqLimits struct {
+	Cpu    string `json:"cpu"`
+	Memory string `json:"memory"`
 }
 
 // IBMObjectCSINodeSpec defines the desired state of IBMObjectCSINode
@@ -53,6 +67,8 @@ type IBMObjectCSINodeSpec struct {
 
 	// +kubebuilder:validation:Optional
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+
+	Resources ResourcesSpec `json:"resources,omitempty"`
 }
 
 // IBMObjectCSIControllerSpec defines the desired state of IBMObjectCSIController
@@ -70,6 +86,8 @@ type IBMObjectCSIControllerSpec struct {
 
 	// +kubebuilder:validation:Optional
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+
+	Resources ResourcesSpec `json:"resources,omitempty"`
 }
 
 // IBMObjectCSIStatus defines the observed state of IBMObjectCSI
@@ -117,6 +135,8 @@ type CSISidecar struct {
 	// The pullPolicy of the csi sidecar image
 	// +kubebuilder:validation:Optional
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy"`
+
+	Resources ResourcesSpec `json:"resources,omitempty"`
 }
 
 func init() {

@@ -13,8 +13,15 @@ spec:
   # and csi-provisioner, csi-attacher, csi-snapshotter and livenessprobe sidecars.
   controller:
     repository: icr.io/ibm/ibm-object-csi-driver
-    tag: "v1.0.1-alpha"
+    tag: "v1.0.2-alpha"
     imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 800m
+        memory: 400Mi
+      requests:
+        cpu: 40m
+        memory: 40Mi
     affinity:
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
@@ -29,8 +36,15 @@ spec:
   # and csi-node-driver-registrar and livenessprobe sidecars.
   node:
     repository: icr.io/ibm/ibm-object-csi-driver
-    tag: "v1.0.1-alpha"
+    tag: "v1.0.2-alpha"
     imagePullPolicy: Always
+    resources:
+      limits:
+        cpu: "4"
+        memory: 800Mi
+      requests:
+        cpu: 40m
+        memory: 40Mi
     affinity:
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
@@ -49,14 +63,35 @@ spec:
     repository: k8s.gcr.io/sig-storage/csi-node-driver-registrar
     tag: "v2.6.3"
     imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 40m
+        memory: 80Mi
+      requests:
+        cpu: 10m
+        memory: 20Mi
   - name: csi-provisioner
     repository: k8s.gcr.io/sig-storage/csi-provisioner
     tag: "v3.4.1"
     imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 80m
+        memory: 160Mi
+      requests:
+        cpu: 20m
+        memory: 40Mi
   - name: livenessprobe
     repository: k8s.gcr.io/sig-storage/livenessprobe
     tag: "v2.9.0"
     imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 20m
+        memory: 40Mi
+      requests:
+        cpu: 10m
+        memory: 10Mi
 
 #  healthPort: 9808
 #  imagePullSecrets:

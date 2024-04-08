@@ -97,3 +97,62 @@ func (c *IBMObjectCSI) GetCSIControllerImage() string {
 	}
 	return c.Spec.Controller.Repository + ":" + c.Spec.Controller.Tag
 }
+
+func (c *IBMObjectCSI) GetCSIControllerResourceRequests() *objectdriverv1alpha1.ResourcesSpec {
+	//limits, requests := make(map[string]string), make(map[string]string)
+	resources := objectdriverv1alpha1.ResourcesSpec{}
+
+	if &c.Spec.Controller.Resources != nil {
+
+		resources = c.Spec.Controller.Resources
+
+		//limits["cpu"] = c.Spec.Controller.Resources.Limits.Cpu
+		//limits["memory"] = c.Spec.Controller.Resources.Limits.Memory
+		//requests["cpu"] = c.Spec.Controller.Resources.Requests.Cpu
+		//requests["memory"] = c.Spec.Controller.Resources.Requests.Memory
+		//
+		//resources.Limits = objectdriverv1alpha1.ReqLimits{
+		//	Cpu:    limits["cpu"],
+		//	Memory: limits["memory"],
+		//}
+		//resources.Requests = objectdriverv1alpha1.ReqLimits{
+		//	Cpu:    requests["cpu"],
+		//	Memory: requests["memory"],
+		//}
+	}
+
+	return &resources
+}
+
+func (c *IBMObjectCSI) GetCSINodeResourceRequests() *objectdriverv1alpha1.ResourcesSpec {
+	//limits, requests := make(map[string]string), make(map[string]string)
+	resources := objectdriverv1alpha1.ResourcesSpec{}
+
+	//if &c.Spec.Node.Resources != nil {
+	//	limits["cpu"] = c.Spec.Node.Resources.Limits.Cpu
+	//	limits["memory"] = c.Spec.Node.Resources.Limits.Memory
+	//	requests["cpu"] = c.Spec.Node.Resources.Requests.Cpu
+	//	requests["memory"] = c.Spec.Node.Resources.Requests.Memory
+	//
+	//	resources.Limits = objectdriverv1alpha1.ReqLimits{
+	//		Cpu:    limits["cpu"],
+	//		Memory: limits["memory"],
+	//	}
+	//	resources.Requests = objectdriverv1alpha1.ReqLimits{
+	//		Cpu:    requests["cpu"],
+	//		Memory: requests["memory"],
+	//	}
+	//}
+	if &c.Spec.Node.Resources != nil {
+		resources = c.Spec.Node.Resources
+	}
+
+	return &resources
+}
+
+func (c *IBMObjectCSI) GetCSIResource(image string) string {
+	if c.Spec.Controller.Tag == "" {
+		return c.Spec.Controller.Repository
+	}
+	return c.Spec.Controller.Repository + ":" + c.Spec.Controller.Tag
+}
