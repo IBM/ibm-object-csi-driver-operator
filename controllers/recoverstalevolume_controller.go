@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package controllers ...
 package controllers
 
 import (
@@ -44,6 +45,7 @@ type RecoverStaleVolumeReconciler struct {
 	IsTest bool
 }
 
+// KubernetesClient ...
 type KubernetesClient struct {
 	Clientset kubernetes.Interface
 }
@@ -176,7 +178,6 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 						reqLogger.Info("PVC using Storage-class", "pvc-name", pvcName, "sc-name", scName)
 						// Check if the volume is using csi storage-class
 						if strings.Contains(scName, "csi") {
-
 							nodeName := appPod.Spec.NodeName
 							volumeData, ok := nodeVolumePodMapping[nodeName]
 							if !ok {
@@ -320,7 +321,7 @@ func fetchVolumeStatsFromNodeServerLogs(ctx context.Context, nodeServerPod strin
 	if err != nil {
 		return nil, err
 	}
-	defer nodePodLogs.Close()
+	defer nodePodLogs.Close() // #nosec G307 Close Stream
 
 	buf := new(bytes.Buffer)
 	_, err = io.Copy(buf, nodePodLogs)

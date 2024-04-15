@@ -1,3 +1,4 @@
+// Package syncer ...
 package syncer
 
 import (

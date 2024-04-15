@@ -1,5 +1,7 @@
+// Package util ...
 package util
 
+// Contains ...
 func Contains(list []string, s string) bool {
 	for _, v := range list {
 		if v == s {
@@ -9,6 +11,7 @@ func Contains(list []string, s string) bool {
 	return false
 }
 
+// Remove ...
 func Remove(list []string, s string) []string {
 	var newList []string
 	for _, v := range list {

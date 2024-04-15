@@ -1,3 +1,4 @@
+// Package syncer ..
 package syncer
 
 import (
@@ -21,7 +22,8 @@ import (
 )
 
 const (
-	registrationVolumeName               = "registration-dir"
+	registrationVolumeName = "registration-dir"
+	// NodeContainerName ...
 	NodeContainerName                    = "ibm-object-csi-node"
 	csiNodeDriverRegistrarContainerName  = "csi-node-driver-registrar"
 	nodeLivenessProbeContainerName       = "livenessprobe"
@@ -201,7 +203,6 @@ func envVarFromField(name, fieldPath string) corev1.EnvVar {
 }
 
 func (s *csiNodeSyncer) getEnvFor(name string) []corev1.EnvVar {
-
 	switch name {
 	case NodeContainerName:
 		return []corev1.EnvVar{

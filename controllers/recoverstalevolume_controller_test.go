@@ -412,7 +412,7 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 func TestRecoverStaleVolumeSetupWithManager(t *testing.T) {
 	t.Run("Positive: Successful", func(t *testing.T) {
 		recoverStaleVolumeReconciler := &RecoverStaleVolumeReconciler{}
-		recoverStaleVolumeReconciler.SetupWithManager(nil)
+		recoverStaleVolumeReconciler.SetupWithManager(nil) // #nosec G104 Skip error
 	})
 }
 
@@ -425,8 +425,8 @@ func TestContains(t *testing.T) {
 
 func TestCreateK8sClient(t *testing.T) {
 	t.Run("", func(t *testing.T) {
-		os.Setenv("KUBERNETES_SERVICE_HOST", "test-service-host")
-		os.Setenv("KUBERNETES_SERVICE_PORT", "test-service-port")
+		os.Setenv("KUBERNETES_SERVICE_HOST", "test-service-host") // #nosec G104 Skip error
+		os.Setenv("KUBERNETES_SERVICE_PORT", "test-service-port") // #nosec G104 Skip error
 
 		client, err := createK8sClient()
 		assert.Nil(t, client)

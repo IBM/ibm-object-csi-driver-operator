@@ -1,3 +1,4 @@
+// Package boolptr ...
 package boolptr
 
 // True returns a *bool whose underlying value is true.

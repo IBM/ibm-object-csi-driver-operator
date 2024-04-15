@@ -1,3 +1,4 @@
+// Package crutils ...
 package crutils
 
 import (
@@ -6,11 +7,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+// Instance ...
 type Instance interface {
 	GetLabels() labels.Set
 	GetObjectKind() schema.ObjectKind
 }
 
+// GetImagePullSecrets ...
 func GetImagePullSecrets(imagePullSecrets []string) []corev1.LocalObjectReference {
 	secrets := []corev1.LocalObjectReference{}
 	if len(imagePullSecrets) > 0 {

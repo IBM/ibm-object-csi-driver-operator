@@ -1,3 +1,4 @@
+// Package config ...
 package config
 
 // Add a field here if it never changes, if it changes over time, put it to settings.go
@@ -8,9 +9,9 @@ const (
 	DriverName  = "cos.s3.csi.ibm.io"
 	ProductName = "ibm-object-csi-driver"
 
-	RbacAuthorizationApiGroup = "rbac.authorization.k8s.io"
-	SecurityOpenshiftApiGroup = "security.openshift.io"
-	StorageApiGroup           = "storage.k8s.io"
+	RbacAuthorizationAPIGroup = "rbac.authorization.k8s.io"
+	SecurityOpenshiftAPIGroup = "security.openshift.io"
+	StorageAPIGroup           = "storage.k8s.io"
 
 	CsiNodesResource                   = "csinodes"
 	SecretsResource                    = "secrets"

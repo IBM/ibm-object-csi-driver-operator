@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package controllers ...
 package controllers
 
 import (
@@ -197,7 +198,6 @@ func (r *IBMObjectCSIReconciler) updateStatus(instance *crutils.IBMObjectCSI, or
 		phase = objectdriverv1alpha1.DriverPhaseRunning
 	} else {
 		if !instance.Status.ControllerReady {
-
 			controllerPod, err := r.getControllerPod(controllerDeployment)
 			if err != nil {
 				logger.Error(err, "failed to get controller pod")
@@ -205,7 +205,7 @@ func (r *IBMObjectCSIReconciler) updateStatus(instance *crutils.IBMObjectCSI, or
 			}
 
 			if !r.areAllPodImagesSynced(controllerDeployment, controllerPod) {
-				r.restartControllerPodfromDeployment(logger, controllerDeployment, controllerPod)
+				r.restartControllerPodfromDeployment(logger, controllerDeployment, controllerPod) // #nosec G104 Skip error
 			}
 		}
 		phase = objectdriverv1alpha1.DriverPhaseCreating
