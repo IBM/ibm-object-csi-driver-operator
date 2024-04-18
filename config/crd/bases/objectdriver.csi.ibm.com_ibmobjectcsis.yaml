@@ -942,6 +942,32 @@ spec:
                     type: string
                   repository:
                     type: string
+                  resources:
+                    properties:
+                      limits:
+                        properties:
+                          cpu:
+                            type: string
+                          memory:
+                            type: string
+                        required:
+                        - cpu
+                        - memory
+                        type: object
+                      requests:
+                        properties:
+                          cpu:
+                            type: string
+                          memory:
+                            type: string
+                        required:
+                        - cpu
+                        - memory
+                        type: object
+                    required:
+                    - limits
+                    - requests
+                    type: object
                   tag:
                     type: string
                   tolerations:
@@ -1894,6 +1920,32 @@ spec:
                     type: string
                   repository:
                     type: string
+                  resources:
+                    properties:
+                      limits:
+                        properties:
+                          cpu:
+                            type: string
+                          memory:
+                            type: string
+                        required:
+                        - cpu
+                        - memory
+                        type: object
+                      requests:
+                        properties:
+                          cpu:
+                            type: string
+                          memory:
+                            type: string
+                        required:
+                        - cpu
+                        - memory
+                        type: object
+                    required:
+                    - limits
+                    - requests
+                    type: object
                   tag:
                     type: string
                   tolerations:
@@ -1950,6 +2002,32 @@ spec:
                     repository:
                       description: The repository of the csi sidecar image
                       type: string
+                    resources:
+                      properties:
+                        limits:
+                          properties:
+                            cpu:
+                              type: string
+                            memory:
+                              type: string
+                          required:
+                          - cpu
+                          - memory
+                          type: object
+                        requests:
+                          properties:
+                            cpu:
+                              type: string
+                            memory:
+                              type: string
+                          required:
+                          - cpu
+                          - memory
+                          type: object
+                      required:
+                      - limits
+                      - requests
+                      type: object
                     tag:
                       description: The tag of the csi sidecar image
                       type: string

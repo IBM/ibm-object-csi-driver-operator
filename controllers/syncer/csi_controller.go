@@ -112,7 +112,7 @@ func (s *csiControllerSyncer) ensureContainersSpec() []corev1.Container {
 		},
 	)
 
-	controllerPlugin.Resources = ensureResources("40m", "800m", "40Mi", "400Mi")
+	controllerPlugin.Resources = getCSIControllerResourceRequests(s.driver)
 
 	healthPort := s.driver.Spec.HealthPort
 	if healthPort == 0 {
@@ -144,6 +144,8 @@ func (s *csiControllerSyncer) ensureContainersSpec() []corev1.Container {
 		provisionerArgs,
 	)
 	provisioner.ImagePullPolicy = s.getCSIProvisionerPullPolicy()
+	provisioner.Resources = getSidecarResourceRequests(s.driver, config.CSIProvisioner)
+
 	healthPortArg := fmt.Sprintf("--health-port=%v", healthPort)
 	livenessProbe := s.ensureContainer(ControllerLivenessProbeContainerName,
 		s.getLivenessProbeImage(),
@@ -153,6 +155,7 @@ func (s *csiControllerSyncer) ensureContainersSpec() []corev1.Container {
 		},
 	)
 	livenessProbe.ImagePullPolicy = s.getLivenessProbePullPolicy()
+	livenessProbe.Resources = getSidecarResourceRequests(s.driver, config.LivenessProbe)
 
 	return []corev1.Container{
 		controllerPlugin,
@@ -161,25 +164,6 @@ func (s *csiControllerSyncer) ensureContainersSpec() []corev1.Container {
 	}
 }
 
-func ensureDefaultResources() corev1.ResourceRequirements {
-	return ensureResources("20m", "200m", "20Mi", "200Mi")
-}
-
-func ensureResources(cpuRequests, cpuLimits, memoryRequests, memoryLimits string) corev1.ResourceRequirements {
-	requests := corev1.ResourceList{
-		corev1.ResourceCPU:    resource.MustParse(cpuRequests),
-		corev1.ResourceMemory: resource.MustParse(memoryRequests),
-	}
-	limits := corev1.ResourceList{
-		corev1.ResourceCPU:    resource.MustParse(cpuLimits),
-		corev1.ResourceMemory: resource.MustParse(memoryLimits),
-	}
-
-	return corev1.ResourceRequirements{
-		Limits:   limits,
-		Requests: requests,
-	}
-}
 func (s *csiControllerSyncer) ensureContainer(name, image string, args []string) corev1.Container {
 	sc := &corev1.SecurityContext{AllowPrivilegeEscalation: boolptr.False()}
 	fillSecurityContextCapabilities(sc)
@@ -191,7 +175,6 @@ func (s *csiControllerSyncer) ensureContainer(name, image string, args []string)
 		Env:             s.getEnvFor(name),
 		VolumeMounts:    s.getVolumeMountsFor(name),
 		SecurityContext: sc,
-		Resources:       ensureDefaultResources(),
 	}
 }
 
@@ -311,4 +294,47 @@ func getSidecarByName(driver *crutils.IBMObjectCSI, name string) *objectdriverv1
 		}
 	}
 	return nil
+}
+
+func getCSIControllerResourceRequests(driver *crutils.IBMObjectCSI) corev1.ResourceRequirements {
+
+	resources := driver.GetCSIControllerResourceRequests()
+
+	requests := corev1.ResourceList{
+		corev1.ResourceCPU:    resource.MustParse(resources.Requests.Cpu),
+		corev1.ResourceMemory: resource.MustParse(resources.Requests.Memory),
+	}
+	limits := corev1.ResourceList{
+		corev1.ResourceCPU:    resource.MustParse(resources.Limits.Cpu),
+		corev1.ResourceMemory: resource.MustParse(resources.Limits.Memory),
+	}
+
+	return corev1.ResourceRequirements{
+		Limits:   limits,
+		Requests: requests,
+	}
+}
+
+func getSidecarResourceRequests(driver *crutils.IBMObjectCSI, sidecarName string) corev1.ResourceRequirements {
+	sidecar := getSidecarByName(driver, sidecarName)
+
+	sidecarResources := corev1.ResourceRequirements{}
+
+	if sidecar != nil && &sidecar.Resources != nil {
+		resources := sidecar.Resources
+
+		requests := corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse(resources.Requests.Cpu),
+			corev1.ResourceMemory: resource.MustParse(resources.Requests.Memory),
+		}
+		limits := corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse(resources.Limits.Cpu),
+			corev1.ResourceMemory: resource.MustParse(resources.Limits.Memory),
+		}
+
+		sidecarResources.Limits = limits
+		sidecarResources.Requests = requests
+	}
+
+	return sidecarResources
 }

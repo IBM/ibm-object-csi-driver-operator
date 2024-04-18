@@ -6,6 +6,7 @@ import (
 	"github.com/imdario/mergo"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -110,7 +111,7 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 		},
 	)
 
-	nodePlugin.Resources = ensureResources("40m", "1000m", "40Mi", "400Mi")
+	nodePlugin.Resources = getCSINodeResourceRequests(s.driver)
 
 	healthPort := s.driver.Spec.HealthPort
 	if healthPort == 0 {
@@ -153,6 +154,7 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 	registrar.SecurityContext = &corev1.SecurityContext{AllowPrivilegeEscalation: boolptr.False()}
 	fillSecurityContextCapabilities(registrar.SecurityContext)
 	registrar.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
+	registrar.Resources = getSidecarResourceRequests(s.driver, config.CSINodeDriverRegistrar)
 
 	// liveness probe sidecar
 	healthPortArg := fmt.Sprintf("--health-port=%v", healthPort)
@@ -166,6 +168,7 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 	livenessProbe.SecurityContext = &corev1.SecurityContext{AllowPrivilegeEscalation: boolptr.False()}
 	fillSecurityContextCapabilities(livenessProbe.SecurityContext)
 	livenessProbe.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
+	livenessProbe.Resources = getSidecarResourceRequests(s.driver, config.LivenessProbe)
 
 	return []corev1.Container{
 		nodePlugin,
@@ -181,7 +184,6 @@ func (s *csiNodeSyncer) ensureContainer(name, image string, args []string) corev
 		Args:         args,
 		Env:          s.getEnvFor(name),
 		VolumeMounts: s.getVolumeMountsFor(name),
-		Resources:    ensureDefaultResources(),
 	}
 }
 
@@ -344,5 +346,24 @@ func fillSecurityContextCapabilities(sc *corev1.SecurityContext, add ...string) 
 			adds = append(adds, corev1.Capability(a))
 		}
 		sc.Capabilities.Add = adds
+	}
+}
+
+func getCSINodeResourceRequests(driver *crutils.IBMObjectCSI) corev1.ResourceRequirements {
+
+	resources := driver.GetCSINodeResourceRequests()
+
+	requests := corev1.ResourceList{
+		corev1.ResourceCPU:    resource.MustParse(resources.Requests.Cpu),
+		corev1.ResourceMemory: resource.MustParse(resources.Requests.Memory),
+	}
+	limits := corev1.ResourceList{
+		corev1.ResourceCPU:    resource.MustParse(resources.Limits.Cpu),
+		corev1.ResourceMemory: resource.MustParse(resources.Limits.Memory),
+	}
+
+	return corev1.ResourceRequirements{
+		Limits:   limits,
+		Requests: requests,
 	}
 }

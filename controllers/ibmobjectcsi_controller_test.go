@@ -61,6 +61,17 @@ var (
 		},
 	}
 
+	resources = v1alpha1.ResourcesSpec{
+		Limits: v1alpha1.ReqLimits{
+			Cpu:    "40Mi",
+			Memory: "200Mi",
+		},
+		Requests: v1alpha1.ReqLimits{
+			Cpu:    "40m",
+			Memory: "40Mi",
+		},
+	}
+
 	ibmObjectCSICR = &v1alpha1.IBMObjectCSI{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ibmObjectCSICRName,
@@ -72,6 +83,7 @@ var (
 				Tag:             "v1.0.2-alpha",
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				Affinity:        affinity,
+				Resources:       resources,
 			},
 			Node: v1alpha1.IBMObjectCSINodeSpec{
 				Repository:      "icr.io/ibm/ibm-object-csi-driver",
@@ -83,6 +95,7 @@ var (
 						Operator: corev1.TolerationOpExists,
 					},
 				},
+				Resources: resources,
 			},
 			Sidecars: []v1alpha1.CSISidecar{
 				{
@@ -90,18 +103,21 @@ var (
 					Repository:      "k8s.gcr.io/sig-storage/csi-node-driver-registrar",
 					Tag:             "v2.6.3",
 					ImagePullPolicy: corev1.PullIfNotPresent,
+					Resources:       resources,
 				},
 				{
 					Name:            "csi-provisioner",
 					Repository:      "k8s.gcr.io/sig-storage/csi-provisioner",
 					Tag:             "v3.4.1",
 					ImagePullPolicy: corev1.PullIfNotPresent,
+					Resources:       resources,
 				},
 				{
 					Name:            "livenessprobe",
 					Repository:      "k8s.gcr.io/sig-storage/livenessprobe",
 					Tag:             "v2.9.0",
 					ImagePullPolicy: corev1.PullIfNotPresent,
+					Resources:       resources,
 				},
 			},
 			ImagePullSecrets: []string{"secretName"},
