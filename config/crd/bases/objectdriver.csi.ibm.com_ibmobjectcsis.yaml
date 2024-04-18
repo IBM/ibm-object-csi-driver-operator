@@ -1990,32 +1990,6 @@ spec:
                 - repository
                 - tag
                 type: object
-              resources:
-                properties:
-                  limits:
-                    properties:
-                      cpu:
-                        type: string
-                      memory:
-                        type: string
-                    required:
-                    - cpu
-                    - memory
-                    type: object
-                  requests:
-                    properties:
-                      cpu:
-                        type: string
-                      memory:
-                        type: string
-                    required:
-                    - cpu
-                    - memory
-                    type: object
-                required:
-                - limits
-                - requests
-                type: object
               sidecars:
                 items:
                   properties:

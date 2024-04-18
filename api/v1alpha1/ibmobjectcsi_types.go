@@ -36,8 +36,6 @@ type IBMObjectCSISpec struct {
 	ImagePullSecrets []string `json:"imagePullSecrets,omitempty"`
 
 	HealthPort uint16 `json:"healthPort,omitempty"`
-
-	Resources ResourcesSpec `json:"resources,omitempty"`
 }
 
 type ResourcesSpec struct {

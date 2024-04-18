@@ -115,10 +115,3 @@ func (c *IBMObjectCSI) GetCSINodeResourceRequests() *objectdriverv1alpha1.Resour
 	}
 	return &resources
 }
-
-func (c *IBMObjectCSI) GetCSIResource(image string) string {
-	if c.Spec.Controller.Tag == "" {
-		return c.Spec.Controller.Repository
-	}
-	return c.Spec.Controller.Repository + ":" + c.Spec.Controller.Tag
-}

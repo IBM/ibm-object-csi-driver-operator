@@ -112,7 +112,6 @@ func (s *csiControllerSyncer) ensureContainersSpec() []corev1.Container {
 		},
 	)
 
-	//controllerPlugin.Resources = ensureResources("40m", "800m", "40Mi", "400Mi")
 	controllerPlugin.Resources = getCSIControllerResourceRequests(s.driver)
 
 	healthPort := s.driver.Spec.HealthPort
@@ -165,25 +164,6 @@ func (s *csiControllerSyncer) ensureContainersSpec() []corev1.Container {
 	}
 }
 
-func ensureDefaultResources() corev1.ResourceRequirements {
-	return ensureResources("20m", "200m", "20Mi", "200Mi")
-}
-
-func ensureResources(cpuRequests, cpuLimits, memoryRequests, memoryLimits string) corev1.ResourceRequirements {
-	requests := corev1.ResourceList{
-		corev1.ResourceCPU:    resource.MustParse(cpuRequests),
-		corev1.ResourceMemory: resource.MustParse(memoryRequests),
-	}
-	limits := corev1.ResourceList{
-		corev1.ResourceCPU:    resource.MustParse(cpuLimits),
-		corev1.ResourceMemory: resource.MustParse(memoryLimits),
-	}
-
-	return corev1.ResourceRequirements{
-		Limits:   limits,
-		Requests: requests,
-	}
-}
 func (s *csiControllerSyncer) ensureContainer(name, image string, args []string) corev1.Container {
 	sc := &corev1.SecurityContext{AllowPrivilegeEscalation: boolptr.False()}
 	fillSecurityContextCapabilities(sc)
@@ -195,7 +175,6 @@ func (s *csiControllerSyncer) ensureContainer(name, image string, args []string)
 		Env:             s.getEnvFor(name),
 		VolumeMounts:    s.getVolumeMountsFor(name),
 		SecurityContext: sc,
-		//Resources:       ensureDefaultResources(),
 	}
 }
 

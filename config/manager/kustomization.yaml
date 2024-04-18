@@ -5,4 +5,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: bhagyak1/ibm-object-csi-driver-operator
-  newTag: apr803
+  newTag: apr1801

@@ -111,7 +111,6 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 		},
 	)
 
-	//nodePlugin.Resources = ensureResources("40m", "1000m", "40Mi", "400Mi")
 	nodePlugin.Resources = getCSINodeResourceRequests(s.driver)
 
 	healthPort := s.driver.Spec.HealthPort
@@ -185,7 +184,6 @@ func (s *csiNodeSyncer) ensureContainer(name, image string, args []string) corev
 		Args:         args,
 		Env:          s.getEnvFor(name),
 		VolumeMounts: s.getVolumeMountsFor(name),
-		//Resources:    ensureDefaultResources(),
 	}
 }
 
