@@ -45,8 +45,9 @@ type ResourcesSpec struct {
 	Requests ReqLimits `json:"requests"`
 }
 
+// ReqLimits ...
 type ReqLimits struct {
-	Cpu    string `json:"cpu"`
+	CPU    string `json:"cpu"`
 	Memory string `json:"memory"`
 }
 
