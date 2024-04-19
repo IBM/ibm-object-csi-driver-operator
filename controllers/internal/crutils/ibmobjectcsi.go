@@ -109,7 +109,7 @@ func (c *IBMObjectCSI) GetCSIControllerImage() string {
 func (c *IBMObjectCSI) GetCSIControllerResourceRequests() *objectdriverv1alpha1.ResourcesSpec {
 	resources := objectdriverv1alpha1.ResourcesSpec{}
 
-	if &c.Spec.Controller.Resources != nil { //nolint:staticcheck false positive as this is taken as static check. this is dynamically populated
+	if &c.Spec.Controller.Resources != nil { //nolint:staticcheck
 		resources = c.Spec.Controller.Resources
 	}
 	return &resources
@@ -119,7 +119,7 @@ func (c *IBMObjectCSI) GetCSIControllerResourceRequests() *objectdriverv1alpha1.
 func (c *IBMObjectCSI) GetCSINodeResourceRequests() *objectdriverv1alpha1.ResourcesSpec {
 	resources := objectdriverv1alpha1.ResourcesSpec{}
 
-	if &c.Spec.Node.Resources != nil { //nolint:staticcheck false positive as this is taken as static check. this is dynamically populated
+	if &c.Spec.Node.Resources != nil { //nolint:staticcheck
 		resources = c.Spec.Node.Resources
 	}
 	return &resources
