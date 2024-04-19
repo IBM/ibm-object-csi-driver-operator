@@ -1,3 +1,4 @@
+// Package crutils ...
 package crutils
 
 import (
@@ -9,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// GenerateCSIDriver ...
 func (c *IBMObjectCSI) GenerateCSIDriver() *storagev1.CSIDriver {
 	defaultFSGroupPolicy := storagev1.FileFSGroupPolicy
 	return &storagev1.CSIDriver{
@@ -24,10 +26,12 @@ func (c *IBMObjectCSI) GenerateCSIDriver() *storagev1.CSIDriver {
 	}
 }
 
+// GenerateControllerServiceAccount ...
 func (c *IBMObjectCSI) GenerateControllerServiceAccount() *corev1.ServiceAccount {
 	return getServiceAccount(c, config.CSIControllerServiceAccount)
 }
 
+// GenerateNodeServiceAccount ...
 func (c *IBMObjectCSI) GenerateNodeServiceAccount() *corev1.ServiceAccount {
 	return getServiceAccount(c, config.CSINodeServiceAccount)
 }
@@ -44,6 +48,7 @@ func getServiceAccount(c *IBMObjectCSI, serviceAccountResourceName config.Resour
 	}
 }
 
+// GenerateExternalProvisionerClusterRole ...
 func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRole() *rbacv1.ClusterRole {
 	return &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
@@ -66,7 +71,7 @@ func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRole() *rbacv1.ClusterR
 				Verbs:     []string{config.VerbGet, config.VerbList, config.VerbWatch, config.VerbUpdate},
 			},
 			{
-				APIGroups: []string{config.StorageApiGroup},
+				APIGroups: []string{config.StorageAPIGroup},
 				Resources: []string{config.StorageClassesResource},
 				Verbs:     []string{config.VerbGet, config.VerbList, config.VerbWatch},
 			},
@@ -76,7 +81,7 @@ func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRole() *rbacv1.ClusterR
 				Verbs:     []string{config.VerbList, config.VerbWatch, config.VerbCreate, config.VerbUpdate, config.VerbPatch},
 			},
 			{
-				APIGroups: []string{config.StorageApiGroup},
+				APIGroups: []string{config.StorageAPIGroup},
 				Resources: []string{config.CsiNodesResource},
 				Verbs:     []string{config.VerbGet, config.VerbList, config.VerbWatch},
 			},
@@ -89,6 +94,7 @@ func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRole() *rbacv1.ClusterR
 	}
 }
 
+// GenerateExternalProvisionerClusterRoleBinding ...
 func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
@@ -104,11 +110,12 @@ func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRoleBinding() *rbacv1.C
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
 			Name:     config.GetNameForResource(config.ExternalProvisionerClusterRole, c.Name),
-			APIGroup: config.RbacAuthorizationApiGroup,
+			APIGroup: config.RbacAuthorizationAPIGroup,
 		},
 	}
 }
 
+// GenerateSCCForControllerClusterRole ...
 func (c *IBMObjectCSI) GenerateSCCForControllerClusterRole() *rbacv1.ClusterRole {
 	return &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
@@ -116,7 +123,7 @@ func (c *IBMObjectCSI) GenerateSCCForControllerClusterRole() *rbacv1.ClusterRole
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
-				APIGroups:     []string{config.SecurityOpenshiftApiGroup},
+				APIGroups:     []string{config.SecurityOpenshiftAPIGroup},
 				Resources:     []string{config.SecurityContextConstraintsResource},
 				ResourceNames: []string{"anyuid"},
 				Verbs:         []string{"use"},
@@ -125,6 +132,7 @@ func (c *IBMObjectCSI) GenerateSCCForControllerClusterRole() *rbacv1.ClusterRole
 	}
 }
 
+// GenerateSCCForControllerClusterRoleBinding ...
 func (c *IBMObjectCSI) GenerateSCCForControllerClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
@@ -140,11 +148,12 @@ func (c *IBMObjectCSI) GenerateSCCForControllerClusterRoleBinding() *rbacv1.Clus
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
 			Name:     config.GetNameForResource(config.CSIControllerSCCClusterRole, c.Name),
-			APIGroup: config.RbacAuthorizationApiGroup,
+			APIGroup: config.RbacAuthorizationAPIGroup,
 		},
 	}
 }
 
+// GenerateSCCForNodeClusterRole ...
 func (c *IBMObjectCSI) GenerateSCCForNodeClusterRole() *rbacv1.ClusterRole {
 	return &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
@@ -152,7 +161,7 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRole() *rbacv1.ClusterRole {
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
-				APIGroups:     []string{config.SecurityOpenshiftApiGroup},
+				APIGroups:     []string{config.SecurityOpenshiftAPIGroup},
 				Resources:     []string{config.SecurityContextConstraintsResource},
 				ResourceNames: []string{"privileged"},
 				Verbs:         []string{"use"},
@@ -173,6 +182,7 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRole() *rbacv1.ClusterRole {
 	}
 }
 
+// GenerateSCCForNodeClusterRoleBinding ...
 func (c *IBMObjectCSI) GenerateSCCForNodeClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
@@ -188,10 +198,12 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRoleBinding() *rbacv1.ClusterRol
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
 			Name:     config.GetNameForResource(config.CSINodeSCCClusterRole, c.Name),
-			APIGroup: config.RbacAuthorizationApiGroup,
+			APIGroup: config.RbacAuthorizationAPIGroup,
 		},
 	}
 }
+
+// Generates3fsSC ...
 func (c *IBMObjectCSI) Generates3fsSC() *storagev1.StorageClass {
 	reclaimPolicy := corev1.PersistentVolumeReclaimRetain
 	return &storagev1.StorageClass{
@@ -219,6 +231,7 @@ func (c *IBMObjectCSI) Generates3fsSC() *storagev1.StorageClass {
 	}
 }
 
+// GenerateRcloneSC ...
 func (c *IBMObjectCSI) GenerateRcloneSC() *storagev1.StorageClass {
 	reclaimPolicy := corev1.PersistentVolumeReclaimRetain
 	return &storagev1.StorageClass{

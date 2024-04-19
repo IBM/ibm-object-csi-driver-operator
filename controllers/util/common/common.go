@@ -1,3 +1,4 @@
+// Package common ...
 package common
 
 import (
@@ -19,17 +20,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
+// ControllerHelper ...
 type ControllerHelper struct {
 	client.Client
 	Log logr.Logger
 }
 
+// NewControllerHelper ...
 func NewControllerHelper(client client.Client) *ControllerHelper {
 	return &ControllerHelper{
 		Client: client,
 	}
 }
 
+// DeleteClusterRoleBindings ...
 func (ch *ControllerHelper) DeleteClusterRoleBindings(clusterRoleBindings []*rbacv1.ClusterRoleBinding) error {
 	logger := ch.Log.WithName("DeleteClusterRoleBindings")
 	for _, crb := range clusterRoleBindings {
@@ -50,6 +54,7 @@ func (ch *ControllerHelper) DeleteClusterRoleBindings(clusterRoleBindings []*rba
 	return nil
 }
 
+// DeleteStorageClasses ...
 func (ch *ControllerHelper) DeleteStorageClasses(storageClasses []*storagev1.StorageClass) error {
 	logger := ch.Log.WithName("DeleteStorageClasses")
 	for _, sc := range storageClasses {
@@ -70,6 +75,7 @@ func (ch *ControllerHelper) DeleteStorageClasses(storageClasses []*storagev1.Sto
 	return nil
 }
 
+// ReconcileClusterRoleBinding ...
 func (ch *ControllerHelper) ReconcileClusterRoleBinding(clusterRoleBindings []*rbacv1.ClusterRoleBinding) error {
 	logger := ch.Log.WithValues("Resource Type", "ClusterRoleBinding")
 	for _, crb := range clusterRoleBindings {
@@ -89,6 +95,7 @@ func (ch *ControllerHelper) ReconcileClusterRoleBinding(clusterRoleBindings []*r
 	return nil
 }
 
+// ReconcileStorageClasses ...
 func (ch *ControllerHelper) ReconcileStorageClasses(storageclasses []*storagev1.StorageClass) error {
 	logger := ch.Log.WithValues("Resource Type", "StorageClasses")
 	for _, sc := range storageclasses {
@@ -126,6 +133,7 @@ func (ch *ControllerHelper) getStorageClass(sc *storagev1.StorageClass) (*storag
 	return found, err
 }
 
+// DeleteClusterRoles ...
 func (ch *ControllerHelper) DeleteClusterRoles(clusterRoles []*rbacv1.ClusterRole) error {
 	logger := ch.Log.WithName("DeleteClusterRoles")
 	for _, cr := range clusterRoles {
@@ -146,6 +154,7 @@ func (ch *ControllerHelper) DeleteClusterRoles(clusterRoles []*rbacv1.ClusterRol
 	return nil
 }
 
+// ReconcileClusterRole ...
 func (ch *ControllerHelper) ReconcileClusterRole(clusterRoles []*rbacv1.ClusterRole) error {
 	logger := ch.Log.WithValues("Resource Type", "ClusterRole")
 	for _, cr := range clusterRoles {
@@ -179,6 +188,7 @@ func (ch *ControllerHelper) getClusterRole(cr *rbacv1.ClusterRole) (*rbacv1.Clus
 	return found, err
 }
 
+// AddFinalizerIfNotPresent ...
 func (ch *ControllerHelper) AddFinalizerIfNotPresent(instance crutils.Instance,
 	unwrappedInstance client.Object) error {
 	logger := ch.Log.WithName("AddFinalizerIfNotPresent")
@@ -200,6 +210,7 @@ func (ch *ControllerHelper) AddFinalizerIfNotPresent(instance crutils.Instance,
 	return nil
 }
 
+// RemoveFinalizer ...
 func (ch *ControllerHelper) RemoveFinalizer(instance crutils.Instance,
 	unwrappedInstance client.Object) error {
 	logger := ch.Log.WithName("RemoveFinalizer")

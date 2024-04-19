@@ -1,10 +1,16 @@
+// Package v1alpha1 ...
 package v1alpha1
 
+// DriverPhase ...
 type DriverPhase string
 
 const (
-	DriverPhaseNone     DriverPhase = ""
+	// DriverPhaseNone ...
+	DriverPhaseNone DriverPhase = ""
+	// DriverPhaseCreating ...
 	DriverPhaseCreating DriverPhase = "Creating"
-	DriverPhaseRunning  DriverPhase = "Running"
-	DriverPhaseFailed   DriverPhase = "Failed"
+	// DriverPhaseRunning ...
+	DriverPhaseRunning DriverPhase = "Running"
+	// DriverPhaseFailed ...
+	DriverPhaseFailed DriverPhase = "Failed"
 )

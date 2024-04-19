@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package v1alpha1 ...
 package v1alpha1
 
 import (
@@ -118,6 +119,7 @@ type IBMObjectCSIList struct {
 	Items           []IBMObjectCSI `json:"items"`
 }
 
+// CSISidecar ...
 type CSISidecar struct {
 	// The name of the csi sidecar image
 	Name string `json:"name"`

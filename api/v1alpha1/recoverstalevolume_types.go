@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package v1alpha1 ...
 package v1alpha1
 
 import (
@@ -24,12 +25,12 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // RecoverStaleVolumeSpec defines the desired state of RecoverStaleVolume
-
 type RecoverStaleVolumeSpec struct {
 	NoOfLogLines int64            `json:"noOfLogLines,omitempty"`
 	Deployment   []DeploymentData `json:"deploymentData,omitempty"`
 }
 
+// DeploymentData ...
 type DeploymentData struct {
 	DeploymentName      string `json:"deploymentName,omitempty"`
 	DeploymentNamespace string `json:"deploymentNamespace,omitempty"`

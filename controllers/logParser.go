@@ -1,3 +1,4 @@
+// Package controllers ...
 package controllers
 
 import (
@@ -5,6 +6,7 @@ import (
 	"strings"
 )
 
+// LogEntry ...
 type LogEntry struct {
 	PID       string
 	Timestamp string
@@ -51,7 +53,7 @@ func parseLogs(nodePodLogs string) map[string]string {
 			if len(matches) == 2 {
 				mapContent := matches[1]
 
-				getVolumeID := regexp.MustCompile("VolumeId:\\S+").FindStringSubmatch(mapContent)
+				getVolumeID := regexp.MustCompile("VolumeId:\\S+").FindStringSubmatch(mapContent) //nolint:gosimple
 				volumeID := strings.Split(getVolumeID[0], ":")[1]
 
 				getErrMsg := strings.ReplaceAll(mapContent, getVolumeID[0], "")

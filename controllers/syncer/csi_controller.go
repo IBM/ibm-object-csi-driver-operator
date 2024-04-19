@@ -1,3 +1,4 @@
+// Package syncer ...
 package syncer
 
 import (
@@ -21,9 +22,12 @@ import (
 )
 
 const (
-	socketVolumeName                           = "socket-dir"
-	ControllerContainerName                    = "ibm-object-csi-controller"
-	ProvisionerContainerName                   = "csi-provisioner"
+	socketVolumeName = "socket-dir"
+	// ControllerContainerName ...
+	ControllerContainerName = "ibm-object-csi-controller"
+	// ProvisionerContainerName ...
+	ProvisionerContainerName = "csi-provisioner"
+	// ControllerLivenessProbeContainerName ...
 	ControllerLivenessProbeContainerName       = "livenessprobe"
 	controllerContainerHealthPortName          = "healthz"
 	controllerContainerDefaultHealthPortNumber = 9808
@@ -179,7 +183,6 @@ func (s *csiControllerSyncer) ensureContainer(name, image string, args []string)
 }
 
 func (s *csiControllerSyncer) getEnvFor(name string) []corev1.EnvVar {
-
 	switch name {
 	case ControllerContainerName:
 		return []corev1.EnvVar{

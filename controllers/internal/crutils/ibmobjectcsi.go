@@ -1,3 +1,4 @@
+// Package crutils ...
 package crutils
 
 import (
@@ -68,14 +69,17 @@ func (c *IBMObjectCSI) GetAnnotations() labels.Set {
 	return labels
 }
 
+// GetCSINodeSelectorLabels ...
 func (c *IBMObjectCSI) GetCSINodeSelectorLabels() labels.Set {
 	return common.GetSelectorLabels(config.CSINode.String())
 }
 
+// GetCSINodePodLabels ...
 func (c *IBMObjectCSI) GetCSINodePodLabels() labels.Set {
 	return labels.Merge(c.GetLabels(), c.GetCSINodeSelectorLabels())
 }
 
+// GetCSINodeImage ...
 func (c *IBMObjectCSI) GetCSINodeImage() string {
 	if c.Spec.Node.Tag == "" {
 		return c.Spec.Node.Repository
@@ -83,14 +87,17 @@ func (c *IBMObjectCSI) GetCSINodeImage() string {
 	return c.Spec.Node.Repository + ":" + c.Spec.Node.Tag
 }
 
+// GetCSIControllerSelectorLabels ...
 func (c *IBMObjectCSI) GetCSIControllerSelectorLabels() labels.Set {
 	return common.GetSelectorLabels(config.CSIController.String())
 }
 
+// GetCSIControllerPodLabels ...
 func (c *IBMObjectCSI) GetCSIControllerPodLabels() labels.Set {
 	return labels.Merge(c.GetLabels(), c.GetCSIControllerSelectorLabels())
 }
 
+// GetCSIControllerImage ...
 func (c *IBMObjectCSI) GetCSIControllerImage() string {
 	if c.Spec.Controller.Tag == "" {
 		return c.Spec.Controller.Repository

@@ -125,7 +125,7 @@ var (
 		},
 	}
 
-	ibmObjectCSICR_WithDeletionTS = &v1alpha1.IBMObjectCSI{
+	ibmObjectCSICRWithDeletionTS = &v1alpha1.IBMObjectCSI{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              ibmObjectCSICRName,
 			Namespace:         ibmObjectCSICRNamespace,
@@ -134,7 +134,7 @@ var (
 		},
 	}
 
-	ibmObjectCSICR_WithFinaliser = &v1alpha1.IBMObjectCSI{
+	ibmObjectCSICRWithFinaliser = &v1alpha1.IBMObjectCSI{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       ibmObjectCSICRName,
 			Namespace:  ibmObjectCSICRNamespace,
@@ -224,7 +224,7 @@ var (
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
 			Name:     config.GetNameForResource(config.ExternalProvisionerClusterRole, ibmObjectCSICRName),
-			APIGroup: config.RbacAuthorizationApiGroup,
+			APIGroup: config.RbacAuthorizationAPIGroup,
 		},
 	}
 
@@ -242,7 +242,7 @@ var (
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
 			Name:     config.GetNameForResource(config.CSIControllerSCCClusterRole, ibmObjectCSICRName),
-			APIGroup: config.RbacAuthorizationApiGroup,
+			APIGroup: config.RbacAuthorizationAPIGroup,
 		},
 	}
 
@@ -260,7 +260,7 @@ var (
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
 			Name:     config.GetNameForResource(config.CSINodeSCCClusterRole, ibmObjectCSICRName),
-			APIGroup: config.RbacAuthorizationApiGroup,
+			APIGroup: config.RbacAuthorizationAPIGroup,
 		},
 	}
 
@@ -285,7 +285,7 @@ var (
 				Verbs:     []string{config.VerbGet, config.VerbList, config.VerbWatch, config.VerbUpdate},
 			},
 			{
-				APIGroups: []string{config.StorageApiGroup},
+				APIGroups: []string{config.StorageAPIGroup},
 				Resources: []string{config.StorageClassesResource},
 				Verbs:     []string{config.VerbGet, config.VerbList, config.VerbWatch},
 			},
@@ -295,7 +295,7 @@ var (
 				Verbs:     []string{config.VerbList, config.VerbWatch, config.VerbCreate, config.VerbUpdate, config.VerbPatch},
 			},
 			{
-				APIGroups: []string{config.StorageApiGroup},
+				APIGroups: []string{config.StorageAPIGroup},
 				Resources: []string{config.CsiNodesResource},
 				Verbs:     []string{config.VerbGet, config.VerbList, config.VerbWatch},
 			},
@@ -313,7 +313,7 @@ var (
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
-				APIGroups:     []string{config.SecurityOpenshiftApiGroup},
+				APIGroups:     []string{config.SecurityOpenshiftAPIGroup},
 				Resources:     []string{config.SecurityContextConstraintsResource},
 				ResourceNames: []string{"anyuid"},
 				Verbs:         []string{"use"},
@@ -327,7 +327,7 @@ var (
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
-				APIGroups:     []string{config.SecurityOpenshiftApiGroup},
+				APIGroups:     []string{config.SecurityOpenshiftAPIGroup},
 				Resources:     []string{config.SecurityContextConstraintsResource},
 				ResourceNames: []string{"privileged"},
 				Verbs:         []string{"use"},
@@ -496,7 +496,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Positive: Successfully removed finaliser from IBMObjectCSI CR",
 			objects: []runtime.Object{
-				ibmObjectCSICR_WithDeletionTS,
+				ibmObjectCSICRWithDeletionTS,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
@@ -584,7 +584,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: Failed to restart node while reconciling",
 			objects: []runtime.Object{
-				ibmObjectCSICR_WithFinaliser,
+				ibmObjectCSICRWithFinaliser,
 				csiNode,
 				controllerDeployment,
 				controllerPod,
@@ -609,7 +609,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: Failed to get controller pod while reconciling",
 			objects: []runtime.Object{
-				ibmObjectCSICR_WithFinaliser,
+				ibmObjectCSICRWithFinaliser,
 				csiNode,
 				controllerDeployment,
 			},
@@ -622,7 +622,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: Controller pod not found while reconciling",
 			objects: []runtime.Object{
-				ibmObjectCSICR_WithFinaliser,
+				ibmObjectCSICRWithFinaliser,
 				csiNode,
 				controllerDeployment,
 			},
@@ -635,7 +635,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: Failed to sync CSI Controller",
 			objects: []runtime.Object{
-				ibmObjectCSICR_WithFinaliser,
+				ibmObjectCSICRWithFinaliser,
 				controllerSA,
 				nodeSA,
 				&appsv1.Deployment{
@@ -656,7 +656,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: Failed to sync CSI Node",
 			objects: []runtime.Object{
-				ibmObjectCSICR_WithFinaliser,
+				ibmObjectCSICRWithFinaliser,
 				controllerSA,
 				nodeSA,
 				csiNode,
@@ -670,7 +670,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: Failed to update status in IBMObjectCSI CR",
 			objects: []runtime.Object{
-				ibmObjectCSICR_WithFinaliser,
+				ibmObjectCSICRWithFinaliser,
 				controllerSA,
 				nodeSA,
 				&appsv1.Deployment{
@@ -699,7 +699,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 				},
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
-				statusSubRes := ibmObjectCSICR_WithFinaliser
+				statusSubRes := ibmObjectCSICRWithFinaliser
 				return fakeupdateibmobjcsi.NewClientBuilder().WithRuntimeObjects(objs...).WithStatusSubresource(statusSubRes).Build()
 			},
 			expectedResp: reconcile.Result{},
@@ -708,7 +708,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: IBMObjectCSI CR is deleted and failed to delete cluster role binding",
 			objects: []runtime.Object{
-				ibmObjectCSICR_WithDeletionTS,
+				ibmObjectCSICRWithDeletionTS,
 				externalProvisionerCRB,
 				controllerSCCCRB,
 				nodeSCCCRB,
@@ -722,7 +722,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: IBMObjectCSI CR is deleted and failed to delete cluster role",
 			objects: []runtime.Object{
-				ibmObjectCSICR_WithDeletionTS,
+				ibmObjectCSICRWithDeletionTS,
 				externalProvisionerCR,
 				controllerSCCCR,
 				nodeSCCCR,
@@ -736,7 +736,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: IBMObjectCSI CR is deleted and failed to delete storage class",
 			objects: []runtime.Object{
-				ibmObjectCSICR_WithDeletionTS,
+				ibmObjectCSICRWithDeletionTS,
 				rCloneSC,
 				s3fsSC,
 			},
@@ -749,7 +749,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: IBMObjectCSI CR is deleted and failed to delete CSI driver",
 			objects: []runtime.Object{
-				ibmObjectCSICR_WithDeletionTS,
+				ibmObjectCSICRWithDeletionTS,
 				csiDriver,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
@@ -762,7 +762,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Negative: Failed to get CSI driver while deleting",
 			objects: []runtime.Object{
 				&v1alpha1.IBMObjectCSI{
-					ObjectMeta: ibmObjectCSICR_WithDeletionTS.ObjectMeta,
+					ObjectMeta: ibmObjectCSICRWithDeletionTS.ObjectMeta,
 					Spec:       ibmObjectCSICR.Spec,
 				},
 			},
@@ -776,7 +776,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Negative: Failed to remove finaliser from IBMObjectCSI CR",
 			objects: []runtime.Object{
 				&v1alpha1.IBMObjectCSI{
-					ObjectMeta: ibmObjectCSICR_WithDeletionTS.ObjectMeta,
+					ObjectMeta: ibmObjectCSICRWithDeletionTS.ObjectMeta,
 					Spec:       ibmObjectCSICR.Spec,
 				},
 				csiDriver,
@@ -821,6 +821,6 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 func TestIBMObjectCSISetupWithManager(t *testing.T) {
 	t.Run("Positive: Successful", func(t *testing.T) {
 		ibmObjectCSIReconciler := &IBMObjectCSIReconciler{}
-		ibmObjectCSIReconciler.SetupWithManager(nil)
+		ibmObjectCSIReconciler.SetupWithManager(nil) // #nosec G104 Skip error
 	})
 }

@@ -1,3 +1,4 @@
+// Package controllers ...
 package controllers
 
 import (
@@ -11,12 +12,17 @@ import (
 )
 
 const (
+	// CreateError ...
 	CreateError = "failed to create"
+	// DeleteError ...
 	DeleteError = "failed to delete"
-	GetError    = "failed to get"
-	ListError   = "failed to list"
+	// GetError ...
+	GetError = "failed to get"
+	// ListError ...
+	ListError = "failed to list"
+	// UpdateError ...
 	UpdateError = "failed to update"
-
+	// NotFoundError ...
 	NotFoundError = "not found"
 )
 
@@ -48,6 +54,6 @@ var testNodeServerPodLogs = `E0319 05:32:00.429871       1 nodeserver.go:245] No
 
 func setupScheme() *runtime.Scheme {
 	s := scheme.Scheme
-	_ = v1alpha1.AddToScheme(s)
+	_ = v1alpha1.AddToScheme(s) // #nosec G104: Skip error
 	return s
 }
