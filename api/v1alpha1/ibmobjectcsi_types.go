@@ -39,13 +39,15 @@ type IBMObjectCSISpec struct {
 	HealthPort uint16 `json:"healthPort,omitempty"`
 }
 
+// ResourcesSpec ...
 type ResourcesSpec struct {
 	Limits   ReqLimits `json:"limits"`
 	Requests ReqLimits `json:"requests"`
 }
 
+// ReqLimits ...
 type ReqLimits struct {
-	Cpu    string `json:"cpu"`
+	CPU    string `json:"cpu"`
 	Memory string `json:"memory"`
 }
 

@@ -300,15 +300,14 @@ func getSidecarByName(driver *crutils.IBMObjectCSI, name string) *objectdriverv1
 }
 
 func getCSIControllerResourceRequests(driver *crutils.IBMObjectCSI) corev1.ResourceRequirements {
-
 	resources := driver.GetCSIControllerResourceRequests()
 
 	requests := corev1.ResourceList{
-		corev1.ResourceCPU:    resource.MustParse(resources.Requests.Cpu),
+		corev1.ResourceCPU:    resource.MustParse(resources.Requests.CPU),
 		corev1.ResourceMemory: resource.MustParse(resources.Requests.Memory),
 	}
 	limits := corev1.ResourceList{
-		corev1.ResourceCPU:    resource.MustParse(resources.Limits.Cpu),
+		corev1.ResourceCPU:    resource.MustParse(resources.Limits.CPU),
 		corev1.ResourceMemory: resource.MustParse(resources.Limits.Memory),
 	}
 
@@ -323,15 +322,15 @@ func getSidecarResourceRequests(driver *crutils.IBMObjectCSI, sidecarName string
 
 	sidecarResources := corev1.ResourceRequirements{}
 
-	if sidecar != nil && &sidecar.Resources != nil {
+	if sidecar != nil && &sidecar.Resources != nil { //nolint:staticcheck
 		resources := sidecar.Resources
 
 		requests := corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse(resources.Requests.Cpu),
+			corev1.ResourceCPU:    resource.MustParse(resources.Requests.CPU),
 			corev1.ResourceMemory: resource.MustParse(resources.Requests.Memory),
 		}
 		limits := corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse(resources.Limits.Cpu),
+			corev1.ResourceCPU:    resource.MustParse(resources.Limits.CPU),
 			corev1.ResourceMemory: resource.MustParse(resources.Limits.Memory),
 		}
 

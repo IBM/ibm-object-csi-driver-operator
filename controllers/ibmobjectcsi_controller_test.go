@@ -63,11 +63,11 @@ var (
 
 	resources = v1alpha1.ResourcesSpec{
 		Limits: v1alpha1.ReqLimits{
-			Cpu:    "40Mi",
+			CPU:    "40Mi",
 			Memory: "200Mi",
 		},
 		Requests: v1alpha1.ReqLimits{
-			Cpu:    "40m",
+			CPU:    "40m",
 			Memory: "40Mi",
 		},
 	}
