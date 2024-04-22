@@ -39,7 +39,7 @@ type csiControllerSyncer struct {
 }
 
 // NewCSIControllerSyncer returns a syncer for CSI controller
-func NewCSIControllerSyncer(c client.Client, scheme *runtime.Scheme, driver *crutils.IBMObjectCSI) syncer.Interface {
+func NewCSIControllerSyncer(c client.Client, driver *crutils.IBMObjectCSI) syncer.Interface {
 	obj := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        config.GetNameForResource(config.CSIController, driver.Name),

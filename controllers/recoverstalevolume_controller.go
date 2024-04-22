@@ -249,7 +249,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 					for _, podName := range podData {
 						reqLogger.Info("Pod using stale volume", "volume-name", volume, "pod-name", podName)
 
-						var zero int64 = 0
+						var zero int64
 						var deleteOptions = &client.DeleteOptions{GracePeriodSeconds: &zero}
 
 						pod := deploymentPods[podName]
