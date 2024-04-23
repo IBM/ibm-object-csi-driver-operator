@@ -50,7 +50,6 @@ func (ch *ControllerHelper) DeleteClusterRoleBindings(clusterRoleBindings []*rba
 			logger.Error(err, "failed to delete ClusterRoleBinding", "Name", crb.GetName())
 			return err
 		}
-
 	}
 	return nil
 }
@@ -66,11 +65,11 @@ func (ch *ControllerHelper) DeleteStorageClasses(storageClasses []*storagev1.Sto
 			logger.Error(err, "failed to get StorageClasses", "Name", sc.GetName())
 			return err
 		}
-			logger.Info("deleting StorageClasses", "Name", sc.GetName())
-			if err := ch.Delete(context.TODO(), found); err != nil {
-				logger.Error(err, "failed to delete StorageClasses", "Name", sc.GetName())
-				return err
-			}
+		logger.Info("deleting StorageClasses", "Name", sc.GetName())
+		if err := ch.Delete(context.TODO(), found); err != nil {
+			logger.Error(err, "failed to delete StorageClasses", "Name", sc.GetName())
+			return err
+		}
 	}
 	return nil
 }
@@ -144,11 +143,11 @@ func (ch *ControllerHelper) DeleteClusterRoles(clusterRoles []*rbacv1.ClusterRol
 			logger.Error(err, "failed to get ClusterRole", "Name", cr.GetName())
 			return err
 		}
-			logger.Info("deleting ClusterRole", "Name", cr.GetName())
-			if err := ch.Delete(context.TODO(), found); err != nil {
-				logger.Error(err, "failed to delete ClusterRole", "Name", cr.GetName())
-				return err
-			}
+		logger.Info("deleting ClusterRole", "Name", cr.GetName())
+		if err := ch.Delete(context.TODO(), found); err != nil {
+			logger.Error(err, "failed to delete ClusterRole", "Name", cr.GetName())
+			return err
+		}
 	}
 	return nil
 }

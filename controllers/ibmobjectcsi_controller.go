@@ -160,7 +160,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	// sync the resources which change over time
-	csiControllerSyncer := clustersyncer.NewCSIControllerSyncer(r.Client,  instance)
+	csiControllerSyncer := clustersyncer.NewCSIControllerSyncer(r.Client, instance)
 	if err := syncer.Sync(ctx, csiControllerSyncer, r.Recorder); err != nil {
 		return reconcile.Result{}, err
 	}

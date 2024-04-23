@@ -40,7 +40,7 @@ type csiNodeSyncer struct {
 }
 
 // NewCSINodeSyncer returns a syncer for CSI node
-func NewCSINodeSyncer(c client.Client,  driver *crutils.IBMObjectCSI) syncer.Interface {
+func NewCSINodeSyncer(c client.Client, driver *crutils.IBMObjectCSI) syncer.Interface {
 	obj := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        config.GetNameForResource(config.CSINode, driver.Name),
