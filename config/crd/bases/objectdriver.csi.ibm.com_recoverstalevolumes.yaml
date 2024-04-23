@@ -38,9 +38,11 @@ spec:
           metadata:
             type: object
           spec:
+            description: RecoverStaleVolumeSpec defines the desired state of RecoverStaleVolume
             properties:
               deploymentData:
                 items:
+                  description: DeploymentData ...
                   properties:
                     deploymentName:
                       type: string
