@@ -104,7 +104,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	// Fetch the CSIDriver instance
 	instance := crutils.New(&objectdriverv1alpha1.IBMObjectCSI{})
-	err := r.Get(context.TODO(), req.NamespacedName, instance.Unwrap())
+	err := r.Get(ctx, req.NamespacedName, instance.Unwrap())
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Return and don't requeue
@@ -160,13 +160,13 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	// sync the resources which change over time
-	csiControllerSyncer := clustersyncer.NewCSIControllerSyncer(r.Client, r.Scheme, instance)
-	if err := syncer.Sync(context.TODO(), csiControllerSyncer, r.Recorder); err != nil {
+	csiControllerSyncer := clustersyncer.NewCSIControllerSyncer(r.Client, instance)
+	if err := syncer.Sync(ctx, csiControllerSyncer, r.Recorder); err != nil {
 		return reconcile.Result{}, err
 	}
 
-	csiNodeSyncer := clustersyncer.NewCSINodeSyncer(r.Client, r.Scheme, instance)
-	if err := syncer.Sync(context.TODO(), csiNodeSyncer, r.Recorder); err != nil {
+	csiNodeSyncer := clustersyncer.NewCSINodeSyncer(r.Client, instance)
+	if err := syncer.Sync(ctx, csiNodeSyncer, r.Recorder); err != nil {
 		return reconcile.Result{}, err
 	}
 
