@@ -943,8 +943,10 @@ spec:
                   repository:
                     type: string
                   resources:
+                    description: ResourcesSpec ...
                     properties:
                       limits:
+                        description: ReqLimits ...
                         properties:
                           cpu:
                             type: string
@@ -955,6 +957,7 @@ spec:
                         - memory
                         type: object
                       requests:
+                        description: ReqLimits ...
                         properties:
                           cpu:
                             type: string
@@ -1921,8 +1924,10 @@ spec:
                   repository:
                     type: string
                   resources:
+                    description: ResourcesSpec ...
                     properties:
                       limits:
+                        description: ReqLimits ...
                         properties:
                           cpu:
                             type: string
@@ -1933,6 +1938,7 @@ spec:
                         - memory
                         type: object
                       requests:
+                        description: ReqLimits ...
                         properties:
                           cpu:
                             type: string
@@ -1992,6 +1998,7 @@ spec:
                 type: object
               sidecars:
                 items:
+                  description: CSISidecar ...
                   properties:
                     imagePullPolicy:
                       description: The pullPolicy of the csi sidecar image
@@ -2003,8 +2010,10 @@ spec:
                       description: The repository of the csi sidecar image
                       type: string
                     resources:
+                      description: ResourcesSpec ...
                       properties:
                         limits:
+                          description: ReqLimits ...
                           properties:
                             cpu:
                               type: string
@@ -2015,6 +2024,7 @@ spec:
                           - memory
                           type: object
                         requests:
+                          description: ReqLimits ...
                           properties:
                             cpu:
                               type: string

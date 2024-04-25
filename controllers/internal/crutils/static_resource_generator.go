@@ -218,7 +218,7 @@ func (c *IBMObjectCSI) Generates3fsSC() *storagev1.StorageClass {
 			"parallel_count=8",
 			"max_stat_cache_size=100000",
 			"retries=5",
-			"cache=kernel_cache",
+			"kernel_cache",
 		},
 		Parameters: map[string]string{
 			"mounter": "s3fs",
