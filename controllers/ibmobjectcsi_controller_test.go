@@ -39,7 +39,7 @@ var (
 	ibmObjectCSIReconcileRequest = reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      ibmObjectCSICRName,
-			Namespace: ibmObjectCSICRNamespace,
+			Namespace: TestNamespace,
 		},
 	}
 
@@ -75,7 +75,7 @@ var (
 	ibmObjectCSICR = &v1alpha1.IBMObjectCSI{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ibmObjectCSICRName,
-			Namespace: ibmObjectCSICRNamespace,
+			Namespace: TestNamespace,
 		},
 		Spec: v1alpha1.IBMObjectCSISpec{
 			Controller: v1alpha1.IBMObjectCSIControllerSpec{
@@ -128,7 +128,7 @@ var (
 	ibmObjectCSICRWithDeletionTS = &v1alpha1.IBMObjectCSI{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              ibmObjectCSICRName,
-			Namespace:         ibmObjectCSICRNamespace,
+			Namespace:         TestNamespace,
 			Finalizers:        []string{ibmObjectCSIfinalizer},
 			DeletionTimestamp: &currentTime,
 		},
@@ -137,7 +137,7 @@ var (
 	ibmObjectCSICRWithFinaliser = &v1alpha1.IBMObjectCSI{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       ibmObjectCSICRName,
-			Namespace:  ibmObjectCSICRNamespace,
+			Namespace:  TestNamespace,
 			Finalizers: []string{ibmObjectCSIfinalizer},
 		},
 		Spec: ibmObjectCSICR.Spec,
@@ -156,7 +156,7 @@ var (
 	csiNode = &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        config.GetNameForResource(config.CSINode, ibmObjectCSICRName),
-			Namespace:   ibmObjectCSICRNamespace,
+			Namespace:   TestNamespace,
 			Annotations: annotations,
 		},
 		Spec: appsv1.DaemonSetSpec{
@@ -167,7 +167,7 @@ var (
 	controllerDeployment = &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        config.GetNameForResource(config.CSIController, ibmObjectCSICRName),
-			Namespace:   ibmObjectCSICRNamespace,
+			Namespace:   TestNamespace,
 			Annotations: annotations,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -178,7 +178,7 @@ var (
 	controllerPod = &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      controllerDeployment.Name + "-pod",
-			Namespace: ibmObjectCSICRNamespace,
+			Namespace: TestNamespace,
 		},
 	}
 
@@ -197,7 +197,7 @@ var (
 	controllerSA = &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      config.GetNameForResource(config.CSIControllerServiceAccount, ibmObjectCSICRName),
-			Namespace: ibmObjectCSICRNamespace,
+			Namespace: TestNamespace,
 		},
 		ImagePullSecrets: secrets,
 	}
@@ -205,7 +205,7 @@ var (
 	nodeSA = &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      config.GetNameForResource(config.CSINodeServiceAccount, ibmObjectCSICRName),
-			Namespace: ibmObjectCSICRNamespace,
+			Namespace: TestNamespace,
 		},
 		ImagePullSecrets: secrets,
 	}
@@ -218,7 +218,7 @@ var (
 			{
 				Kind:      "ServiceAccount",
 				Name:      config.GetNameForResource(config.CSIControllerServiceAccount, ibmObjectCSICRName),
-				Namespace: ibmObjectCSICRNamespace,
+				Namespace: TestNamespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
@@ -236,7 +236,7 @@ var (
 			{
 				Kind:      "ServiceAccount",
 				Name:      config.GetNameForResource(config.CSIControllerServiceAccount, ibmObjectCSICRName),
-				Namespace: ibmObjectCSICRNamespace,
+				Namespace: TestNamespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
@@ -254,7 +254,7 @@ var (
 			{
 				Kind:      "ServiceAccount",
 				Name:      config.GetNameForResource(config.CSINodeServiceAccount, ibmObjectCSICRName),
-				Namespace: ibmObjectCSICRNamespace,
+				Namespace: TestNamespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
@@ -441,7 +441,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 				&corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      controllerDeployment.Name + "-pod2",
-						Namespace: ibmObjectCSICRNamespace,
+						Namespace: TestNamespace,
 					},
 				},
 			},
@@ -791,7 +791,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 
 	for _, testcase := range testCases {
 		t.Run(testcase.testCaseName, func(t *testing.T) {
-			testLog.Info("Testcase being executed", "testcase", testcase.testCaseName)
+			TestLog.Info("Testcase being executed", "testcase", testcase.testCaseName)
 
 			scheme := setupScheme()
 			client := testcase.clientFunc(testcase.objects)
@@ -803,8 +803,8 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 				ControllerHelper: common.NewControllerHelper(client),
 			}
 
-			res, err := ibmObjectCSIReconciler.Reconcile(testCtx, ibmObjectCSIReconcileRequest)
-			testLog.Info("Testcase return values", "result", res, "error", err)
+			res, err := ibmObjectCSIReconciler.Reconcile(TestCtx, ibmObjectCSIReconcileRequest)
+			TestLog.Info("Testcase return values", "result", res, "error", err)
 
 			assert.Equal(t, testcase.expectedResp, res)
 
