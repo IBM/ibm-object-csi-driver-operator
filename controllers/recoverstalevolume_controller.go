@@ -331,7 +331,6 @@ func fetchVolumeStatsFromNodeServerLogs(ctx context.Context, nodeServerPod, name
 		return nil, err
 	}
 	nodeServerPodLogs := buf.String()
-	staleVolLog.Info("nodeServerPodLogs: ", nodeServerPodLogs)
 
 	if isTest {
 		nodeServerPodLogs = testNodeServerPodLogs
