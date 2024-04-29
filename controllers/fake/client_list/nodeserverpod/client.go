@@ -58,8 +58,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 )
 
-var csiOperatorNamespace = "ibm-object-csi-operator-system"
-
 type versionedTracker struct {
 	testing.ObjectTracker
 	scheme                *runtime.Scheme
@@ -507,7 +505,7 @@ func (c *fakeClient) List(ctx context.Context, obj client.ObjectList, opts ...cl
 
 	switch obj.(type) {
 	case *corev1.PodList:
-		if listOpts.Namespace == csiOperatorNamespace {
+		if strings.Contains(listOpts.Namespace, "test") {
 			return errors.New("failed to list object")
 		}
 	}

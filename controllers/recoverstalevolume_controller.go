@@ -52,7 +52,6 @@ type KubernetesClient struct {
 
 var staleVolLog = logf.Log.WithName("recoverstalevolume_controller")
 var reconcileTime = 2 * time.Minute
-var csiOperatorNamespace = "ibm-object-csi-operator-system"
 var csiNodePodPrefix = "ibm-object-csi-node"
 var transportEndpointError = "transport endpoint is not connected"
 var kubeClient = createK8sClient
@@ -204,8 +203,8 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 		reqLogger.Info("node-names maped with volumes and deployment pods", "nodeVolumeMap", nodeVolumePodMapping)
 
-		// Get Pods in csiOperatorNamespace ns
-		var listOptions2 = &client.ListOptions{Namespace: csiOperatorNamespace}
+		// Get Pods in operator ns
+		var listOptions2 = &client.ListOptions{Namespace: req.Namespace}
 		csiPodsList := &corev1.PodList{}
 		err = r.List(ctx, csiPodsList, listOptions2)
 		if err != nil {
@@ -230,7 +229,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 		for nodeName, volumesData := range nodeVolumePodMapping {
 			// Fetch volume stats from Logs of the Node Server Pod
-			getVolStatsFromLogs, err := fetchVolumeStatsFromNodeServerLogs(ctx, csiNodeServerPods[nodeName], logTailLines, r.IsTest)
+			getVolStatsFromLogs, err := fetchVolumeStatsFromNodeServerLogs(ctx, csiNodeServerPods[nodeName], req.Namespace, logTailLines, r.IsTest)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -305,7 +304,7 @@ func createK8sClient() (*KubernetesClient, error) {
 	}, nil
 }
 
-func fetchVolumeStatsFromNodeServerLogs(ctx context.Context, nodeServerPod string, logTailLines int64, isTest bool) (map[string]string, error) {
+func fetchVolumeStatsFromNodeServerLogs(ctx context.Context, nodeServerPod, ns string, logTailLines int64, isTest bool) (map[string]string, error) {
 	podLogOpts := &corev1.PodLogOptions{
 		Container: csiNodePodPrefix,
 		TailLines: &logTailLines,
@@ -315,7 +314,7 @@ func fetchVolumeStatsFromNodeServerLogs(ctx context.Context, nodeServerPod strin
 	if err != nil {
 		return nil, err
 	}
-	request := k8sClient.Clientset.CoreV1().Pods(csiOperatorNamespace).GetLogs(nodeServerPod, podLogOpts)
+	request := k8sClient.Clientset.CoreV1().Pods(ns).GetLogs(nodeServerPod, podLogOpts)
 
 	nodePodLogs, err := request.Stream(ctx)
 	if err != nil {
