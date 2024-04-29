@@ -310,14 +310,12 @@ func fetchVolumeStatsFromNodeServerLogs(ctx context.Context, nodeServerPod, name
 		Container: csiNodePodPrefix,
 		TailLines: &logTailLines,
 	}
-	staleVolLog.Info("Pod Options: ", podLogOpts)
 
 	k8sClient, err := kubeClient()
 	if err != nil {
 		return nil, err
 	}
 	request := k8sClient.Clientset.CoreV1().Pods(namespace).GetLogs(nodeServerPod, podLogOpts)
-	staleVolLog.Info("Request: ", request)
 
 	nodePodLogs, err := request.Stream(ctx)
 	if err != nil {
