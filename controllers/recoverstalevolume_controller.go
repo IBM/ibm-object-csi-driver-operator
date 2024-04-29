@@ -303,17 +303,21 @@ func createK8sClient() (*KubernetesClient, error) {
 	}, nil
 }
 
-func fetchVolumeStatsFromNodeServerLogs(ctx context.Context, nodeServerPod, ns string, logTailLines int64, isTest bool) (map[string]string, error) {
+func fetchVolumeStatsFromNodeServerLogs(ctx context.Context, nodeServerPod, namespace string, logTailLines int64,
+	isTest bool) (map[string]string, error) {
+	staleVolLog.Info("Input Parameters: ", "nodeServerPod", nodeServerPod, "namespace", namespace, "isTest", isTest)
 	podLogOpts := &corev1.PodLogOptions{
 		Container: csiNodePodPrefix,
 		TailLines: &logTailLines,
 	}
+	staleVolLog.Info("Pod Options: ", podLogOpts)
 
 	k8sClient, err := kubeClient()
 	if err != nil {
 		return nil, err
 	}
-	request := k8sClient.Clientset.CoreV1().Pods(ns).GetLogs(nodeServerPod, podLogOpts)
+	request := k8sClient.Clientset.CoreV1().Pods(namespace).GetLogs(nodeServerPod, podLogOpts)
+	staleVolLog.Info("Request: ", request)
 
 	nodePodLogs, err := request.Stream(ctx)
 	if err != nil {
@@ -327,6 +331,7 @@ func fetchVolumeStatsFromNodeServerLogs(ctx context.Context, nodeServerPod, ns s
 		return nil, err
 	}
 	nodeServerPodLogs := buf.String()
+	staleVolLog.Info("nodeServerPodLogs: ", nodeServerPodLogs)
 
 	if isTest {
 		nodeServerPodLogs = testNodeServerPodLogs
