@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	objectdriverv1alpha1 "github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
@@ -34,8 +35,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-
-	objectdriverv1alpha1 "github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
 )
 
 // RecoverStaleVolumeReconciler reconciles a RecoverStaleVolume object
@@ -211,7 +210,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 			reqLogger.Error(err, "failed to fetch csi pods")
 			return ctrl.Result{}, err
 		}
-		reqLogger.Info("Successfully fetched pods in csi-plugin-operator ns", "number-of-pods", len(csiPodsList.Items))
+		reqLogger.Info("Successfully fetched pods in operator ns", "number-of-pods", len(csiPodsList.Items))
 
 		for ind := range csiPodsList.Items {
 			pod := csiPodsList.Items[ind]
