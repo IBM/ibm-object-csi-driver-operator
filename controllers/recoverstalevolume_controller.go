@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	objectdriverv1alpha1 "github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
@@ -34,8 +35,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-
-	objectdriverv1alpha1 "github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
 )
 
 // RecoverStaleVolumeReconciler reconciles a RecoverStaleVolume object
@@ -52,7 +51,6 @@ type KubernetesClient struct {
 
 var staleVolLog = logf.Log.WithName("recoverstalevolume_controller")
 var reconcileTime = 2 * time.Minute
-var csiOperatorNamespace = "ibm-object-csi-operator-system"
 var csiNodePodPrefix = "ibm-object-csi-node"
 var transportEndpointError = "transport endpoint is not connected"
 var kubeClient = createK8sClient
@@ -204,15 +202,15 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 		reqLogger.Info("node-names maped with volumes and deployment pods", "nodeVolumeMap", nodeVolumePodMapping)
 
-		// Get Pods in csiOperatorNamespace ns
-		var listOptions2 = &client.ListOptions{Namespace: csiOperatorNamespace}
+		// Get Pods in operator ns
+		var listOptions2 = &client.ListOptions{Namespace: req.Namespace}
 		csiPodsList := &corev1.PodList{}
 		err = r.List(ctx, csiPodsList, listOptions2)
 		if err != nil {
 			reqLogger.Error(err, "failed to fetch csi pods")
 			return ctrl.Result{}, err
 		}
-		reqLogger.Info("Successfully fetched pods in csi-plugin-operator ns", "number-of-pods", len(csiPodsList.Items))
+		reqLogger.Info("Successfully fetched pods in operator ns", "number-of-pods", len(csiPodsList.Items))
 
 		for ind := range csiPodsList.Items {
 			pod := csiPodsList.Items[ind]
@@ -230,7 +228,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 		for nodeName, volumesData := range nodeVolumePodMapping {
 			// Fetch volume stats from Logs of the Node Server Pod
-			getVolStatsFromLogs, err := fetchVolumeStatsFromNodeServerLogs(ctx, csiNodeServerPods[nodeName], logTailLines, r.IsTest)
+			getVolStatsFromLogs, err := fetchVolumeStatsFromNodeServerLogs(ctx, csiNodeServerPods[nodeName], req.Namespace, logTailLines, r.IsTest)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -305,7 +303,9 @@ func createK8sClient() (*KubernetesClient, error) {
 	}, nil
 }
 
-func fetchVolumeStatsFromNodeServerLogs(ctx context.Context, nodeServerPod string, logTailLines int64, isTest bool) (map[string]string, error) {
+func fetchVolumeStatsFromNodeServerLogs(ctx context.Context, nodeServerPod, namespace string, logTailLines int64,
+	isTest bool) (map[string]string, error) {
+	staleVolLog.Info("Input Parameters: ", "nodeServerPod", nodeServerPod, "namespace", namespace, "isTest", isTest)
 	podLogOpts := &corev1.PodLogOptions{
 		Container: csiNodePodPrefix,
 		TailLines: &logTailLines,
@@ -315,7 +315,7 @@ func fetchVolumeStatsFromNodeServerLogs(ctx context.Context, nodeServerPod strin
 	if err != nil {
 		return nil, err
 	}
-	request := k8sClient.Clientset.CoreV1().Pods(csiOperatorNamespace).GetLogs(nodeServerPod, podLogOpts)
+	request := k8sClient.Clientset.CoreV1().Pods(namespace).GetLogs(nodeServerPod, podLogOpts)
 
 	nodePodLogs, err := request.Stream(ctx)
 	if err != nil {

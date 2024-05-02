@@ -29,14 +29,14 @@ var (
 	recoverStaleVolumeReconcileRequest = reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      recoverStaleVolCRName,
-			Namespace: recoverStaleVolCRNamespace,
+			Namespace: TestNamespace,
 		},
 	}
 
 	recoverStaleVolumeCR = &v1alpha1.RecoverStaleVolume{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      recoverStaleVolCRName,
-			Namespace: recoverStaleVolCRNamespace,
+			Namespace: TestNamespace,
 		},
 		Spec: v1alpha1.RecoverStaleVolumeSpec{
 			NoOfLogLines: int64(100),
@@ -133,7 +133,7 @@ var (
 	nodeServerPod1 = &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      csiNodePodPrefix + "-pod1",
-			Namespace: csiOperatorNamespace,
+			Namespace: TestNamespace,
 		},
 		Spec: corev1.PodSpec{
 			NodeName: testNode1,
@@ -143,7 +143,7 @@ var (
 	nodeServerPod2 = &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      csiNodePodPrefix + "-pod2",
-			Namespace: csiOperatorNamespace,
+			Namespace: TestNamespace,
 		},
 		Spec: corev1.PodSpec{
 			NodeName: testNode2,
@@ -153,7 +153,7 @@ var (
 	nodeServerPod3 = &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      csiNodePodPrefix + "-pod3",
-			Namespace: csiOperatorNamespace,
+			Namespace: TestNamespace,
 		},
 		Spec: corev1.PodSpec{
 			NodeName: testNode3,
@@ -382,7 +382,7 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 
 	for _, testcase := range testCases {
 		t.Run(testcase.testCaseName, func(t *testing.T) {
-			testLog.Info("Testcase being executed", "testcase", testcase.testCaseName)
+			TestLog.Info("Testcase being executed", "testcase", testcase.testCaseName)
 
 			scheme := setupScheme()
 			client := testcase.clientFunc(testcase.objects)
@@ -394,8 +394,8 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 				IsTest: true,
 			}
 
-			res, err := recoverStaleVolumeReconciler.Reconcile(testCtx, recoverStaleVolumeReconcileRequest)
-			testLog.Info("Testcase return values", "result", res, "error", err)
+			res, err := recoverStaleVolumeReconciler.Reconcile(TestCtx, recoverStaleVolumeReconcileRequest)
+			TestLog.Info("Testcase return values", "result", res, "error", err)
 
 			assert.Equal(t, testcase.expectedResp, res)
 

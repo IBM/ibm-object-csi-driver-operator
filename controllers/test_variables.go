@@ -27,27 +27,26 @@ const (
 )
 
 var (
-	testLog = log.Log.WithName("test")
-	testCtx = context.TODO()
+	TestLog       = log.Log.WithName("test")
+	TestCtx       = context.TODO()
+	TestNamespace = "test-namespace"
 
 	currentTime = metav1.Now()
 
-	ibmObjectCSICRName      = "test-csi-cr"
-	ibmObjectCSICRNamespace = "test-namespace"
-	ibmObjectCSIfinalizer   = "ibmobjectcsi.objectdriver.csi.ibm.com"
+	ibmObjectCSICRName    = "test-csi-cr"
+	ibmObjectCSIfinalizer = "ibmobjectcsi.objectdriver.csi.ibm.com"
 
-	recoverStaleVolCRName      = "test-vol-cr"
-	recoverStaleVolCRNamespace = "test-namespace"
-	testDeploymentName         = "test-deployment"
-	testDeploymentNamespace    = "default"
-	testPVName1                = "test-pv-1"
-	testPVName2                = "test-pv-2"
-	testPVCName1               = "test-pvc-1"
-	testPVCName2               = "test-pvc-2"
-	testStorageClassName       = "test-csi-storage-class"
-	testNode1                  = "test-node-1"
-	testNode2                  = "test-node-2"
-	testNode3                  = "test-node-3"
+	recoverStaleVolCRName   = "test-vol-cr"
+	testDeploymentName      = "test-deployment"
+	testDeploymentNamespace = "default"
+	testPVName1             = "test-pv-1"
+	testPVName2             = "test-pv-2"
+	testPVCName1            = "test-pvc-1"
+	testPVCName2            = "test-pvc-2"
+	testStorageClassName    = "test-csi-storage-class"
+	testNode1               = "test-node-1"
+	testNode2               = "test-node-2"
+	testNode3               = "test-node-3"
 )
 
 var testNodeServerPodLogs = `E0319 05:32:00.429871       1 nodeserver.go:245] NodeGetVolumeStats: error occurred while getting volume stats map[Error:transport endpoint is not connected VolumeId:test-pv-1]`
