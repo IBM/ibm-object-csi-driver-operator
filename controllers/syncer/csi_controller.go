@@ -322,7 +322,7 @@ func getSidecarResourceRequests(driver *crutils.IBMObjectCSI, sidecarName string
 
 	sidecarResources := corev1.ResourceRequirements{}
 
-	if sidecar != nil && &sidecar.Resources != nil { //nolint:staticcheck
+	if sidecar != nil {
 		resources := sidecar.Resources
 
 		requests := corev1.ResourceList{
