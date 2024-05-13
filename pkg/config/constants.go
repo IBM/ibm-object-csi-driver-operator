@@ -5,7 +5,7 @@ package config
 const (
 	APIGroup    = "objectdriver.csi.ibm.com"
 	APIVersion  = "v1"
-	Name        = "ibm-object-csi-operator"
+	Name        = "ibm-object-csi-driver-operator"
 	DriverName  = "cos.s3.csi.ibm.io"
 	ProductName = "ibm-object-csi-driver"
 
