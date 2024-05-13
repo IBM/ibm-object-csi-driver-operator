@@ -6,3 +6,6 @@ images:
 - name: controller
   newName: ashimagarg/csi
   newTag: "53"
+commonLabels:
+  app.kubernetes.io/part-of: ibm-object-csi-driver-operator
+  app.kubernetes.io/managed-by: addon

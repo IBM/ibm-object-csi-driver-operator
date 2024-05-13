@@ -2,4 +2,7 @@
 resources:
 - csi_v1alpha1_ibmobjectcsi.yaml
 - csi_v1alpha1_recoverstalevolume.yaml
+commonLabels:
+  app.kubernetes.io/part-of: ibm-object-csi-driver-operator
+  app.kubernetes.io/managed-by: addon
 #+kubebuilder:scaffold:manifestskustomizesamples

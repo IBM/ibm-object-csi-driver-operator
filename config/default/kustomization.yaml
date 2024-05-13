@@ -70,3 +70,7 @@ vars:
 #    kind: Service
 #    version: v1
 #    name: webhook-service
+
+commonLabels:
+  app.kubernetes.io/part-of: ibm-object-csi-driver-operator
+  app.kubernetes.io/managed-by: addon
