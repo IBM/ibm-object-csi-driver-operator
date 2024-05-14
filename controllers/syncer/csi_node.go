@@ -43,7 +43,7 @@ type csiNodeSyncer struct {
 func NewCSINodeSyncer(c client.Client, driver *crutils.IBMObjectCSI) syncer.Interface {
 	obj := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        config.GetNameForResource(config.CSINode, driver.Name),
+			Name:        config.GetNameForResource(config.CSINode, config.DriverPrefix),
 			Namespace:   driver.Namespace,
 			Annotations: driver.GetAnnotations(),
 			Labels:      driver.GetLabels(),
@@ -96,7 +96,7 @@ func (s *csiNodeSyncer) ensurePodSpec() corev1.PodSpec {
 	return corev1.PodSpec{
 		Containers:         s.ensureContainersSpec(),
 		Volumes:            s.ensureVolumes(),
-		ServiceAccountName: config.GetNameForResource(config.CSINodeServiceAccount, s.driver.Name),
+		ServiceAccountName: config.GetNameForResource(config.CSINodeServiceAccount, config.DriverPrefix),
 	}
 }
 

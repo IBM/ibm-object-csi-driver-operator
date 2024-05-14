@@ -42,7 +42,7 @@ type csiControllerSyncer struct {
 func NewCSIControllerSyncer(c client.Client, driver *crutils.IBMObjectCSI) syncer.Interface {
 	obj := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        config.GetNameForResource(config.CSIController, driver.Name),
+			Name:        config.GetNameForResource(config.CSIController, config.DriverPrefix),
 			Namespace:   driver.Namespace,
 			Annotations: driver.GetAnnotations(),
 			Labels:      driver.GetLabels(),
@@ -73,7 +73,6 @@ func (s *csiControllerSyncer) SyncFn() error {
 	out := s.obj.(*appsv1.Deployment)
 
 	out.Spec.Selector = metav1.SetAsLabelSelector(s.driver.GetCSIControllerSelectorLabels())
-	//out.Spec.ServiceName = config.GetNameForResource(config.CSIController, s.driver.Name)
 
 	controllerLabels := s.driver.GetCSIControllerPodLabels()
 	controllerAnnotations := s.driver.GetAnnotations()
@@ -102,7 +101,7 @@ func (s *csiControllerSyncer) ensurePodSpec() corev1.PodSpec {
 		//		},
 		Affinity:           s.driver.Spec.Controller.Affinity,
 		Tolerations:        s.driver.Spec.Controller.Tolerations,
-		ServiceAccountName: config.GetNameForResource(config.CSIControllerServiceAccount, s.driver.Name),
+		ServiceAccountName: config.GetNameForResource(config.CSIControllerServiceAccount, config.DriverPrefix),
 	}
 }
 

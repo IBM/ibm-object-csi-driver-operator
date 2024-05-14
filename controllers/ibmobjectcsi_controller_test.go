@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
@@ -33,7 +34,8 @@ import (
 
 var (
 	defaultFSGroupPolicy = storagev1.FileFSGroupPolicy
-	reclaimPolicy        = corev1.PersistentVolumeReclaimRetain
+	reclaimPolicyRetain  = corev1.PersistentVolumeReclaimRetain
+	reclaimPolicyDelete  = corev1.PersistentVolumeReclaimDelete
 	secrets              = crutils.GetImagePullSecrets(ibmObjectCSICR.Spec.ImagePullSecrets)
 
 	ibmObjectCSIReconcileRequest = reconcile.Request{
@@ -155,7 +157,7 @@ var (
 
 	csiNode = &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        config.GetNameForResource(config.CSINode, ibmObjectCSICRName),
+			Name:        config.GetNameForResource(config.CSINode, config.DriverPrefix),
 			Namespace:   TestNamespace,
 			Annotations: annotations,
 		},
@@ -166,7 +168,7 @@ var (
 
 	controllerDeployment = &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        config.GetNameForResource(config.CSIController, ibmObjectCSICRName),
+			Name:        config.GetNameForResource(config.CSIController, config.DriverPrefix),
 			Namespace:   TestNamespace,
 			Annotations: annotations,
 		},
@@ -196,7 +198,7 @@ var (
 
 	controllerSA = &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      config.GetNameForResource(config.CSIControllerServiceAccount, ibmObjectCSICRName),
+			Name:      config.GetNameForResource(config.CSIControllerServiceAccount, config.DriverPrefix),
 			Namespace: TestNamespace,
 		},
 		ImagePullSecrets: secrets,
@@ -204,7 +206,7 @@ var (
 
 	nodeSA = &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      config.GetNameForResource(config.CSINodeServiceAccount, ibmObjectCSICRName),
+			Name:      config.GetNameForResource(config.CSINodeServiceAccount, config.DriverPrefix),
 			Namespace: TestNamespace,
 		},
 		ImagePullSecrets: secrets,
@@ -212,61 +214,61 @@ var (
 
 	externalProvisionerCRB = &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.ExternalProvisionerClusterRoleBinding, ibmObjectCSICRName),
+			Name: config.GetNameForResource(config.ExternalProvisionerClusterRoleBinding, config.DriverPrefix),
 		},
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      config.GetNameForResource(config.CSIControllerServiceAccount, ibmObjectCSICRName),
+				Name:      config.GetNameForResource(config.CSIControllerServiceAccount, config.DriverPrefix),
 				Namespace: TestNamespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
-			Name:     config.GetNameForResource(config.ExternalProvisionerClusterRole, ibmObjectCSICRName),
+			Name:     config.GetNameForResource(config.ExternalProvisionerClusterRole, config.DriverPrefix),
 			APIGroup: config.RbacAuthorizationAPIGroup,
 		},
 	}
 
 	controllerSCCCRB = &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.CSIControllerSCCClusterRoleBinding, ibmObjectCSICRName),
+			Name: config.GetNameForResource(config.CSIControllerSCCClusterRoleBinding, config.DriverPrefix),
 		},
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      config.GetNameForResource(config.CSIControllerServiceAccount, ibmObjectCSICRName),
+				Name:      config.GetNameForResource(config.CSIControllerServiceAccount, config.DriverPrefix),
 				Namespace: TestNamespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
-			Name:     config.GetNameForResource(config.CSIControllerSCCClusterRole, ibmObjectCSICRName),
+			Name:     config.GetNameForResource(config.CSIControllerSCCClusterRole, config.DriverPrefix),
 			APIGroup: config.RbacAuthorizationAPIGroup,
 		},
 	}
 
 	nodeSCCCRB = &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.CSINodeSCCClusterRoleBinding, ibmObjectCSICRName),
+			Name: config.GetNameForResource(config.CSINodeSCCClusterRoleBinding, config.DriverPrefix),
 		},
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      config.GetNameForResource(config.CSINodeServiceAccount, ibmObjectCSICRName),
+				Name:      config.GetNameForResource(config.CSINodeServiceAccount, config.DriverPrefix),
 				Namespace: TestNamespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
-			Name:     config.GetNameForResource(config.CSINodeSCCClusterRole, ibmObjectCSICRName),
+			Name:     config.GetNameForResource(config.CSINodeSCCClusterRole, config.DriverPrefix),
 			APIGroup: config.RbacAuthorizationAPIGroup,
 		},
 	}
 
 	externalProvisionerCR = &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.ExternalProvisionerClusterRole, ibmObjectCSICRName),
+			Name: config.GetNameForResource(config.ExternalProvisionerClusterRole, config.DriverPrefix),
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -309,7 +311,7 @@ var (
 
 	controllerSCCCR = &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.CSIControllerSCCClusterRole, ibmObjectCSICRName),
+			Name: config.GetNameForResource(config.CSIControllerSCCClusterRole, config.DriverPrefix),
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -323,7 +325,7 @@ var (
 
 	nodeSCCCR = &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.CSINodeSCCClusterRole, ibmObjectCSICRName),
+			Name: config.GetNameForResource(config.CSINodeSCCClusterRole, config.DriverPrefix),
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -342,10 +344,37 @@ var (
 
 	rCloneSC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.RcloneStorageClass, ibmObjectCSICRName),
+			Name: fmt.Sprintf("%s", config.RcloneStorageClass),
 		},
 		Provisioner:   config.DriverName,
-		ReclaimPolicy: &reclaimPolicy,
+		ReclaimPolicy: &reclaimPolicyDelete,
+		MountOptions: []string{
+			"acl=private",
+			"bucket_acl=private",
+			"upload_cutoff=256Mi",
+			"chunk_size=64Mi",
+			"max_upload_parts=64",
+			"upload_concurrency=20",
+			"copy_cutoff=1Gi",
+			"memory_pool_flush_time=30s",
+			"disable_checksum=true",
+		},
+		Parameters: map[string]string{
+			"mounter": "rclone",
+			"client":  "awss3",
+			"csi.storage.k8s.io/provisioner-secret-name":       "${pvc.name}",
+			"csi.storage.k8s.io/provisioner-secret-namespace":  "${pvc.namespace}",
+			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.name}",
+			"csi.storage.k8s.io/node-publish-secret-namespace": "${pvc.namespace}",
+		},
+	}
+
+	rCloneRetainSC = &storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("%s", config.RcloneRetainStorageClass),
+		},
+		Provisioner:   config.DriverName,
+		ReclaimPolicy: &reclaimPolicyRetain,
 		MountOptions: []string{
 			"acl=private",
 			"bucket_acl=private",
@@ -369,10 +398,34 @@ var (
 
 	s3fsSC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.S3fsStorageClass, ibmObjectCSICRName),
+			Name: fmt.Sprintf("%s", config.S3fsStorageClass),
 		},
 		Provisioner:   config.DriverName,
-		ReclaimPolicy: &reclaimPolicy,
+		ReclaimPolicy: &reclaimPolicyDelete,
+		MountOptions: []string{
+			"multipart_size=62",
+			"max_dirty_data=51200",
+			"parallel_count=8",
+			"max_stat_cache_size=100000",
+			"retries=5",
+			"kernel_cache",
+		},
+		Parameters: map[string]string{
+			"mounter": "s3fs",
+			"client":  "awss3",
+			"csi.storage.k8s.io/provisioner-secret-name":       "${pvc.name}",
+			"csi.storage.k8s.io/provisioner-secret-namespace":  "${pvc.namespace}",
+			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.name}",
+			"csi.storage.k8s.io/node-publish-secret-namespace": "${pvc.namespace}",
+		},
+	}
+
+	s3fsRetainSC = &storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("%s", config.S3fsRetainStorageClass),
+		},
+		Provisioner:   config.DriverName,
+		ReclaimPolicy: &reclaimPolicyRetain,
 		MountOptions: []string{
 			"multipart_size=62",
 			"max_dirty_data=51200",
@@ -738,7 +791,9 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			objects: []runtime.Object{
 				ibmObjectCSICRWithDeletionTS,
 				rCloneSC,
+				rCloneRetainSC,
 				s3fsSC,
+				s3fsRetainSC,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fakedelete.NewClientBuilder().WithRuntimeObjects(objs...).Build()
@@ -809,7 +864,6 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			assert.Equal(t, testcase.expectedResp, res)
 
 			if testcase.expectedErr != nil {
-				assert.Error(t, err)
 				assert.Contains(t, err.Error(), testcase.expectedErr.Error())
 			} else {
 				assert.NoError(t, err)
