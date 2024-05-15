@@ -34,8 +34,8 @@ func (c *IBMObjectCSI) GetLabels() labels.Set {
 		"app.kubernetes.io/name":       config.ProductName,
 		"app.kubernetes.io/instance":   c.Name,
 		"app.kubernetes.io/version":    csiversion.Version,
-		"app.kubernetes.io/part-of":    config.Name,
-		"app.kubernetes.io/managed-by": "addon",
+		"app.kubernetes.io/part-of":    config.CSIDriverName,
+		"app.kubernetes.io/managed-by": config.CSIOperatorName,
 		"product":                      config.ProductName,
 		"release":                      fmt.Sprintf("v%s", csiversion.Version),
 	}

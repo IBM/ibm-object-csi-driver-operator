@@ -18,8 +18,8 @@ func (c *IBMObjectCSI) GenerateCSIDriver() *storagev1.CSIDriver {
 			Name: config.DriverName,
 			Labels: map[string]string{
 				"app.kubernetes.io/name":       "ibm-object-csi",
-				"app.kubernetes.io/part-of":    config.Name,
-				"app.kubernetes.io/managed-by": "addon",
+				"app.kubernetes.io/part-of":    config.CSIDriverName,
+				"app.kubernetes.io/managed-by": config.CSIOperatorName,
 			},
 		},
 		Spec: storagev1.CSIDriverSpec{
@@ -56,11 +56,8 @@ func getServiceAccount(c *IBMObjectCSI, serviceAccountResourceName config.Resour
 func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRole() *rbacv1.ClusterRole {
 	return &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.ExternalProvisionerClusterRole, c.Name),
-			Labels: map[string]string{
-				"app.kubernetes.io/part-of":    config.Name,
-				"app.kubernetes.io/managed-by": "addon",
-			},
+			Name:   config.GetNameForResource(config.ExternalProvisionerClusterRole, c.Name),
+			Labels: config.CommonCSIResourceLabels,
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -106,11 +103,8 @@ func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRole() *rbacv1.ClusterR
 func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.ExternalProvisionerClusterRoleBinding, c.Name),
-			Labels: map[string]string{
-				"app.kubernetes.io/part-of":    config.Name,
-				"app.kubernetes.io/managed-by": "addon",
-			},
+			Name:   config.GetNameForResource(config.ExternalProvisionerClusterRoleBinding, c.Name),
+			Labels: config.CommonCSIResourceLabels,
 		},
 		Subjects: []rbacv1.Subject{
 			{
@@ -131,11 +125,8 @@ func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRoleBinding() *rbacv1.C
 func (c *IBMObjectCSI) GenerateSCCForControllerClusterRole() *rbacv1.ClusterRole {
 	return &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.CSIControllerSCCClusterRole, c.Name),
-			Labels: map[string]string{
-				"app.kubernetes.io/part-of":    config.Name,
-				"app.kubernetes.io/managed-by": "addon",
-			},
+			Name:   config.GetNameForResource(config.CSIControllerSCCClusterRole, c.Name),
+			Labels: config.CommonCSIResourceLabels,
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -152,11 +143,8 @@ func (c *IBMObjectCSI) GenerateSCCForControllerClusterRole() *rbacv1.ClusterRole
 func (c *IBMObjectCSI) GenerateSCCForControllerClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.CSIControllerSCCClusterRoleBinding, c.Name),
-			Labels: map[string]string{
-				"app.kubernetes.io/part-of":    config.Name,
-				"app.kubernetes.io/managed-by": "addon",
-			},
+			Name:   config.GetNameForResource(config.CSIControllerSCCClusterRoleBinding, c.Name),
+			Labels: config.CommonCSIResourceLabels,
 		},
 		Subjects: []rbacv1.Subject{
 			{
@@ -177,11 +165,8 @@ func (c *IBMObjectCSI) GenerateSCCForControllerClusterRoleBinding() *rbacv1.Clus
 func (c *IBMObjectCSI) GenerateSCCForNodeClusterRole() *rbacv1.ClusterRole {
 	return &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.CSINodeSCCClusterRole, c.Name),
-			Labels: map[string]string{
-				"app.kubernetes.io/part-of":    config.Name,
-				"app.kubernetes.io/managed-by": "addon",
-			},
+			Name:   config.GetNameForResource(config.CSINodeSCCClusterRole, c.Name),
+			Labels: config.CommonCSIResourceLabels,
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -210,11 +195,8 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRole() *rbacv1.ClusterRole {
 func (c *IBMObjectCSI) GenerateSCCForNodeClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.CSINodeSCCClusterRoleBinding, c.Name),
-			Labels: map[string]string{
-				"app.kubernetes.io/part-of":    config.Name,
-				"app.kubernetes.io/managed-by": "addon",
-			},
+			Name:   config.GetNameForResource(config.CSINodeSCCClusterRoleBinding, c.Name),
+			Labels: config.CommonCSIResourceLabels,
 		},
 		Subjects: []rbacv1.Subject{
 			{
@@ -236,11 +218,8 @@ func (c *IBMObjectCSI) Generates3fsSC() *storagev1.StorageClass {
 	reclaimPolicy := corev1.PersistentVolumeReclaimRetain
 	return &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.S3fsStorageClass, c.Name),
-			Labels: map[string]string{
-				"app.kubernetes.io/part-of":    config.Name,
-				"app.kubernetes.io/managed-by": "addon",
-			},
+			Name:   config.GetNameForResource(config.S3fsStorageClass, c.Name),
+			Labels: config.CommonCSIResourceLabels,
 		},
 		Provisioner:   config.DriverName,
 		ReclaimPolicy: &reclaimPolicy,
@@ -268,11 +247,8 @@ func (c *IBMObjectCSI) GenerateRcloneSC() *storagev1.StorageClass {
 	reclaimPolicy := corev1.PersistentVolumeReclaimRetain
 	return &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.RcloneStorageClass, c.Name),
-			Labels: map[string]string{
-				"app.kubernetes.io/part-of":    config.Name,
-				"app.kubernetes.io/managed-by": "addon",
-			},
+			Name:   config.GetNameForResource(config.RcloneStorageClass, c.Name),
+			Labels: config.CommonCSIResourceLabels,
 		},
 		Provisioner:   config.DriverName,
 		ReclaimPolicy: &reclaimPolicy,
