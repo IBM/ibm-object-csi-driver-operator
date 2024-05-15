@@ -53,8 +53,6 @@ type ReqLimits struct {
 
 // IBMObjectCSINodeSpec defines the desired state of IBMObjectCSINode
 type IBMObjectCSINodeSpec struct {
-	// ObjectCSIComponent `json:"objectCSIComponent"`
-
 	Repository string `json:"repository"`
 	Tag        string `json:"tag"`
 
@@ -72,8 +70,6 @@ type IBMObjectCSINodeSpec struct {
 
 // IBMObjectCSIControllerSpec defines the desired state of IBMObjectCSIController
 type IBMObjectCSIControllerSpec struct {
-	// ObjectCSIComponent `json:"objectCSIComponent"`
-
 	Repository string `json:"repository"`
 	Tag        string `json:"tag"`
 

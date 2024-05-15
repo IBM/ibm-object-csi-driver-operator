@@ -25,7 +25,7 @@ make deploy IMG=<some-registry>/ibm-object-csi-driver-operator:tag
 3. Install Instances of Custom Resources:
 
 ```sh
-kubectl apply -f config/samples/
+kubectl apply -k config/samples/
 ```
 
 
