@@ -2,12 +2,13 @@
 package crutils
 
 import (
-	"github.com/IBM/ibm-object-csi-driver-operator/pkg/config"
-	"github.com/IBM/ibm-object-csi-driver-operator/pkg/util/boolptr"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/IBM/ibm-object-csi-driver-operator/pkg/config"
+	"github.com/IBM/ibm-object-csi-driver-operator/pkg/util/boolptr"
 )
 
 // GenerateCSIDriver ...
@@ -44,7 +45,7 @@ func getServiceAccount(c *IBMObjectCSI, serviceAccountResourceName config.Resour
 	secrets := GetImagePullSecrets(c.Spec.ImagePullSecrets)
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      config.GetNameForResource(serviceAccountResourceName, c.Name),
+			Name:      config.GetNameForResource(serviceAccountResourceName, config.DriverPrefix),
 			Namespace: c.Namespace,
 			Labels:    c.GetLabels(),
 		},
@@ -56,7 +57,7 @@ func getServiceAccount(c *IBMObjectCSI, serviceAccountResourceName config.Resour
 func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRole() *rbacv1.ClusterRole {
 	return &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   config.GetNameForResource(config.ExternalProvisionerClusterRole, c.Name),
+			Name:   config.GetNameForResource(config.ExternalProvisionerClusterRole, config.DriverPrefix),
 			Labels: config.CommonCSIResourceLabels,
 		},
 		Rules: []rbacv1.PolicyRule{
@@ -103,19 +104,19 @@ func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRole() *rbacv1.ClusterR
 func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   config.GetNameForResource(config.ExternalProvisionerClusterRoleBinding, c.Name),
+			Name:   config.GetNameForResource(config.ExternalProvisionerClusterRoleBinding, config.DriverPrefix),
 			Labels: config.CommonCSIResourceLabels,
 		},
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      config.GetNameForResource(config.CSIControllerServiceAccount, c.Name),
+				Name:      config.GetNameForResource(config.CSIControllerServiceAccount, config.DriverPrefix),
 				Namespace: c.Namespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
-			Name:     config.GetNameForResource(config.ExternalProvisionerClusterRole, c.Name),
+			Name:     config.GetNameForResource(config.ExternalProvisionerClusterRole, config.DriverPrefix),
 			APIGroup: config.RbacAuthorizationAPIGroup,
 		},
 	}
@@ -125,7 +126,7 @@ func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRoleBinding() *rbacv1.C
 func (c *IBMObjectCSI) GenerateSCCForControllerClusterRole() *rbacv1.ClusterRole {
 	return &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   config.GetNameForResource(config.CSIControllerSCCClusterRole, c.Name),
+			Name:   config.GetNameForResource(config.CSIControllerSCCClusterRole, config.DriverPrefix),
 			Labels: config.CommonCSIResourceLabels,
 		},
 		Rules: []rbacv1.PolicyRule{
@@ -143,19 +144,19 @@ func (c *IBMObjectCSI) GenerateSCCForControllerClusterRole() *rbacv1.ClusterRole
 func (c *IBMObjectCSI) GenerateSCCForControllerClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   config.GetNameForResource(config.CSIControllerSCCClusterRoleBinding, c.Name),
+			Name:   config.GetNameForResource(config.CSIControllerSCCClusterRoleBinding, config.DriverPrefix),
 			Labels: config.CommonCSIResourceLabels,
 		},
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      config.GetNameForResource(config.CSIControllerServiceAccount, c.Name),
+				Name:      config.GetNameForResource(config.CSIControllerServiceAccount, config.DriverPrefix),
 				Namespace: c.Namespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
-			Name:     config.GetNameForResource(config.CSIControllerSCCClusterRole, c.Name),
+			Name:     config.GetNameForResource(config.CSIControllerSCCClusterRole, config.DriverPrefix),
 			APIGroup: config.RbacAuthorizationAPIGroup,
 		},
 	}
@@ -165,7 +166,7 @@ func (c *IBMObjectCSI) GenerateSCCForControllerClusterRoleBinding() *rbacv1.Clus
 func (c *IBMObjectCSI) GenerateSCCForNodeClusterRole() *rbacv1.ClusterRole {
 	return &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   config.GetNameForResource(config.CSINodeSCCClusterRole, c.Name),
+			Name:   config.GetNameForResource(config.CSINodeSCCClusterRole, config.DriverPrefix),
 			Labels: config.CommonCSIResourceLabels,
 		},
 		Rules: []rbacv1.PolicyRule{
@@ -195,30 +196,29 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRole() *rbacv1.ClusterRole {
 func (c *IBMObjectCSI) GenerateSCCForNodeClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   config.GetNameForResource(config.CSINodeSCCClusterRoleBinding, c.Name),
+			Name:   config.GetNameForResource(config.CSINodeSCCClusterRoleBinding, config.DriverPrefix),
 			Labels: config.CommonCSIResourceLabels,
 		},
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      config.GetNameForResource(config.CSINodeServiceAccount, c.Name),
+				Name:      config.GetNameForResource(config.CSINodeServiceAccount, config.DriverPrefix),
 				Namespace: c.Namespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
-			Name:     config.GetNameForResource(config.CSINodeSCCClusterRole, c.Name),
+			Name:     config.GetNameForResource(config.CSINodeSCCClusterRole, config.DriverPrefix),
 			APIGroup: config.RbacAuthorizationAPIGroup,
 		},
 	}
 }
 
 // Generates3fsSC ...
-func (c *IBMObjectCSI) Generates3fsSC() *storagev1.StorageClass {
-	reclaimPolicy := corev1.PersistentVolumeReclaimRetain
+func (c *IBMObjectCSI) GenerateS3fsSC(storageClassName config.ResourceName, reclaimPolicy corev1.PersistentVolumeReclaimPolicy) *storagev1.StorageClass {
 	return &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   config.GetNameForResource(config.S3fsStorageClass, c.Name),
+			Name:   storageClassName.String(),
 			Labels: config.CommonCSIResourceLabels,
 		},
 		Provisioner:   config.DriverName,
@@ -243,11 +243,10 @@ func (c *IBMObjectCSI) Generates3fsSC() *storagev1.StorageClass {
 }
 
 // GenerateRcloneSC ...
-func (c *IBMObjectCSI) GenerateRcloneSC() *storagev1.StorageClass {
-	reclaimPolicy := corev1.PersistentVolumeReclaimRetain
+func (c *IBMObjectCSI) GenerateRcloneSC(storageClassName config.ResourceName, reclaimPolicy corev1.PersistentVolumeReclaimPolicy) *storagev1.StorageClass {
 	return &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   config.GetNameForResource(config.RcloneStorageClass, c.Name),
+			Name:   storageClassName.String(),
 			Labels: config.CommonCSIResourceLabels,
 		},
 		Provisioner:   config.DriverName,
