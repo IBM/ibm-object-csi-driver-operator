@@ -4,8 +4,8 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
 - name: controller
-  newName: ashimagarg/csi
-  newTag: "57"
+  newName: icr.io/ibm/ibm-object-csi-driver-operator
+  newTag: v1.0.4-alpha
 commonLabels:
   app.kubernetes.io/part-of: ibm-object-csi-driver-operator
   app.kubernetes.io/managed-by: kustomize
