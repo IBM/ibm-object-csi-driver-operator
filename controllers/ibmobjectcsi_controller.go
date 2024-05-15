@@ -282,7 +282,7 @@ func (r *IBMObjectCSIReconciler) isNodeReady(node *appsv1.DaemonSet) bool {
 func (r *IBMObjectCSIReconciler) getNodeDaemonSet(instance *crutils.IBMObjectCSI) (*appsv1.DaemonSet, error) {
 	node := &appsv1.DaemonSet{}
 	err := r.Get(context.TODO(), types.NamespacedName{
-		Name:      oconfig.GetNameForResource(oconfig.CSINode, instance.Name),
+		Name:      oconfig.GetNameForResource(oconfig.CSINode, oconfig.DriverPrefix),
 		Namespace: instance.Namespace,
 	}, node)
 	return node, err
@@ -291,7 +291,7 @@ func (r *IBMObjectCSIReconciler) getNodeDaemonSet(instance *crutils.IBMObjectCSI
 func (r *IBMObjectCSIReconciler) getControllerDeployment(instance *crutils.IBMObjectCSI) (*appsv1.Deployment, error) {
 	controllerDeployment := &appsv1.Deployment{}
 	err := r.Get(context.TODO(), types.NamespacedName{
-		Name:      oconfig.GetNameForResource(oconfig.CSIController, instance.Name),
+		Name:      oconfig.GetNameForResource(oconfig.CSIController, oconfig.DriverPrefix),
 		Namespace: instance.Namespace,
 	}, controllerDeployment)
 	return controllerDeployment, err
@@ -318,8 +318,8 @@ func (r *IBMObjectCSIReconciler) reconcileServiceAccount(instance *crutils.IBMOb
 	controller := instance.GenerateControllerServiceAccount()
 	node := instance.GenerateNodeServiceAccount()
 
-	controllerServiceAccountName := oconfig.GetNameForResource(oconfig.CSIControllerServiceAccount, instance.Name)
-	nodeServiceAccountName := oconfig.GetNameForResource(oconfig.CSINodeServiceAccount, instance.Name)
+	controllerServiceAccountName := oconfig.GetNameForResource(oconfig.CSIControllerServiceAccount, oconfig.DriverPrefix)
+	nodeServiceAccountName := oconfig.GetNameForResource(oconfig.CSINodeServiceAccount, oconfig.DriverPrefix)
 
 	for _, sa := range []*corev1.ServiceAccount{
 		controller,
@@ -472,11 +472,16 @@ func (r *IBMObjectCSIReconciler) getClusterRoleBindings(instance *crutils.IBMObj
 }
 
 func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCSI) []*storagev1.StorageClass {
-	rcloneSC := instance.GenerateRcloneSC()
-	s3fsSC := instance.Generates3fsSC()
+	rcloneRetainSC := instance.GenerateRcloneSC(oconfig.RcloneRetainStorageClass, corev1.PersistentVolumeReclaimRetain)
+	rcloneSC := instance.GenerateRcloneSC(oconfig.RcloneStorageClass, corev1.PersistentVolumeReclaimDelete)
+
+	s3fsRetainSC := instance.GenerateS3fsSC(oconfig.S3fsRetainStorageClass, corev1.PersistentVolumeReclaimRetain)
+	s3fsSC := instance.GenerateS3fsSC(oconfig.S3fsStorageClass, corev1.PersistentVolumeReclaimDelete)
 
 	return []*storagev1.StorageClass{
+		rcloneRetainSC,
 		rcloneSC,
+		s3fsRetainSC,
 		s3fsSC,
 	}
 }

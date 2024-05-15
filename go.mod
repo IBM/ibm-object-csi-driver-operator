@@ -1,6 +1,6 @@
 module github.com/IBM/ibm-object-csi-driver-operator
 
-go 1.22.2
+go 1.22.3
 
 require (
 	github.com/evanphx/json-patch/v5 v5.9.0
