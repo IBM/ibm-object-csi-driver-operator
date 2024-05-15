@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
@@ -344,7 +343,7 @@ var (
 
 	rCloneSC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s", config.RcloneStorageClass),
+			Name: config.RcloneStorageClass.String(),
 		},
 		Provisioner:   config.DriverName,
 		ReclaimPolicy: &reclaimPolicyDelete,
@@ -371,7 +370,7 @@ var (
 
 	rCloneRetainSC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s", config.RcloneRetainStorageClass),
+			Name: config.RcloneRetainStorageClass.String(),
 		},
 		Provisioner:   config.DriverName,
 		ReclaimPolicy: &reclaimPolicyRetain,
@@ -398,7 +397,7 @@ var (
 
 	s3fsSC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s", config.S3fsStorageClass),
+			Name: config.S3fsStorageClass.String(),
 		},
 		Provisioner:   config.DriverName,
 		ReclaimPolicy: &reclaimPolicyDelete,
@@ -422,7 +421,7 @@ var (
 
 	s3fsRetainSC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s", config.S3fsRetainStorageClass),
+			Name: config.S3fsRetainStorageClass.String(),
 		},
 		Provisioner:   config.DriverName,
 		ReclaimPolicy: &reclaimPolicyRetain,
@@ -864,6 +863,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			assert.Equal(t, testcase.expectedResp, res)
 
 			if testcase.expectedErr != nil {
+				assert.Error(t, err)
 				assert.Contains(t, err.Error(), testcase.expectedErr.Error())
 			} else {
 				assert.NoError(t, err)

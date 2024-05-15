@@ -2,13 +2,13 @@
 package crutils
 
 import (
-	"fmt"
-	"github.com/IBM/ibm-object-csi-driver-operator/pkg/config"
-	"github.com/IBM/ibm-object-csi-driver-operator/pkg/util/boolptr"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/IBM/ibm-object-csi-driver-operator/pkg/config"
+	"github.com/IBM/ibm-object-csi-driver-operator/pkg/util/boolptr"
 )
 
 // GenerateCSIDriver ...
@@ -208,7 +208,7 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRoleBinding() *rbacv1.ClusterRol
 func (c *IBMObjectCSI) GenerateS3fsSC(storageClassName config.ResourceName, reclaimPolicy corev1.PersistentVolumeReclaimPolicy) *storagev1.StorageClass {
 	return &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s", storageClassName),
+			Name: storageClassName.String(),
 		},
 		Provisioner:   config.DriverName,
 		ReclaimPolicy: &reclaimPolicy,
@@ -235,7 +235,7 @@ func (c *IBMObjectCSI) GenerateS3fsSC(storageClassName config.ResourceName, recl
 func (c *IBMObjectCSI) GenerateRcloneSC(storageClassName config.ResourceName, reclaimPolicy corev1.PersistentVolumeReclaimPolicy) *storagev1.StorageClass {
 	return &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s", storageClassName),
+			Name: storageClassName.String(),
 		},
 		Provisioner:   config.DriverName,
 		ReclaimPolicy: &reclaimPolicy,
