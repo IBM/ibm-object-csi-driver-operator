@@ -16,3 +16,7 @@ resources:
 - auth_proxy_role.yaml
 - auth_proxy_role_binding.yaml
 - auth_proxy_client_clusterrole.yaml
+
+commonLabels:
+  app.kubernetes.io/part-of: ibm-object-csi-driver-operator
+  app.kubernetes.io/managed-by: kustomize

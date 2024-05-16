@@ -34,7 +34,8 @@ func (c *IBMObjectCSI) GetLabels() labels.Set {
 		"app.kubernetes.io/name":       config.ProductName,
 		"app.kubernetes.io/instance":   c.Name,
 		"app.kubernetes.io/version":    csiversion.Version,
-		"app.kubernetes.io/managed-by": config.Name,
+		"app.kubernetes.io/part-of":    config.CSIDriverName,
+		"app.kubernetes.io/managed-by": config.CSIOperatorName,
 		"product":                      config.ProductName,
 		"release":                      fmt.Sprintf("v%s", csiversion.Version),
 	}
@@ -107,12 +108,10 @@ func (c *IBMObjectCSI) GetCSIControllerImage() string {
 
 // GetCSIControllerResourceRequests ...
 func (c *IBMObjectCSI) GetCSIControllerResourceRequests() *objectdriverv1alpha1.ResourcesSpec {
-	resources := c.Spec.Controller.Resources
-	return &resources
+	return &c.Spec.Controller.Resources
 }
 
 // GetCSINodeResourceRequests ...
 func (c *IBMObjectCSI) GetCSINodeResourceRequests() *objectdriverv1alpha1.ResourcesSpec {
-	resources := c.Spec.Node.Resources
-	return &resources
+	return &c.Spec.Node.Resources
 }

@@ -3,11 +3,12 @@ package config
 
 // Add a field here if it never changes, if it changes over time, put it to settings.go
 const (
-	APIGroup    = "objectdriver.csi.ibm.com"
-	APIVersion  = "v1"
-	Name        = "ibm-object-csi-operator"
-	DriverName  = "cos.s3.csi.ibm.io"
-	ProductName = "ibm-object-csi-driver"
+	APIGroup        = "objectdriver.csi.ibm.com"
+	APIVersion      = "v1"
+	CSIOperatorName = "ibm-object-csi-driver-operator"
+	CSIDriverName   = "ibm-object-csi-driver"
+	DriverName      = "cos.s3.csi.ibm.io"
+	ProductName     = "ibm-object-csi-driver"
 
 	RbacAuthorizationAPIGroup = "rbac.authorization.k8s.io"
 	SecurityOpenshiftAPIGroup = "security.openshift.io"
@@ -43,3 +44,8 @@ const (
 	CSIEndpoint                                           = "unix:///var/lib/csi/sockets/pluginproxy/csi.sock"
 	CSINodeEndpoint                                       = "unix:///csi/csi.sock"
 )
+
+var CommonCSIResourceLabels = map[string]string{
+	"app.kubernetes.io/part-of":    CSIDriverName,
+	"app.kubernetes.io/managed-by": CSIOperatorName,
+}
