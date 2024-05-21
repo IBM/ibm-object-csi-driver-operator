@@ -37,13 +37,6 @@ spec:
     repository: icr.io/ibm/ibm-object-csi-driver
     tag: "v1.0.4-alpha"
     imagePullPolicy: Always
-    resources:
-      limits:
-        cpu: "4"
-        memory: 800Mi
-      requests:
-        cpu: 40m
-        memory: 40Mi
     affinity:
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
