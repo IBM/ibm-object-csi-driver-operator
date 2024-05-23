@@ -353,13 +353,19 @@ func fillSecurityContextCapabilities(sc *corev1.SecurityContext, add ...string) 
 func getCSINodeResourceRequests(driver *crutils.IBMObjectCSI) corev1.ResourceRequirements {
 	resources := driver.GetCSINodeResourceRequests()
 
-	requests := corev1.ResourceList{
-		corev1.ResourceCPU:    resource.MustParse(resources.Requests.CPU),
-		corev1.ResourceMemory: resource.MustParse(resources.Requests.Memory),
+	var requests, limits corev1.ResourceList
+
+	if resources.Requests.CPU != "" && resources.Requests.Memory != "" {
+		requests = corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse(resources.Requests.CPU),
+			corev1.ResourceMemory: resource.MustParse(resources.Requests.Memory),
+		}
 	}
-	limits := corev1.ResourceList{
-		corev1.ResourceCPU:    resource.MustParse(resources.Limits.CPU),
-		corev1.ResourceMemory: resource.MustParse(resources.Limits.Memory),
+	if resources.Limits.CPU != "" && resources.Limits.Memory != "" {
+		limits = corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse(resources.Limits.CPU),
+			corev1.ResourceMemory: resource.MustParse(resources.Limits.Memory),
+		}
 	}
 
 	return corev1.ResourceRequirements{
