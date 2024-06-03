@@ -279,7 +279,7 @@ func (r *IBMObjectCSIReconciler) isNodeReady(node *appsv1.DaemonSet) bool {
 func (r *IBMObjectCSIReconciler) getNodeDaemonSet(instance *crutils.IBMObjectCSI) (*appsv1.DaemonSet, error) {
 	node := &appsv1.DaemonSet{}
 	err := r.Get(context.TODO(), types.NamespacedName{
-		Name:      oconfig.GetNameForResource(oconfig.CSINode, oconfig.DriverPrefix),
+		Name:      oconfig.CSIDaemonSetName,
 		Namespace: instance.Namespace,
 	}, node)
 	return node, err

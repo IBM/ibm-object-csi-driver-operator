@@ -72,7 +72,7 @@ func (c *IBMObjectCSI) GetAnnotations() labels.Set {
 
 // GetCSINodeSelectorLabels ...
 func (c *IBMObjectCSI) GetCSINodeSelectorLabels() labels.Set {
-	return common.GetSelectorLabels(config.CSINode.String())
+	return common.GetSelectorLabels(config.CSINode)
 }
 
 // GetCSINodePodLabels ...
