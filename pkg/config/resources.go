@@ -18,12 +18,8 @@ const (
 
 	// CSIController ...
 	CSIController ResourceName = "controller"
-
 	// CSINode ...
-	CSINode = "node"
-
-	CSIDaemonSetName = DriverPrefix + "-node"
-
+	CSINode ResourceName = "node"
 	// CSIControllerServiceAccount ...
 	CSIControllerServiceAccount ResourceName = "controller-sa"
 	// CSINodeServiceAccount ...
@@ -59,6 +55,8 @@ func GetNameForResource(name ResourceName, driverName string) string {
 	switch name {
 	case CSIController:
 		return fmt.Sprintf("%s-controller", driverName)
+	case CSINode:
+		return fmt.Sprintf("%s-node", driverName)
 	case CSIControllerServiceAccount:
 		return fmt.Sprintf("%s-controller-sa", driverName)
 	case CSINodeServiceAccount:

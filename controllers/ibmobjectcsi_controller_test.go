@@ -156,7 +156,7 @@ var (
 
 	csiNode = &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        config.CSIDaemonSetName,
+			Name:        config.GetNameForResource(config.CSINode, config.DriverPrefix),
 			Namespace:   TestNamespace,
 			Annotations: annotations,
 		},

@@ -43,7 +43,7 @@ type csiNodeSyncer struct {
 func NewCSINodeSyncer(c client.Client, driver *crutils.IBMObjectCSI) syncer.Interface {
 	obj := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        config.CSIDaemonSetName,
+			Name:        config.GetNameForResource(config.CSINode, config.DriverPrefix),
 			Namespace:   driver.Namespace,
 			Annotations: driver.GetAnnotations(),
 			Labels:      driver.GetLabels(),
@@ -65,7 +65,7 @@ func NewCSINodeSyncer(c client.Client, driver *crutils.IBMObjectCSI) syncer.Inte
 		obj:    obj,
 	}
 
-	return syncer.NewObjectSyncer(config.CSINode, driver.Unwrap(), obj, c, func() error {
+	return syncer.NewObjectSyncer(config.CSINode.String(), driver.Unwrap(), obj, c, func() error {
 		return sync.SyncFn()
 	})
 }
