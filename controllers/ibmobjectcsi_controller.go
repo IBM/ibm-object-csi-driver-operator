@@ -48,9 +48,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-// ReconcileTime is the delay between reconciliations
-const ReconcileTime = 30 * time.Second
-
 type reconciler func(instance *crutils.IBMObjectCSI) error
 
 var csiLog = logf.Log.WithName("ibmobjectcsi_controller")

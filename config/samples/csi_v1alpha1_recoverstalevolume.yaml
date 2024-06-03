@@ -8,6 +8,6 @@ metadata:
   namespace: ibm-object-csi-operator-system
 spec:
   noOfLogLines: 200
-  deploymentData:
-    - deploymentName: cos-csi-app-deployment
-      deploymentNamespace: default
+  data:
+    - namespace: default
+      applications: []

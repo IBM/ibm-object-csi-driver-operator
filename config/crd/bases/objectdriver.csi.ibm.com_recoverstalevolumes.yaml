@@ -40,13 +40,15 @@ spec:
           spec:
             description: RecoverStaleVolumeSpec defines the desired state of RecoverStaleVolume
             properties:
-              deploymentData:
+              data:
                 items:
-                  description: DeploymentData ...
+                  description: NamespacedDeploymentData ...
                   properties:
-                    deploymentName:
-                      type: string
-                    deploymentNamespace:
+                    applications:
+                      items:
+                        type: string
+                      type: array
+                    namespace:
                       type: string
                   type: object
                 type: array
