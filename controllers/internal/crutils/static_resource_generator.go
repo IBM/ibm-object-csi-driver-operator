@@ -18,7 +18,7 @@ func (c *IBMObjectCSI) GenerateCSIDriver() *storagev1.CSIDriver {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.DriverName,
 			Labels: map[string]string{
-				"app.kubernetes.io/name":       "ibm-object-csi",
+				"app.kubernetes.io/name":       constants.DriverPrefix,
 				"app.kubernetes.io/part-of":    constants.CSIDriverName,
 				"app.kubernetes.io/managed-by": constants.CSIOperatorName,
 			},
@@ -41,11 +41,11 @@ func (c *IBMObjectCSI) GenerateNodeServiceAccount() *corev1.ServiceAccount {
 	return getServiceAccount(c, constants.CSINodeServiceAccount)
 }
 
-func getServiceAccount(c *IBMObjectCSI, serviceAccountResourceName constants.ResourceName) *corev1.ServiceAccount {
+func getServiceAccount(c *IBMObjectCSI, serviceAccountResourceName string) *corev1.ServiceAccount {
 	secrets := GetImagePullSecrets(c.Spec.ImagePullSecrets)
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.GetNameForResource(serviceAccountResourceName, constants.DriverPrefix),
+			Name:      constants.GetResourceName(serviceAccountResourceName),
 			Namespace: c.Namespace,
 			Labels:    c.GetLabels(),
 		},
@@ -57,7 +57,7 @@ func getServiceAccount(c *IBMObjectCSI, serviceAccountResourceName constants.Res
 func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRole() *rbacv1.ClusterRole {
 	return &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   constants.GetNameForResource(constants.ExternalProvisionerClusterRole, constants.DriverPrefix),
+			Name:   constants.GetResourceName(constants.ExternalProvisionerClusterRole),
 			Labels: constants.CommonCSIResourceLabels,
 		},
 		Rules: []rbacv1.PolicyRule{
@@ -88,7 +88,7 @@ func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRole() *rbacv1.ClusterR
 			},
 			{
 				APIGroups: []string{constants.StorageAPIGroup},
-				Resources: []string{constants.CsiNodesResource},
+				Resources: []string{constants.CSINodesResource},
 				Verbs:     []string{constants.VerbGet, constants.VerbList, constants.VerbWatch},
 			},
 			{
@@ -104,19 +104,19 @@ func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRole() *rbacv1.ClusterR
 func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   constants.GetNameForResource(constants.ExternalProvisionerClusterRoleBinding, constants.DriverPrefix),
+			Name:   constants.GetResourceName(constants.ExternalProvisionerClusterRoleBinding),
 			Labels: constants.CommonCSIResourceLabels,
 		},
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      constants.GetNameForResource(constants.CSIControllerServiceAccount, constants.DriverPrefix),
+				Name:      constants.GetResourceName(constants.CSIControllerServiceAccount),
 				Namespace: c.Namespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
-			Name:     constants.GetNameForResource(constants.ExternalProvisionerClusterRole, constants.DriverPrefix),
+			Name:     constants.GetResourceName(constants.ExternalProvisionerClusterRole),
 			APIGroup: constants.RbacAuthorizationAPIGroup,
 		},
 	}
@@ -126,7 +126,7 @@ func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRoleBinding() *rbacv1.C
 func (c *IBMObjectCSI) GenerateSCCForControllerClusterRole() *rbacv1.ClusterRole {
 	return &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   constants.GetNameForResource(constants.CSIControllerSCCClusterRole, constants.DriverPrefix),
+			Name:   constants.GetResourceName(constants.CSIControllerSCCClusterRole),
 			Labels: constants.CommonCSIResourceLabels,
 		},
 		Rules: []rbacv1.PolicyRule{
@@ -144,19 +144,19 @@ func (c *IBMObjectCSI) GenerateSCCForControllerClusterRole() *rbacv1.ClusterRole
 func (c *IBMObjectCSI) GenerateSCCForControllerClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   constants.GetNameForResource(constants.CSIControllerSCCClusterRoleBinding, constants.DriverPrefix),
+			Name:   constants.GetResourceName(constants.CSIControllerSCCClusterRoleBinding),
 			Labels: constants.CommonCSIResourceLabels,
 		},
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      constants.GetNameForResource(constants.CSIControllerServiceAccount, constants.DriverPrefix),
+				Name:      constants.GetResourceName(constants.CSIControllerServiceAccount),
 				Namespace: c.Namespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
-			Name:     constants.GetNameForResource(constants.CSIControllerSCCClusterRole, constants.DriverPrefix),
+			Name:     constants.GetResourceName(constants.CSIControllerSCCClusterRole),
 			APIGroup: constants.RbacAuthorizationAPIGroup,
 		},
 	}
@@ -166,7 +166,7 @@ func (c *IBMObjectCSI) GenerateSCCForControllerClusterRoleBinding() *rbacv1.Clus
 func (c *IBMObjectCSI) GenerateSCCForNodeClusterRole() *rbacv1.ClusterRole {
 	return &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   constants.GetNameForResource(constants.CSINodeSCCClusterRole, constants.DriverPrefix),
+			Name:   constants.GetResourceName(constants.CSINodeSCCClusterRole),
 			Labels: constants.CommonCSIResourceLabels,
 		},
 		Rules: []rbacv1.PolicyRule{
@@ -196,29 +196,29 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRole() *rbacv1.ClusterRole {
 func (c *IBMObjectCSI) GenerateSCCForNodeClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   constants.GetNameForResource(constants.CSINodeSCCClusterRoleBinding, constants.DriverPrefix),
+			Name:   constants.GetResourceName(constants.CSINodeSCCClusterRoleBinding),
 			Labels: constants.CommonCSIResourceLabels,
 		},
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      constants.GetNameForResource(constants.CSINodeServiceAccount, constants.DriverPrefix),
+				Name:      constants.GetResourceName(constants.CSINodeServiceAccount),
 				Namespace: c.Namespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
-			Name:     constants.GetNameForResource(constants.CSINodeSCCClusterRole, constants.DriverPrefix),
+			Name:     constants.GetResourceName(constants.CSINodeSCCClusterRole),
 			APIGroup: constants.RbacAuthorizationAPIGroup,
 		},
 	}
 }
 
 // Generates3fsSC ...
-func (c *IBMObjectCSI) GenerateS3fsSC(storageClassName constants.ResourceName, reclaimPolicy corev1.PersistentVolumeReclaimPolicy) *storagev1.StorageClass {
+func (c *IBMObjectCSI) GenerateS3fsSC(storageClassName string, reclaimPolicy corev1.PersistentVolumeReclaimPolicy) *storagev1.StorageClass {
 	return &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   storageClassName.String(),
+			Name:   storageClassName,
 			Labels: constants.CommonCSIResourceLabels,
 		},
 		Provisioner:   constants.DriverName,
@@ -243,10 +243,10 @@ func (c *IBMObjectCSI) GenerateS3fsSC(storageClassName constants.ResourceName, r
 }
 
 // GenerateRcloneSC ...
-func (c *IBMObjectCSI) GenerateRcloneSC(storageClassName constants.ResourceName, reclaimPolicy corev1.PersistentVolumeReclaimPolicy) *storagev1.StorageClass {
+func (c *IBMObjectCSI) GenerateRcloneSC(storageClassName string, reclaimPolicy corev1.PersistentVolumeReclaimPolicy) *storagev1.StorageClass {
 	return &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   storageClassName.String(),
+			Name:   storageClassName,
 			Labels: constants.CommonCSIResourceLabels,
 		},
 		Provisioner:   constants.DriverName,

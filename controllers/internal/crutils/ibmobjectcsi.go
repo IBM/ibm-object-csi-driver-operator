@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	objectdriverv1alpha1 "github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
-	config "github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/common"
 	csiversion "github.com/IBM/ibm-object-csi-driver-operator/version"
 	"k8s.io/apimachinery/pkg/labels"
@@ -31,12 +31,12 @@ func (c *IBMObjectCSI) Unwrap() *objectdriverv1alpha1.IBMObjectCSI {
 // GetLabels returns all the labels to be set on all resources
 func (c *IBMObjectCSI) GetLabels() labels.Set {
 	labels := labels.Set{
-		"app.kubernetes.io/name":       config.ProductName,
+		"app.kubernetes.io/name":       constants.CSIDriverName,
 		"app.kubernetes.io/instance":   c.Name,
 		"app.kubernetes.io/version":    csiversion.Version,
-		"app.kubernetes.io/part-of":    config.CSIDriverName,
-		"app.kubernetes.io/managed-by": config.CSIOperatorName,
-		"product":                      config.ProductName,
+		"app.kubernetes.io/part-of":    constants.CSIDriverName,
+		"app.kubernetes.io/managed-by": constants.CSIOperatorName,
+		"product":                      constants.CSIDriverName,
 		"release":                      fmt.Sprintf("v%s", csiversion.Version),
 	}
 
@@ -54,8 +54,8 @@ func (c *IBMObjectCSI) GetLabels() labels.Set {
 // GetAnnotations returns all the annotations to be set on all resources
 func (c *IBMObjectCSI) GetAnnotations() labels.Set {
 	labels := labels.Set{
-		"productID":      config.ProductName,
-		"productName":    config.ProductName,
+		"productID":      constants.CSIDriverName,
+		"productName":    constants.CSIDriverName,
 		"productVersion": csiversion.Version,
 	}
 
@@ -72,7 +72,7 @@ func (c *IBMObjectCSI) GetAnnotations() labels.Set {
 
 // GetCSINodeSelectorLabels ...
 func (c *IBMObjectCSI) GetCSINodeSelectorLabels() labels.Set {
-	return common.GetSelectorLabels(config.CSINode.String())
+	return common.GetSelectorLabels(constants.CSINode)
 }
 
 // GetCSINodePodLabels ...
@@ -90,7 +90,7 @@ func (c *IBMObjectCSI) GetCSINodeImage() string {
 
 // GetCSIControllerSelectorLabels ...
 func (c *IBMObjectCSI) GetCSIControllerSelectorLabels() labels.Set {
-	return common.GetSelectorLabels(config.CSIController.String())
+	return common.GetSelectorLabels(constants.CSIController)
 }
 
 // GetCSIControllerPodLabels ...

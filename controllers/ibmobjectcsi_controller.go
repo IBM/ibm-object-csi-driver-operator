@@ -282,7 +282,7 @@ func (r *IBMObjectCSIReconciler) isNodeReady(node *appsv1.DaemonSet) bool {
 func (r *IBMObjectCSIReconciler) getNodeDaemonSet(instance *crutils.IBMObjectCSI) (*appsv1.DaemonSet, error) {
 	node := &appsv1.DaemonSet{}
 	err := r.Get(context.TODO(), types.NamespacedName{
-		Name:      constants.GetNameForResource(constants.CSINode, constants.DriverPrefix),
+		Name:      constants.GetResourceName(constants.CSINode),
 		Namespace: instance.Namespace,
 	}, node)
 	return node, err
@@ -291,7 +291,7 @@ func (r *IBMObjectCSIReconciler) getNodeDaemonSet(instance *crutils.IBMObjectCSI
 func (r *IBMObjectCSIReconciler) getControllerDeployment(instance *crutils.IBMObjectCSI) (*appsv1.Deployment, error) {
 	controllerDeployment := &appsv1.Deployment{}
 	err := r.Get(context.TODO(), types.NamespacedName{
-		Name:      constants.GetNameForResource(constants.CSIController, constants.DriverPrefix),
+		Name:      constants.GetResourceName(constants.CSIController),
 		Namespace: instance.Namespace,
 	}, controllerDeployment)
 	return controllerDeployment, err
@@ -318,8 +318,8 @@ func (r *IBMObjectCSIReconciler) reconcileServiceAccount(instance *crutils.IBMOb
 	controller := instance.GenerateControllerServiceAccount()
 	node := instance.GenerateNodeServiceAccount()
 
-	controllerServiceAccountName := constants.GetNameForResource(constants.CSIControllerServiceAccount, constants.DriverPrefix)
-	nodeServiceAccountName := constants.GetNameForResource(constants.CSINodeServiceAccount, constants.DriverPrefix)
+	controllerServiceAccountName := constants.GetResourceName(constants.CSIControllerServiceAccount)
+	nodeServiceAccountName := constants.GetResourceName(constants.CSINodeServiceAccount)
 
 	for _, sa := range []*corev1.ServiceAccount{
 		controller,

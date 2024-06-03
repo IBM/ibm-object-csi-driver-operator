@@ -14,23 +14,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	objectdriverv1alpha1 "github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
-	config "github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/crutils"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util"
 	"github.com/presslabs/controller-util/pkg/mergo/transformers"
 	"github.com/presslabs/controller-util/pkg/syncer"
-)
-
-const (
-	socketVolumeName = "socket-dir"
-	// ControllerContainerName ...
-	ControllerContainerName = "ibm-object-csi-controller"
-	// ProvisionerContainerName ...
-	ProvisionerContainerName = "csi-provisioner"
-	// ControllerLivenessProbeContainerName ...
-	ControllerLivenessProbeContainerName       = "livenessprobe"
-	controllerContainerHealthPortName          = "healthz"
-	controllerContainerDefaultHealthPortNumber = 9808
 )
 
 type csiControllerSyncer struct {
@@ -42,7 +30,7 @@ type csiControllerSyncer struct {
 func NewCSIControllerSyncer(c client.Client, driver *crutils.IBMObjectCSI) syncer.Interface {
 	obj := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        config.GetNameForResource(config.CSIController, config.DriverPrefix),
+			Name:        constants.GetResourceName(constants.CSIController),
 			Namespace:   driver.Namespace,
 			Annotations: driver.GetAnnotations(),
 			Labels:      driver.GetLabels(),
@@ -64,7 +52,7 @@ func NewCSIControllerSyncer(c client.Client, driver *crutils.IBMObjectCSI) synce
 		obj:    obj,
 	}
 
-	return syncer.NewObjectSyncer(config.CSIController.String(), driver.Unwrap(), obj, c, func() error {
+	return syncer.NewObjectSyncer(constants.CSIController, driver.Unwrap(), obj, c, func() error {
 		return sync.SyncFn()
 	})
 }
@@ -101,12 +89,12 @@ func (s *csiControllerSyncer) ensurePodSpec() corev1.PodSpec {
 		//		},
 		Affinity:           s.driver.Spec.Controller.Affinity,
 		Tolerations:        s.driver.Spec.Controller.Tolerations,
-		ServiceAccountName: config.GetNameForResource(config.CSIControllerServiceAccount, config.DriverPrefix),
+		ServiceAccountName: constants.GetResourceName(constants.CSIControllerServiceAccount),
 	}
 }
 
 func (s *csiControllerSyncer) ensureContainersSpec() []corev1.Container {
-	controllerPlugin := s.ensureContainer(ControllerContainerName,
+	controllerPlugin := s.ensureContainer(constants.ControllerContainerName,
 		s.driver.GetCSIControllerImage(),
 		[]string{"--endpoint=$(CSI_ENDPOINT)",
 			"--servermode=controller",
@@ -119,11 +107,11 @@ func (s *csiControllerSyncer) ensureContainersSpec() []corev1.Container {
 
 	healthPort := s.driver.Spec.HealthPort
 	if healthPort == 0 {
-		healthPort = controllerContainerDefaultHealthPortNumber
+		healthPort = constants.HealthPortNumber
 	}
 
 	controllerPlugin.Ports = ensurePorts(corev1.ContainerPort{
-		Name:          controllerContainerHealthPortName,
+		Name:          constants.HealthPortName,
 		ContainerPort: int32(healthPort),
 	})
 	controllerPlugin.ImagePullPolicy = s.driver.Spec.Controller.ImagePullPolicy
@@ -142,15 +130,15 @@ func (s *csiControllerSyncer) ensureContainersSpec() []corev1.Container {
 		"--v=5",
 		"--timeout=120s",
 	}
-	provisioner := s.ensureContainer(ProvisionerContainerName,
+	provisioner := s.ensureContainer(constants.CSIProvisioner,
 		s.getCSIProvisionerImage(),
 		provisionerArgs,
 	)
 	provisioner.ImagePullPolicy = s.getCSIProvisionerPullPolicy()
-	provisioner.Resources = getSidecarResourceRequests(s.driver, config.CSIProvisioner)
+	provisioner.Resources = getSidecarResourceRequests(s.driver, constants.CSIProvisioner)
 
 	healthPortArg := fmt.Sprintf("--health-port=%v", healthPort)
-	livenessProbe := s.ensureContainer(ControllerLivenessProbeContainerName,
+	livenessProbe := s.ensureContainer(constants.LivenessProbe,
 		s.getLivenessProbeImage(),
 		[]string{
 			"--csi-address=/csi/csi.sock",
@@ -158,7 +146,7 @@ func (s *csiControllerSyncer) ensureContainersSpec() []corev1.Container {
 		},
 	)
 	livenessProbe.ImagePullPolicy = s.getLivenessProbePullPolicy()
-	livenessProbe.Resources = getSidecarResourceRequests(s.driver, config.LivenessProbe)
+	livenessProbe.Resources = getSidecarResourceRequests(s.driver, constants.LivenessProbe)
 
 	return []corev1.Container{
 		controllerPlugin,
@@ -183,19 +171,19 @@ func (s *csiControllerSyncer) ensureContainer(name, image string, args []string)
 
 func (s *csiControllerSyncer) getEnvFor(name string) []corev1.EnvVar {
 	switch name {
-	case ControllerContainerName:
+	case constants.ControllerContainerName:
 		return []corev1.EnvVar{
 			{
 				Name:  "CSI_ENDPOINT",
-				Value: config.CSIEndpoint,
+				Value: constants.CSIEndpoint,
 			},
 		}
 
-	case ProvisionerContainerName:
+	case constants.CSIProvisioner:
 		return []corev1.EnvVar{
 			{
 				Name:  "ADDRESS",
-				Value: config.ControllerSocketPath,
+				Value: constants.ControllerSocketPath,
 			},
 		}
 	}
@@ -204,19 +192,19 @@ func (s *csiControllerSyncer) getEnvFor(name string) []corev1.EnvVar {
 
 func (s *csiControllerSyncer) getVolumeMountsFor(name string) []corev1.VolumeMount {
 	switch name {
-	case ControllerContainerName, ProvisionerContainerName:
+	case constants.ControllerContainerName, constants.CSIProvisioner:
 		return []corev1.VolumeMount{
 			{
-				Name:      socketVolumeName,
-				MountPath: config.ControllerSocketVolumeMountPath,
+				Name:      constants.SocketVolumeName,
+				MountPath: constants.ControllerSocketVolumeMountPath,
 			},
 		}
 
-	case ControllerLivenessProbeContainerName:
+	case constants.LivenessProbe:
 		return []corev1.VolumeMount{
 			{
-				Name:      socketVolumeName,
-				MountPath: config.ControllerLivenessProbeContainerSocketVolumeMountPath,
+				Name:      constants.SocketVolumeName,
+				MountPath: constants.ControllerLivenessProbeContainerSocketVolumeMountPath,
 			},
 		}
 	}
@@ -225,7 +213,7 @@ func (s *csiControllerSyncer) getVolumeMountsFor(name string) []corev1.VolumeMou
 
 func (s *csiControllerSyncer) ensureVolumes() []corev1.Volume {
 	return []corev1.Volume{
-		ensureVolume(socketVolumeName, corev1.VolumeSource{
+		ensureVolume(constants.SocketVolumeName, corev1.VolumeSource{
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		}),
 	}
@@ -244,11 +232,11 @@ func (s *csiControllerSyncer) getSidecarImageByName(name string) string {
 }
 
 func (s *csiControllerSyncer) getCSIProvisionerImage() string {
-	return s.getSidecarImageByName(config.CSIProvisioner)
+	return s.getSidecarImageByName(constants.CSIProvisioner)
 }
 
 func (s *csiControllerSyncer) getLivenessProbeImage() string {
-	return s.getSidecarImageByName(config.LivenessProbe)
+	return s.getSidecarImageByName(constants.LivenessProbe)
 }
 
 func (s *csiControllerSyncer) getSidecarPullPolicy(sidecarName string) corev1.PullPolicy {
@@ -260,11 +248,11 @@ func (s *csiControllerSyncer) getSidecarPullPolicy(sidecarName string) corev1.Pu
 }
 
 func (s *csiControllerSyncer) getCSIProvisionerPullPolicy() corev1.PullPolicy {
-	return s.getSidecarPullPolicy(config.CSIProvisioner)
+	return s.getSidecarPullPolicy(constants.CSIProvisioner)
 }
 
 func (s *csiControllerSyncer) getLivenessProbePullPolicy() corev1.PullPolicy {
-	return s.getSidecarPullPolicy(config.LivenessProbe)
+	return s.getSidecarPullPolicy(constants.LivenessProbe)
 }
 
 func ensurePorts(ports ...corev1.ContainerPort) []corev1.ContainerPort {
