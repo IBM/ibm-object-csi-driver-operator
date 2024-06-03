@@ -15,10 +15,15 @@ func (rn ResourceName) String() string {
 const (
 	// DriverPrefix ...
 	DriverPrefix = "ibm-object-csi"
+
 	// CSIController ...
 	CSIController ResourceName = "controller"
+
 	// CSINode ...
-	CSINode ResourceName = "node"
+	CSINode = "node"
+
+	CSIDaemonSetName = DriverPrefix + "-node"
+
 	// CSIControllerServiceAccount ...
 	CSIControllerServiceAccount ResourceName = "controller-sa"
 	// CSINodeServiceAccount ...
@@ -35,14 +40,18 @@ const (
 	CSINodeSCCClusterRole ResourceName = "node-scc-clusterrole"
 	// CSINodeSCCClusterRoleBinding ...
 	CSINodeSCCClusterRoleBinding ResourceName = "node-scc-clusterrolebinding"
+
+	StorageClassPrefix = "ibm-object-storage-"
+	StorageClassSuffix = "-sc"
+
 	// RcloneRetainStorageClass ...
-	RcloneRetainStorageClass ResourceName = "ibm-object-storage-rclone-retain-sc"
+	RcloneRetainStorageClass ResourceName = StorageClassPrefix + "rclone-retain" + StorageClassSuffix
 	// RcloneStorageClass ...
-	RcloneStorageClass ResourceName = "ibm-object-storage-rclone-sc"
+	RcloneStorageClass ResourceName = StorageClassPrefix + "rclone" + StorageClassSuffix
 	// S3fsRetainStorageClass ...
-	S3fsRetainStorageClass ResourceName = "ibm-object-storage-s3fs-retain-sc"
+	S3fsRetainStorageClass ResourceName = StorageClassPrefix + "s3fs-retain" + StorageClassSuffix
 	// S3fsStorageClass ...
-	S3fsStorageClass ResourceName = "ibm-object-storage-s3fs-sc"
+	S3fsStorageClass ResourceName = StorageClassPrefix + "s3fs" + StorageClassSuffix
 )
 
 // GetNameForResource returns the name of a resource for a CSI driver
@@ -50,8 +59,6 @@ func GetNameForResource(name ResourceName, driverName string) string {
 	switch name {
 	case CSIController:
 		return fmt.Sprintf("%s-controller", driverName)
-	case CSINode:
-		return fmt.Sprintf("%s-node", driverName)
 	case CSIControllerServiceAccount:
 		return fmt.Sprintf("%s-controller-sa", driverName)
 	case CSINodeServiceAccount:
