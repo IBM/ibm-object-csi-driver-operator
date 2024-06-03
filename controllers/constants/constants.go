@@ -1,5 +1,5 @@
-// Package config ...
-package config
+// Package constants ...
+package constants
 
 // Add a field here if it never changes, if it changes over time, put it to settings.go
 const (

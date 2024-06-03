@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
+	config "github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
 	fakecreate "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_create"
 	fakedelete "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_delete"
 	fakeget "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_get"
@@ -15,9 +16,8 @@ import (
 	fakeupdateibmobjcsi "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_update/ibmobjectcsi"
 	crutils "github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/crutils"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/syncer"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util/common"
-	"github.com/IBM/ibm-object-csi-driver-operator/pkg/config"
-	"github.com/IBM/ibm-object-csi-driver-operator/pkg/util/boolptr"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -189,8 +189,8 @@ var (
 			Labels: map[string]string{"app.kubernetes.io/name": "ibm-object-csi"},
 		},
 		Spec: storagev1.CSIDriverSpec{
-			AttachRequired: boolptr.False(),
-			PodInfoOnMount: boolptr.True(),
+			AttachRequired: util.False(),
+			PodInfoOnMount: util.True(),
 			FSGroupPolicy:  &defaultFSGroupPolicy,
 		},
 	}

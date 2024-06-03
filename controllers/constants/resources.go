@@ -1,5 +1,5 @@
-// Package config ...
-package config
+// Package constants ...
+package constants
 
 import (
 	"fmt"

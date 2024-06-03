@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	objectdriverv1alpha1 "github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
+	config "github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/common"
-	"github.com/IBM/ibm-object-csi-driver-operator/pkg/config"
 	csiversion "github.com/IBM/ibm-object-csi-driver-operator/version"
 	"k8s.io/apimachinery/pkg/labels"
 )

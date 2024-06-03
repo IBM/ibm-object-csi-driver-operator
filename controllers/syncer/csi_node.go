@@ -14,9 +14,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	objectdriverv1alpha1 "github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
+	config "github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/crutils"
-	"github.com/IBM/ibm-object-csi-driver-operator/pkg/config"
-	"github.com/IBM/ibm-object-csi-driver-operator/pkg/util/boolptr"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util"
 	"github.com/presslabs/controller-util/pkg/mergo/transformers"
 	"github.com/presslabs/controller-util/pkg/syncer"
 )
@@ -136,8 +136,8 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 	})
 
 	nodePlugin.SecurityContext = &corev1.SecurityContext{
-		Privileged:               boolptr.True(),
-		AllowPrivilegeEscalation: boolptr.True(),
+		Privileged:               util.True(),
+		AllowPrivilegeEscalation: util.True(),
 	}
 	fillSecurityContextCapabilities(
 		nodePlugin.SecurityContext,
@@ -153,7 +153,7 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 			"--v=5",
 		},
 	)
-	registrar.SecurityContext = &corev1.SecurityContext{AllowPrivilegeEscalation: boolptr.False()}
+	registrar.SecurityContext = &corev1.SecurityContext{AllowPrivilegeEscalation: util.False()}
 	fillSecurityContextCapabilities(registrar.SecurityContext)
 	registrar.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
 	registrar.Resources = getSidecarResourceRequests(s.driver, config.CSINodeDriverRegistrar)
@@ -167,7 +167,7 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 			healthPortArg,
 		},
 	)
-	livenessProbe.SecurityContext = &corev1.SecurityContext{AllowPrivilegeEscalation: boolptr.False()}
+	livenessProbe.SecurityContext = &corev1.SecurityContext{AllowPrivilegeEscalation: util.False()}
 	fillSecurityContextCapabilities(livenessProbe.SecurityContext)
 	livenessProbe.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
 	livenessProbe.Resources = getSidecarResourceRequests(s.driver, config.LivenessProbe)

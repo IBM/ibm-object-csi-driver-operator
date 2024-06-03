@@ -14,9 +14,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	objectdriverv1alpha1 "github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
+	config "github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/crutils"
-	"github.com/IBM/ibm-object-csi-driver-operator/pkg/config"
-	"github.com/IBM/ibm-object-csi-driver-operator/pkg/util/boolptr"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util"
 	"github.com/presslabs/controller-util/pkg/mergo/transformers"
 	"github.com/presslabs/controller-util/pkg/syncer"
 )
@@ -168,7 +168,7 @@ func (s *csiControllerSyncer) ensureContainersSpec() []corev1.Container {
 }
 
 func (s *csiControllerSyncer) ensureContainer(name, image string, args []string) corev1.Container {
-	sc := &corev1.SecurityContext{AllowPrivilegeEscalation: boolptr.False()}
+	sc := &corev1.SecurityContext{AllowPrivilegeEscalation: util.False()}
 	fillSecurityContextCapabilities(sc)
 	return corev1.Container{
 		Name:  name,
