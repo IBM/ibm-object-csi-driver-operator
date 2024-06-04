@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
 	fakecreate "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_create"
 	fakedelete "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_delete"
 	fakeget "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_get"
@@ -14,10 +15,8 @@ import (
 	fakeupdate "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_update"
 	fakeupdateibmobjcsi "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_update/ibmobjectcsi"
 	crutils "github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/crutils"
-	"github.com/IBM/ibm-object-csi-driver-operator/controllers/syncer"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util/common"
-	"github.com/IBM/ibm-object-csi-driver-operator/pkg/config"
-	"github.com/IBM/ibm-object-csi-driver-operator/pkg/util/boolptr"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -100,21 +99,21 @@ var (
 			},
 			Sidecars: []v1alpha1.CSISidecar{
 				{
-					Name:            "csi-node-driver-registrar",
+					Name:            constants.CSINodeDriverRegistrar,
 					Repository:      "k8s.gcr.io/sig-storage/csi-node-driver-registrar",
 					Tag:             "v2.6.3",
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Resources:       resources,
 				},
 				{
-					Name:            "csi-provisioner",
+					Name:            constants.CSIProvisioner,
 					Repository:      "k8s.gcr.io/sig-storage/csi-provisioner",
 					Tag:             "v3.4.1",
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Resources:       resources,
 				},
 				{
-					Name:            "livenessprobe",
+					Name:            constants.LivenessProbe,
 					Repository:      "k8s.gcr.io/sig-storage/livenessprobe",
 					Tag:             "v2.9.0",
 					ImagePullPolicy: corev1.PullIfNotPresent,
@@ -156,7 +155,7 @@ var (
 
 	csiNode = &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        config.GetNameForResource(config.CSINode, config.DriverPrefix),
+			Name:        constants.GetResourceName(constants.CSINode),
 			Namespace:   TestNamespace,
 			Annotations: annotations,
 		},
@@ -167,7 +166,7 @@ var (
 
 	controllerDeployment = &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        config.GetNameForResource(config.CSIController, config.DriverPrefix),
+			Name:        constants.GetResourceName(constants.CSIController),
 			Namespace:   TestNamespace,
 			Annotations: annotations,
 		},
@@ -185,19 +184,19 @@ var (
 
 	csiDriver = &storagev1.CSIDriver{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   config.DriverName,
-			Labels: map[string]string{"app.kubernetes.io/name": "ibm-object-csi"},
+			Name:   constants.DriverName,
+			Labels: map[string]string{"app.kubernetes.io/name": constants.DriverPrefix},
 		},
 		Spec: storagev1.CSIDriverSpec{
-			AttachRequired: boolptr.False(),
-			PodInfoOnMount: boolptr.True(),
+			AttachRequired: util.False(),
+			PodInfoOnMount: util.True(),
 			FSGroupPolicy:  &defaultFSGroupPolicy,
 		},
 	}
 
 	controllerSA = &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      config.GetNameForResource(config.CSIControllerServiceAccount, config.DriverPrefix),
+			Name:      constants.GetResourceName(constants.CSIControllerServiceAccount),
 			Namespace: TestNamespace,
 		},
 		ImagePullSecrets: secrets,
@@ -205,7 +204,7 @@ var (
 
 	nodeSA = &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      config.GetNameForResource(config.CSINodeServiceAccount, config.DriverPrefix),
+			Name:      constants.GetResourceName(constants.CSINodeServiceAccount),
 			Namespace: TestNamespace,
 		},
 		ImagePullSecrets: secrets,
@@ -213,109 +212,109 @@ var (
 
 	externalProvisionerCRB = &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.ExternalProvisionerClusterRoleBinding, config.DriverPrefix),
+			Name: constants.GetResourceName(constants.ExternalProvisionerClusterRoleBinding),
 		},
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      config.GetNameForResource(config.CSIControllerServiceAccount, config.DriverPrefix),
+				Name:      constants.GetResourceName(constants.CSIControllerServiceAccount),
 				Namespace: TestNamespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
-			Name:     config.GetNameForResource(config.ExternalProvisionerClusterRole, config.DriverPrefix),
-			APIGroup: config.RbacAuthorizationAPIGroup,
+			Name:     constants.GetResourceName(constants.ExternalProvisionerClusterRole),
+			APIGroup: constants.RbacAuthorizationAPIGroup,
 		},
 	}
 
 	controllerSCCCRB = &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.CSIControllerSCCClusterRoleBinding, config.DriverPrefix),
+			Name: constants.GetResourceName(constants.CSIControllerSCCClusterRoleBinding),
 		},
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      config.GetNameForResource(config.CSIControllerServiceAccount, config.DriverPrefix),
+				Name:      constants.GetResourceName(constants.CSIControllerServiceAccount),
 				Namespace: TestNamespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
-			Name:     config.GetNameForResource(config.CSIControllerSCCClusterRole, config.DriverPrefix),
-			APIGroup: config.RbacAuthorizationAPIGroup,
+			Name:     constants.GetResourceName(constants.CSIControllerSCCClusterRole),
+			APIGroup: constants.RbacAuthorizationAPIGroup,
 		},
 	}
 
 	nodeSCCCRB = &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.CSINodeSCCClusterRoleBinding, config.DriverPrefix),
+			Name: constants.GetResourceName(constants.CSINodeSCCClusterRoleBinding),
 		},
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      config.GetNameForResource(config.CSINodeServiceAccount, config.DriverPrefix),
+				Name:      constants.GetResourceName(constants.CSINodeServiceAccount),
 				Namespace: TestNamespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
-			Name:     config.GetNameForResource(config.CSINodeSCCClusterRole, config.DriverPrefix),
-			APIGroup: config.RbacAuthorizationAPIGroup,
+			Name:     constants.GetResourceName(constants.CSINodeSCCClusterRole),
+			APIGroup: constants.RbacAuthorizationAPIGroup,
 		},
 	}
 
 	externalProvisionerCR = &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.ExternalProvisionerClusterRole, config.DriverPrefix),
+			Name: constants.GetResourceName(constants.ExternalProvisionerClusterRole),
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
 				APIGroups: []string{""},
-				Resources: []string{config.SecretsResource},
-				Verbs:     []string{config.VerbGet, config.VerbList},
+				Resources: []string{constants.SecretsResource},
+				Verbs:     []string{constants.VerbGet, constants.VerbList},
 			},
 			{
 				APIGroups: []string{""},
-				Resources: []string{config.PersistentVolumesResource},
-				Verbs:     []string{config.VerbGet, config.VerbList, config.VerbWatch, config.VerbCreate, config.VerbDelete},
+				Resources: []string{constants.PersistentVolumesResource},
+				Verbs:     []string{constants.VerbGet, constants.VerbList, constants.VerbWatch, constants.VerbCreate, constants.VerbDelete},
 			},
 			{
 				APIGroups: []string{""},
-				Resources: []string{config.PersistentVolumeClaimsResource},
-				Verbs:     []string{config.VerbGet, config.VerbList, config.VerbWatch, config.VerbUpdate},
+				Resources: []string{constants.PersistentVolumeClaimsResource},
+				Verbs:     []string{constants.VerbGet, constants.VerbList, constants.VerbWatch, constants.VerbUpdate},
 			},
 			{
-				APIGroups: []string{config.StorageAPIGroup},
-				Resources: []string{config.StorageClassesResource},
-				Verbs:     []string{config.VerbGet, config.VerbList, config.VerbWatch},
-			},
-			{
-				APIGroups: []string{""},
-				Resources: []string{config.EventsResource},
-				Verbs:     []string{config.VerbList, config.VerbWatch, config.VerbCreate, config.VerbUpdate, config.VerbPatch},
-			},
-			{
-				APIGroups: []string{config.StorageAPIGroup},
-				Resources: []string{config.CsiNodesResource},
-				Verbs:     []string{config.VerbGet, config.VerbList, config.VerbWatch},
+				APIGroups: []string{constants.StorageAPIGroup},
+				Resources: []string{constants.StorageClassesResource},
+				Verbs:     []string{constants.VerbGet, constants.VerbList, constants.VerbWatch},
 			},
 			{
 				APIGroups: []string{""},
-				Resources: []string{config.NodesResource},
-				Verbs:     []string{config.VerbGet, config.VerbList, config.VerbWatch},
+				Resources: []string{constants.EventsResource},
+				Verbs:     []string{constants.VerbList, constants.VerbWatch, constants.VerbCreate, constants.VerbUpdate, constants.VerbPatch},
+			},
+			{
+				APIGroups: []string{constants.StorageAPIGroup},
+				Resources: []string{constants.CSINodesResource},
+				Verbs:     []string{constants.VerbGet, constants.VerbList, constants.VerbWatch},
+			},
+			{
+				APIGroups: []string{""},
+				Resources: []string{constants.NodesResource},
+				Verbs:     []string{constants.VerbGet, constants.VerbList, constants.VerbWatch},
 			},
 		},
 	}
 
 	controllerSCCCR = &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.CSIControllerSCCClusterRole, config.DriverPrefix),
+			Name: constants.GetResourceName(constants.CSIControllerSCCClusterRole),
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
-				APIGroups:     []string{config.SecurityOpenshiftAPIGroup},
-				Resources:     []string{config.SecurityContextConstraintsResource},
+				APIGroups:     []string{constants.SecurityOpenshiftAPIGroup},
+				Resources:     []string{constants.SecurityContextConstraintsResource},
 				ResourceNames: []string{"anyuid"},
 				Verbs:         []string{"use"},
 			},
@@ -324,28 +323,28 @@ var (
 
 	nodeSCCCR = &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetNameForResource(config.CSINodeSCCClusterRole, config.DriverPrefix),
+			Name: constants.GetResourceName(constants.CSINodeSCCClusterRole),
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
-				APIGroups:     []string{config.SecurityOpenshiftAPIGroup},
-				Resources:     []string{config.SecurityContextConstraintsResource},
+				APIGroups:     []string{constants.SecurityOpenshiftAPIGroup},
+				Resources:     []string{constants.SecurityContextConstraintsResource},
 				ResourceNames: []string{"privileged"},
 				Verbs:         []string{"use"},
 			},
 			{
 				APIGroups: []string{""},
-				Resources: []string{config.NodesResource},
-				Verbs:     []string{config.VerbGet},
+				Resources: []string{constants.NodesResource},
+				Verbs:     []string{constants.VerbGet},
 			},
 		},
 	}
 
 	rCloneSC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.RcloneStorageClass.String(),
+			Name: constants.RcloneStorageClass,
 		},
-		Provisioner:   config.DriverName,
+		Provisioner:   constants.DriverName,
 		ReclaimPolicy: &reclaimPolicyDelete,
 		MountOptions: []string{
 			"acl=private",
@@ -370,9 +369,9 @@ var (
 
 	rCloneRetainSC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.RcloneRetainStorageClass.String(),
+			Name: constants.RcloneRetainStorageClass,
 		},
-		Provisioner:   config.DriverName,
+		Provisioner:   constants.DriverName,
 		ReclaimPolicy: &reclaimPolicyRetain,
 		MountOptions: []string{
 			"acl=private",
@@ -397,9 +396,9 @@ var (
 
 	s3fsSC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.S3fsStorageClass.String(),
+			Name: constants.S3fsStorageClass,
 		},
-		Provisioner:   config.DriverName,
+		Provisioner:   constants.DriverName,
 		ReclaimPolicy: &reclaimPolicyDelete,
 		MountOptions: []string{
 			"multipart_size=62",
@@ -421,9 +420,9 @@ var (
 
 	s3fsRetainSC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.S3fsRetainStorageClass.String(),
+			Name: constants.S3fsRetainStorageClass,
 		},
-		Provisioner:   config.DriverName,
+		Provisioner:   constants.DriverName,
 		ReclaimPolicy: &reclaimPolicyRetain,
 		MountOptions: []string{
 			"multipart_size=62",
@@ -523,15 +522,15 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 					Spec: corev1.PodSpec{
 						Containers: []corev1.Container{
 							{
-								Name:  syncer.ControllerContainerName,
+								Name:  constants.ControllerContainerName,
 								Image: ibmObjectCSICR.Spec.Controller.Repository + ":" + ibmObjectCSICR.Spec.Controller.Tag,
 							},
 							{
-								Name:  syncer.ProvisionerContainerName,
+								Name:  constants.CSIProvisioner,
 								Image: ibmObjectCSICR.Spec.Sidecars[1].Repository + ":" + ibmObjectCSICR.Spec.Sidecars[1].Tag,
 							},
 							{
-								Name:  syncer.ControllerLivenessProbeContainerName,
+								Name:  constants.LivenessProbe,
 								Image: ibmObjectCSICR.Spec.Sidecars[2].Repository + ":" + ibmObjectCSICR.Spec.Sidecars[2].Tag,
 							},
 						},
@@ -738,13 +737,13 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 					Spec: corev1.PodSpec{
 						Containers: []corev1.Container{
 							{
-								Name: syncer.ControllerContainerName,
+								Name: constants.ControllerContainerName,
 							},
 							{
-								Name: syncer.ProvisionerContainerName,
+								Name: constants.CSIProvisioner,
 							},
 							{
-								Name: syncer.ControllerLivenessProbeContainerName,
+								Name: constants.LivenessProbe,
 							},
 						},
 					},

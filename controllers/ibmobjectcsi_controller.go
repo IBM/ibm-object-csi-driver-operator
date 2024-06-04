@@ -25,10 +25,10 @@ import (
 	"time"
 
 	objectdriverv1alpha1 "github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
 	crutils "github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/crutils"
 	clustersyncer "github.com/IBM/ibm-object-csi-driver-operator/controllers/syncer"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util/common"
-	oconfig "github.com/IBM/ibm-object-csi-driver-operator/pkg/config"
 	oversion "github.com/IBM/ibm-object-csi-driver-operator/version"
 	"github.com/go-logr/logr"
 	"github.com/presslabs/controller-util/pkg/syncer"
@@ -47,9 +47,6 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-
-// ReconcileTime is the delay between reconciliations
-const ReconcileTime = 30 * time.Second
 
 type reconciler func(instance *crutils.IBMObjectCSI) error
 
@@ -282,7 +279,7 @@ func (r *IBMObjectCSIReconciler) isNodeReady(node *appsv1.DaemonSet) bool {
 func (r *IBMObjectCSIReconciler) getNodeDaemonSet(instance *crutils.IBMObjectCSI) (*appsv1.DaemonSet, error) {
 	node := &appsv1.DaemonSet{}
 	err := r.Get(context.TODO(), types.NamespacedName{
-		Name:      oconfig.GetNameForResource(oconfig.CSINode, oconfig.DriverPrefix),
+		Name:      constants.GetResourceName(constants.CSINode),
 		Namespace: instance.Namespace,
 	}, node)
 	return node, err
@@ -291,7 +288,7 @@ func (r *IBMObjectCSIReconciler) getNodeDaemonSet(instance *crutils.IBMObjectCSI
 func (r *IBMObjectCSIReconciler) getControllerDeployment(instance *crutils.IBMObjectCSI) (*appsv1.Deployment, error) {
 	controllerDeployment := &appsv1.Deployment{}
 	err := r.Get(context.TODO(), types.NamespacedName{
-		Name:      oconfig.GetNameForResource(oconfig.CSIController, oconfig.DriverPrefix),
+		Name:      constants.GetResourceName(constants.CSIController),
 		Namespace: instance.Namespace,
 	}, controllerDeployment)
 	return controllerDeployment, err
@@ -318,8 +315,8 @@ func (r *IBMObjectCSIReconciler) reconcileServiceAccount(instance *crutils.IBMOb
 	controller := instance.GenerateControllerServiceAccount()
 	node := instance.GenerateNodeServiceAccount()
 
-	controllerServiceAccountName := oconfig.GetNameForResource(oconfig.CSIControllerServiceAccount, oconfig.DriverPrefix)
-	nodeServiceAccountName := oconfig.GetNameForResource(oconfig.CSINodeServiceAccount, oconfig.DriverPrefix)
+	controllerServiceAccountName := constants.GetResourceName(constants.CSIControllerServiceAccount)
+	nodeServiceAccountName := constants.GetResourceName(constants.CSINodeServiceAccount)
 
 	for _, sa := range []*corev1.ServiceAccount{
 		controller,
@@ -373,7 +370,7 @@ func (r *IBMObjectCSIReconciler) reconcileServiceAccount(instance *crutils.IBMOb
 }
 
 func (r *IBMObjectCSIReconciler) rolloutRestartNode(node *appsv1.DaemonSet) error {
-	restartedAt := fmt.Sprintf("%s/restartedAt", oconfig.APIGroup)
+	restartedAt := fmt.Sprintf("%s/restartedAt", constants.APIGroup)
 	timestamp := time.Now().String()
 	node.Spec.Template.ObjectMeta.Annotations[restartedAt] = timestamp
 	return r.Update(context.TODO(), node)
@@ -472,11 +469,11 @@ func (r *IBMObjectCSIReconciler) getClusterRoleBindings(instance *crutils.IBMObj
 }
 
 func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCSI) []*storagev1.StorageClass {
-	rcloneRetainSC := instance.GenerateRcloneSC(oconfig.RcloneRetainStorageClass, corev1.PersistentVolumeReclaimRetain)
-	rcloneSC := instance.GenerateRcloneSC(oconfig.RcloneStorageClass, corev1.PersistentVolumeReclaimDelete)
+	rcloneRetainSC := instance.GenerateRcloneSC(constants.RcloneRetainStorageClass, corev1.PersistentVolumeReclaimRetain)
+	rcloneSC := instance.GenerateRcloneSC(constants.RcloneStorageClass, corev1.PersistentVolumeReclaimDelete)
 
-	s3fsRetainSC := instance.GenerateS3fsSC(oconfig.S3fsRetainStorageClass, corev1.PersistentVolumeReclaimRetain)
-	s3fsSC := instance.GenerateS3fsSC(oconfig.S3fsStorageClass, corev1.PersistentVolumeReclaimDelete)
+	s3fsRetainSC := instance.GenerateS3fsSC(constants.S3fsRetainStorageClass, corev1.PersistentVolumeReclaimRetain)
+	s3fsSC := instance.GenerateS3fsSC(constants.S3fsStorageClass, corev1.PersistentVolumeReclaimDelete)
 
 	return []*storagev1.StorageClass{
 		rcloneRetainSC,
