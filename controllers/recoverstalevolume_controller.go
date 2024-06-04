@@ -24,10 +24,9 @@ import (
 	"strings"
 
 	objectdriverv1alpha1 "github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/crutils"
-	"github.com/IBM/ibm-object-csi-driver-operator/controllers/syncer"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util"
-	"github.com/IBM/ibm-object-csi-driver-operator/pkg/config"
 	"github.com/go-logr/logr"
 	"golang.org/x/exp/maps"
 	corev1 "k8s.io/api/core/v1"
@@ -88,7 +87,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	var logTailLines = instance.Spec.NoOfLogLines
 	if logTailLines == 0 {
-		logTailLines = int64(config.DefaultLogTailLines)
+		logTailLines = int64(constants.DefaultLogTailLines)
 	}
 	reqLogger.Info("Tail Log Lines to fetch", "number", logTailLines)
 
@@ -102,7 +101,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 		deployments := util.Remove(data.Deployments, "")
 		// If namespace is not set, use `default` ns
 		if namespace == "" {
-			namespace = config.DefaultNamespace
+			namespace = constants.DefaultNamespace
 		}
 		reqLogger.Info("Data Requested", "namespace", namespace, "deployments", deployments)
 
@@ -143,7 +142,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 		if len(csiApplications) == 0 {
 			reqLogger.Info("No Deployment found in requested namespace")
-			return ctrl.Result{RequeueAfter: config.ReconcilationTime}, nil
+			return ctrl.Result{RequeueAfter: constants.ReconcilationTime}, nil
 		}
 
 		var csiNodeServerPods = map[string]string{} // {nodeName1: csiNodePod1, nodeName2: csiNodePod2, ...}
@@ -221,7 +220,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 		for ind := range podsInOpNs.Items {
 			pod := podsInOpNs.Items[ind]
-			if strings.HasPrefix(pod.Name, config.CSIDaemonSetName) {
+			if strings.HasPrefix(pod.Name, constants.GetResourceName(constants.CSINode)) {
 				csiNodeServerPods[pod.Spec.NodeName] = pod.Name
 			}
 		}
@@ -229,7 +228,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 		// If CSI Driver Node Pods not found, reconcile
 		if len(csiNodeServerPods) == 0 {
-			return ctrl.Result{RequeueAfter: config.ReconcilationTime}, nil
+			return ctrl.Result{RequeueAfter: constants.ReconcilationTime}, nil
 		}
 
 		for nodeName, volumesData := range nodeVolumePodMapping {
@@ -247,7 +246,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 					continue
 				}
 
-				if strings.Contains(getVolStatsFromLogs, config.TransportEndpointError) {
+				if strings.Contains(getVolStatsFromLogs, constants.TransportEndpointError) {
 					reqLogger.Info("Stale Volume Found", "volume", volume)
 
 					for _, podName := range podData {
@@ -270,7 +269,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 	}
 
-	return ctrl.Result{RequeueAfter: config.ReconcilationTime}, nil
+	return ctrl.Result{RequeueAfter: constants.ReconcilationTime}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -313,7 +312,7 @@ func fetchCSIPVCAndPVNames(k8sOps *crutils.K8sResourceOps, log logr.Logger) (map
 			continue
 		}
 
-		if strings.HasPrefix(scName, config.StorageClassPrefix) && strings.HasSuffix(scName, config.StorageClassSuffix) {
+		if strings.HasPrefix(scName, constants.StorageClassPrefix) && strings.HasSuffix(scName, constants.StorageClassSuffix) {
 			reqData[pvcName] = pvc.Spec.VolumeName
 		}
 	}
@@ -372,7 +371,7 @@ func fetchVolumeStatsFromNodeServerPodLogs(ctx context.Context, nodeServerPod, n
 	isTest bool) (map[string]string, error) {
 	staleVolLog.Info("Input Parameters: ", "nodeServerPod", nodeServerPod, "namespace", namespace, "isTest", isTest)
 	podLogOpts := &corev1.PodLogOptions{
-		Container: syncer.NodeContainerName,
+		Container: constants.NodeContainerName,
 		TailLines: &logTailLines,
 	}
 

@@ -1,5 +1,5 @@
-// Package boolptr ...
-package boolptr
+// Package util ...
+package util
 
 // True returns a *bool whose underlying value is true.
 func True() *bool {

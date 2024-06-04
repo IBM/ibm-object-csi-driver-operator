@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/crutils"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util"
-	oconfig "github.com/IBM/ibm-object-csi-driver-operator/pkg/config"
 	"github.com/go-logr/logr"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -234,7 +234,7 @@ func (ch *ControllerHelper) getAccessorAndFinalizerName(instance crutils.Instanc
 		logger.Error(err, "failed to get group version kink information of instance")
 		return nil, "", err
 	}
-	finalizerName := fmt.Sprintf("%s.%s", strings.ToLower(gvk.Kind), oconfig.APIGroup)
+	finalizerName := fmt.Sprintf("%s.%s", strings.ToLower(gvk.Kind), constants.APIGroup)
 
 	accessor, err := meta.Accessor(instance)
 	if err != nil {

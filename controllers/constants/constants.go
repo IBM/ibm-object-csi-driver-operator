@@ -1,22 +1,24 @@
-// Package config ...
-package config
+// Package constants ...
+package constants
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
-// Add a field here if it never changes, if it changes over time, put it to settings.go
 const (
-	APIGroup        = "objectdriver.csi.ibm.com"
+	APIGroup = "objectdriver.csi.ibm.com"
+
 	APIVersion      = "v1"
 	CSIOperatorName = "ibm-object-csi-driver-operator"
 	CSIDriverName   = "ibm-object-csi-driver"
 	DriverName      = "cos.s3.csi.ibm.io"
-	ProductName     = "ibm-object-csi-driver"
 
 	RbacAuthorizationAPIGroup = "rbac.authorization.k8s.io"
 	SecurityOpenshiftAPIGroup = "security.openshift.io"
 	StorageAPIGroup           = "storage.k8s.io"
 
-	CsiNodesResource                   = "csinodes"
+	CSINodesResource                   = "csinodes"
 	SecretsResource                    = "secrets"
 	SecurityContextConstraintsResource = "securitycontextconstraints"
 	StorageClassesResource             = "storageclasses"
@@ -45,6 +47,38 @@ const (
 	NodeRegistrarSocketPath                               = "/var/lib/kubelet/plugins/cos.s3.csi.ibm.io/csi.sock"
 	CSIEndpoint                                           = "unix:///var/lib/csi/sockets/pluginproxy/csi.sock"
 	CSINodeEndpoint                                       = "unix:///csi/csi.sock"
+	RegistrationVolumeMountPath                           = "/registration"
+
+	NodeContainerName       = "ibm-object-csi-node"
+	ControllerContainerName = "ibm-object-csi-controller"
+
+	RegistrationVolumeName = "registration-dir"
+	PluginVolumeName       = "plugin-dir"
+	SocketVolumeName       = "socket-dir"
+
+	HealthPortName   = "healthz"
+	HealthPortNumber = 9808
+
+	DriverPrefix = "ibm-object-csi"
+
+	CSIController                         = "controller"
+	CSINode                               = "node"
+	CSIControllerServiceAccount           = "controller-sa"
+	CSINodeServiceAccount                 = "node-sa"
+	ExternalProvisionerClusterRole        = "external-provisioner-clusterrole"
+	ExternalProvisionerClusterRoleBinding = "external-provisioner-clusterrolebinding"
+	CSIControllerSCCClusterRole           = "controller-scc-clusterrole"
+	CSIControllerSCCClusterRoleBinding    = "controller-scc-clusterrolebinding"
+	CSINodeSCCClusterRole                 = "node-scc-clusterrole"
+	CSINodeSCCClusterRoleBinding          = "node-scc-clusterrolebinding"
+
+	StorageClassPrefix = "ibm-object-storage-"
+	StorageClassSuffix = "-sc"
+
+	RcloneRetainStorageClass = StorageClassPrefix + "rclone-retain" + StorageClassSuffix
+	RcloneStorageClass       = StorageClassPrefix + "rclone" + StorageClassSuffix
+	S3fsRetainStorageClass   = StorageClassPrefix + "s3fs-retain" + StorageClassSuffix
+	S3fsStorageClass         = StorageClassPrefix + "s3fs" + StorageClassSuffix
 
 	DefaultLogTailLines    = 300
 	DefaultNamespace       = "default"
@@ -55,4 +89,9 @@ const (
 var CommonCSIResourceLabels = map[string]string{
 	"app.kubernetes.io/part-of":    CSIDriverName,
 	"app.kubernetes.io/managed-by": CSIOperatorName,
+}
+
+// GetResourceName returns the name of a resource for a CSI driver
+func GetResourceName(name string) string {
+	return fmt.Sprintf("%s-%s", DriverPrefix, name)
 }

@@ -15,7 +15,7 @@ func Contains(list []string, s string) bool {
 
 // Remove ...
 func Remove(list []string, s string) []string {
-	var newList []string
+	newList := []string{}
 	for _, v := range list {
 		val := strings.TrimSpace(v)
 		if val != s {

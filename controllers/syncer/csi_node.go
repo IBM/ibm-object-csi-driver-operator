@@ -14,24 +14,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	objectdriverv1alpha1 "github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/crutils"
-	"github.com/IBM/ibm-object-csi-driver-operator/pkg/config"
-	"github.com/IBM/ibm-object-csi-driver-operator/pkg/util/boolptr"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util"
 	"github.com/presslabs/controller-util/pkg/mergo/transformers"
 	"github.com/presslabs/controller-util/pkg/syncer"
-)
-
-const (
-	registrationVolumeName = "registration-dir"
-	// NodeContainerName ...
-	NodeContainerName                    = "ibm-object-csi-node"
-	csiNodeDriverRegistrarContainerName  = "csi-node-driver-registrar"
-	nodeLivenessProbeContainerName       = "livenessprobe"
-	pluginVolumeName                     = "plugin-dir"
-	nodeContainerHealthPortName          = "healthz"
-	nodeContainerDefaultHealthPortNumber = 9808
-
-	registrationVolumeMountPath = "/registration"
 )
 
 type csiNodeSyncer struct {
@@ -43,7 +30,7 @@ type csiNodeSyncer struct {
 func NewCSINodeSyncer(c client.Client, driver *crutils.IBMObjectCSI) syncer.Interface {
 	obj := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        config.GetNameForResource(config.CSINode, config.DriverPrefix),
+			Name:        constants.GetResourceName(constants.CSINode),
 			Namespace:   driver.Namespace,
 			Annotations: driver.GetAnnotations(),
 			Labels:      driver.GetLabels(),
@@ -65,7 +52,7 @@ func NewCSINodeSyncer(c client.Client, driver *crutils.IBMObjectCSI) syncer.Inte
 		obj:    obj,
 	}
 
-	return syncer.NewObjectSyncer(config.CSINode.String(), driver.Unwrap(), obj, c, func() error {
+	return syncer.NewObjectSyncer(constants.CSINode, driver.Unwrap(), obj, c, func() error {
 		return sync.SyncFn()
 	})
 }
@@ -96,13 +83,13 @@ func (s *csiNodeSyncer) ensurePodSpec() corev1.PodSpec {
 	return corev1.PodSpec{
 		Containers:         s.ensureContainersSpec(),
 		Volumes:            s.ensureVolumes(),
-		ServiceAccountName: config.GetNameForResource(config.CSINodeServiceAccount, config.DriverPrefix),
+		ServiceAccountName: constants.GetResourceName(constants.CSINodeServiceAccount),
 	}
 }
 
 func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 	// node plugin container
-	nodePlugin := s.ensureContainer(NodeContainerName,
+	nodePlugin := s.ensureContainer(constants.NodeContainerName,
 		s.driver.GetCSINodeImage(),
 		[]string{
 			"--servermode=node",
@@ -117,10 +104,10 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 
 	healthPort := s.driver.Spec.HealthPort
 	if healthPort == 0 {
-		healthPort = nodeContainerDefaultHealthPortNumber
+		healthPort = constants.HealthPortNumber
 	}
 	nodePlugin.Ports = ensurePorts(corev1.ContainerPort{
-		Name:          nodeContainerHealthPortName,
+		Name:          constants.HealthPortName,
 		ContainerPort: int32(healthPort),
 	})
 
@@ -136,8 +123,8 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 	})
 
 	nodePlugin.SecurityContext = &corev1.SecurityContext{
-		Privileged:               boolptr.True(),
-		AllowPrivilegeEscalation: boolptr.True(),
+		Privileged:               util.True(),
+		AllowPrivilegeEscalation: util.True(),
 	}
 	fillSecurityContextCapabilities(
 		nodePlugin.SecurityContext,
@@ -145,7 +132,7 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 	)
 
 	// node driver registrar sidecar
-	registrar := s.ensureContainer(csiNodeDriverRegistrarContainerName,
+	registrar := s.ensureContainer(constants.CSINodeDriverRegistrar,
 		s.getCSINodeDriverRegistrarImage(),
 		[]string{
 			"--csi-address=$(ADDRESS)",
@@ -153,24 +140,24 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 			"--v=5",
 		},
 	)
-	registrar.SecurityContext = &corev1.SecurityContext{AllowPrivilegeEscalation: boolptr.False()}
+	registrar.SecurityContext = &corev1.SecurityContext{AllowPrivilegeEscalation: util.False()}
 	fillSecurityContextCapabilities(registrar.SecurityContext)
 	registrar.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
-	registrar.Resources = getSidecarResourceRequests(s.driver, config.CSINodeDriverRegistrar)
+	registrar.Resources = getSidecarResourceRequests(s.driver, constants.CSINodeDriverRegistrar)
 
 	// liveness probe sidecar
 	healthPortArg := fmt.Sprintf("--health-port=%v", healthPort)
-	livenessProbe := s.ensureContainer(nodeLivenessProbeContainerName,
+	livenessProbe := s.ensureContainer(constants.LivenessProbe,
 		s.getLivenessProbeImage(),
 		[]string{
 			"--csi-address=/csi/csi.sock",
 			healthPortArg,
 		},
 	)
-	livenessProbe.SecurityContext = &corev1.SecurityContext{AllowPrivilegeEscalation: boolptr.False()}
+	livenessProbe.SecurityContext = &corev1.SecurityContext{AllowPrivilegeEscalation: util.False()}
 	fillSecurityContextCapabilities(livenessProbe.SecurityContext)
 	livenessProbe.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
-	livenessProbe.Resources = getSidecarResourceRequests(s.driver, config.LivenessProbe)
+	livenessProbe.Resources = getSidecarResourceRequests(s.driver, constants.LivenessProbe)
 
 	return []corev1.Container{
 		nodePlugin,
@@ -194,7 +181,7 @@ func envVarFromField(name, fieldPath string) corev1.EnvVar {
 		Name: name,
 		ValueFrom: &corev1.EnvVarSource{
 			FieldRef: &corev1.ObjectFieldSelector{
-				APIVersion: config.APIVersion,
+				APIVersion: constants.APIVersion,
 				FieldPath:  fieldPath,
 			},
 		},
@@ -204,24 +191,24 @@ func envVarFromField(name, fieldPath string) corev1.EnvVar {
 
 func (s *csiNodeSyncer) getEnvFor(name string) []corev1.EnvVar {
 	switch name {
-	case NodeContainerName:
+	case constants.NodeContainerName:
 		return []corev1.EnvVar{
 			{
 				Name:  "CSI_ENDPOINT",
-				Value: config.CSINodeEndpoint,
+				Value: constants.CSINodeEndpoint,
 			},
 			envVarFromField("KUBE_NODE_NAME", "spec.nodeName"),
 		}
 
-	case csiNodeDriverRegistrarContainerName:
+	case constants.CSINodeDriverRegistrar:
 		return []corev1.EnvVar{
 			{
 				Name:  "ADDRESS",
-				Value: config.NodeSocketPath,
+				Value: constants.NodeSocketPath,
 			},
 			{
 				Name:  "DRIVER_REG_SOCK_PATH",
-				Value: config.NodeRegistrarSocketPath,
+				Value: constants.NodeRegistrarSocketPath,
 			},
 		}
 	}
@@ -232,11 +219,11 @@ func (s *csiNodeSyncer) getVolumeMountsFor(name string) []corev1.VolumeMount {
 	mountPropagationB := corev1.MountPropagationBidirectional
 
 	switch name {
-	case NodeContainerName:
+	case constants.NodeContainerName:
 		return []corev1.VolumeMount{
 			{
-				Name:      pluginVolumeName,
-				MountPath: config.NodeSocketVolumeMountPath,
+				Name:      constants.PluginVolumeName,
+				MountPath: constants.NodeSocketVolumeMountPath,
 			},
 			{
 				Name:             "kubelet-dir",
@@ -262,23 +249,23 @@ func (s *csiNodeSyncer) getVolumeMountsFor(name string) []corev1.VolumeMount {
 			},
 		}
 
-	case csiNodeDriverRegistrarContainerName:
+	case constants.CSINodeDriverRegistrar:
 		return []corev1.VolumeMount{
 			{
-				Name:      pluginVolumeName,
-				MountPath: config.NodeSocketVolumeMountPath,
+				Name:      constants.PluginVolumeName,
+				MountPath: constants.NodeSocketVolumeMountPath,
 			},
 			{
-				Name:      registrationVolumeName,
-				MountPath: registrationVolumeMountPath,
+				Name:      constants.RegistrationVolumeName,
+				MountPath: constants.RegistrationVolumeMountPath,
 			},
 		}
 
-	case nodeLivenessProbeContainerName:
+	case constants.LivenessProbe:
 		return []corev1.VolumeMount{
 			{
-				Name:      pluginVolumeName,
-				MountPath: config.NodeSocketVolumeMountPath,
+				Name:      constants.PluginVolumeName,
+				MountPath: constants.NodeSocketVolumeMountPath,
 			},
 		}
 	}
@@ -302,7 +289,7 @@ func (s *csiNodeSyncer) getSidecarByName(name string) *objectdriverv1alpha1.CSIS
 }
 
 func (s *csiNodeSyncer) getCSINodeDriverRegistrarImage() string {
-	sidecar := s.getSidecarByName(config.CSINodeDriverRegistrar)
+	sidecar := s.getSidecarByName(constants.CSINodeDriverRegistrar)
 	if sidecar != nil {
 		return fmt.Sprintf("%s:%s", sidecar.Repository, sidecar.Tag)
 	}
@@ -310,7 +297,7 @@ func (s *csiNodeSyncer) getCSINodeDriverRegistrarImage() string {
 }
 
 func (s *csiNodeSyncer) getLivenessProbeImage() string {
-	sidecar := s.getSidecarByName(config.LivenessProbe)
+	sidecar := s.getSidecarByName(constants.LivenessProbe)
 	if sidecar != nil {
 		return fmt.Sprintf("%s:%s", sidecar.Repository, sidecar.Tag)
 	}
@@ -318,7 +305,7 @@ func (s *csiNodeSyncer) getLivenessProbeImage() string {
 }
 
 func (s *csiNodeSyncer) getCSINodeDriverRegistrarPullPolicy() corev1.PullPolicy {
-	sidecar := s.getSidecarByName(config.CSINodeDriverRegistrar)
+	sidecar := s.getSidecarByName(constants.CSINodeDriverRegistrar)
 	if sidecar != nil && sidecar.ImagePullPolicy != "" {
 		return sidecar.ImagePullPolicy
 	}
