@@ -106,8 +106,9 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 		reqLogger.Info("Data Requested", "namespace", namespace, "deployments", deployments)
 
 		k8sOps := &crutils.K8sResourceOps{
-			Client: r.Client,
-			Ctx:    ctx,
+			Client:    r.Client,
+			Ctx:       ctx,
+			Namespace: namespace,
 		}
 
 		// If applications are not set, then fetch all deployments from given ns
@@ -288,32 +289,23 @@ func fetchCSIPVCAndPVNames(k8sOps *crutils.K8sResourceOps, log logr.Logger) (map
 
 	reqData := map[string]string{}
 
-	for _, pvcData := range pvcList.Items {
-		pvcName := pvcData.Name
-		pvc, err := k8sOps.GetPVC(pvcName)
-		if err != nil {
-			if k8serr.IsNotFound(err) {
-				log.Info("PVC not found.")
-				continue
-			}
-			log.Error(err, "failed to get pvc")
-			return nil, err
-		}
+	for _, pvc := range pvcList.Items {
+		log.Info("PVC Found", "pvc-name", pvc.Name, "namespace", pvc.Namespace)
 
 		storageClassName := pvc.Spec.StorageClassName
 		if storageClassName == nil {
-			log.Info("PVC does not have any storageClass", "pvc-name", pvcName)
+			log.Info("PVC does not have any storageClass", "pvc-name", pvc.Name)
 			continue
 		}
 
 		scName := *storageClassName
 		if scName == "" {
-			log.Info("PVC does not have any storageClass", "pvc-name", pvcName)
+			log.Info("PVC does not have any storageClass", "pvc-name", pvc.Name)
 			continue
 		}
 
 		if strings.HasPrefix(scName, constants.StorageClassPrefix) && strings.HasSuffix(scName, constants.StorageClassSuffix) {
-			reqData[pvcName] = pvc.Spec.VolumeName
+			reqData[pvc.Name] = pvc.Spec.VolumeName
 		}
 	}
 

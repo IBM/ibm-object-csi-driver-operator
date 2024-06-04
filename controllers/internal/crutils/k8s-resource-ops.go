@@ -42,12 +42,6 @@ func (op *K8sResourceOps) ListPod() (*corev1.PodList, error) {
 	return podList, err
 }
 
-func (op *K8sResourceOps) GetPVC(name string) (*corev1.PersistentVolumeClaim, error) {
-	pvc := &corev1.PersistentVolumeClaim{}
-	err := op.Get(op.Ctx, types.NamespacedName{Name: name, Namespace: op.Namespace}, pvc)
-	return pvc, err
-}
-
 func (op *K8sResourceOps) ListPVC() (*corev1.PersistentVolumeClaimList, error) {
 	var listOptions = &client.ListOptions{Namespace: op.Namespace}
 	pvcList := &corev1.PersistentVolumeClaimList{}
