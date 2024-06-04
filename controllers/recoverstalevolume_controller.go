@@ -182,7 +182,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 						pvcName := pvcDetails.ClaimName
 
 						if util.Contains(pvcNames, pvcName) {
-							reqLogger.Info("Pod details", "pod-name", podName, "pvc-name")
+							reqLogger.Info("Pod details", "pod-name", podName, "pvc-name", pvcName)
 							nodeName := podData.Spec.NodeName
 							volumeData, ok := nodeVolumePodMapping[nodeName]
 							if !ok {
