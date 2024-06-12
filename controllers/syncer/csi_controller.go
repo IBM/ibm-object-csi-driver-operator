@@ -289,15 +289,20 @@ func getSidecarByName(driver *crutils.IBMObjectCSI, name string) *objectdriverv1
 func getCSIControllerResourceRequests(driver *crutils.IBMObjectCSI) corev1.ResourceRequirements {
 	resources := driver.GetCSIControllerResourceRequests()
 
-	requests := corev1.ResourceList{
-		corev1.ResourceCPU:    resource.MustParse(resources.Requests.CPU),
-		corev1.ResourceMemory: resource.MustParse(resources.Requests.Memory),
-	}
-	limits := corev1.ResourceList{
-		corev1.ResourceCPU:    resource.MustParse(resources.Limits.CPU),
-		corev1.ResourceMemory: resource.MustParse(resources.Limits.Memory),
-	}
+	var requests, limits corev1.ResourceList
 
+	if resources.Requests.CPU != "" && resources.Requests.Memory != "" {
+		requests = corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse(resources.Requests.CPU),
+			corev1.ResourceMemory: resource.MustParse(resources.Requests.Memory),
+		}
+	}
+	if resources.Limits.CPU != "" && resources.Limits.Memory != "" {
+		limits = corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse(resources.Limits.CPU),
+			corev1.ResourceMemory: resource.MustParse(resources.Limits.Memory),
+		}
+	}
 	return corev1.ResourceRequirements{
 		Limits:   limits,
 		Requests: requests,
@@ -312,13 +317,19 @@ func getSidecarResourceRequests(driver *crutils.IBMObjectCSI, sidecarName string
 	if sidecar != nil {
 		resources := sidecar.Resources
 
-		requests := corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse(resources.Requests.CPU),
-			corev1.ResourceMemory: resource.MustParse(resources.Requests.Memory),
+		var requests, limits corev1.ResourceList
+
+		if resources.Requests.CPU != "" && resources.Requests.Memory != "" {
+			requests = corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse(resources.Requests.CPU),
+				corev1.ResourceMemory: resource.MustParse(resources.Requests.Memory),
+			}
 		}
-		limits := corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse(resources.Limits.CPU),
-			corev1.ResourceMemory: resource.MustParse(resources.Limits.Memory),
+		if resources.Limits.CPU != "" && resources.Limits.Memory != "" {
+			limits = corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse(resources.Limits.CPU),
+				corev1.ResourceMemory: resource.MustParse(resources.Limits.Memory),
+			}
 		}
 
 		sidecarResources.Limits = limits
