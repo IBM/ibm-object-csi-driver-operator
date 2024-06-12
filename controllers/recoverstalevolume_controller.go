@@ -85,7 +85,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	var logTailLines = instance.Spec.NoOfLogLines
+	var logTailLines = instance.Spec.LogHistory
 	if logTailLines == 0 {
 		logTailLines = int64(constants.DefaultLogTailLines)
 	}
