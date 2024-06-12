@@ -83,10 +83,10 @@ func (s *csiControllerSyncer) ensurePodSpec() corev1.PodSpec {
 	return corev1.PodSpec{
 		Containers: s.ensureContainersSpec(),
 		Volumes:    s.ensureVolumes(),
-		//		SecurityContext: &corev1.PodSecurityContext{
-		//			FSGroup:   &fsGroup,
-		//			RunAsUser: &fsGroup,
-		//		},
+		SecurityContext: &corev1.PodSecurityContext{
+			RunAsNonRoot: util.True(),
+			RunAsUser:    func(uid int64) *int64 { return &uid }(2121),
+		},
 		Affinity:           s.driver.Spec.Controller.Affinity,
 		Tolerations:        s.driver.Spec.Controller.Tolerations,
 		ServiceAccountName: constants.GetResourceName(constants.CSIControllerServiceAccount),
