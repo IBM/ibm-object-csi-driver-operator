@@ -10,4 +10,4 @@ spec:
   noOfLogLines: 200
   data:
     - namespace: default
-      applications: []
+      deployments: []
