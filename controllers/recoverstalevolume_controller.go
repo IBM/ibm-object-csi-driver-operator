@@ -22,6 +22,7 @@ import (
 	"context"
 	"io"
 	"strings"
+	"time"
 
 	objectdriverv1alpha1 "github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
@@ -143,7 +144,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 		if len(csiApplications) == 0 {
 			reqLogger.Info("No Deployment found in requested namespace")
-			return ctrl.Result{RequeueAfter: constants.ReconcilationTime}, nil
+			continue
 		}
 
 		var csiNodeServerPods = map[string]string{} // {nodeName1: csiNodePod1, nodeName2: csiNodePod2, ...}
@@ -229,7 +230,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 		// If CSI Driver Node Pods not found, reconcile
 		if len(csiNodeServerPods) == 0 {
-			return ctrl.Result{RequeueAfter: constants.ReconcilationTime}, nil
+			continue
 		}
 
 		for nodeName, volumesData := range nodeVolumePodMapping {
@@ -281,6 +282,8 @@ func (r *RecoverStaleVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error 
 }
 
 func fetchCSIPVCAndPVNames(k8sOps *crutils.K8sResourceOps, log logr.Logger) (map[string]string, error) {
+	defer LogFunctionDuration(log, "fetchCSIPVCAndPVNames", time.Now())
+
 	pvcList, err := k8sOps.ListPVC()
 	if err != nil {
 		log.Error(err, "failed to get pvc list")
@@ -314,6 +317,8 @@ func fetchCSIPVCAndPVNames(k8sOps *crutils.K8sResourceOps, log logr.Logger) (map
 
 func fetchDeploymentsUsingCSIVolumes(k8sOps *crutils.K8sResourceOps, log logr.Logger, depNames []string,
 	reqPVCNames []string) ([]string, error) {
+	defer LogFunctionDuration(log, "fetchDeploymentsUsingCSIVolumes", time.Now())
+
 	var reqDeploymentNames []string
 
 	for _, name := range depNames {
@@ -361,6 +366,8 @@ func createK8sClient() (*KubernetesClient, error) {
 
 func fetchVolumeStatsFromNodeServerPodLogs(ctx context.Context, nodeServerPod, namespace string, logTailLines int64,
 	isTest bool) (map[string]string, error) {
+	defer LogFunctionDuration(staleVolLog, "fetchVolumeStatsFromNodeServerPodLogs", time.Now())
+
 	staleVolLog.Info("Input Parameters: ", "nodeServerPod", nodeServerPod, "namespace", namespace, "isTest", isTest)
 	podLogOpts := &corev1.PodLogOptions{
 		Container: constants.NodeContainerName,
@@ -391,4 +398,10 @@ func fetchVolumeStatsFromNodeServerPodLogs(ctx context.Context, nodeServerPod, n
 	}
 
 	return parseLogs(nodeServerPodLogs), nil
+}
+
+// LogFunctionDuration calculates time taken by a method
+func LogFunctionDuration(logger logr.Logger, methodName string, start time.Time) {
+	duration := time.Since(start)
+	logger.Info("Time to complete", methodName, duration.Seconds())
 }
