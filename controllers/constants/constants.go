@@ -69,6 +69,10 @@ const (
 	CSINodeSCCClusterRole                 = "node-scc-clusterrole"
 	CSINodeSCCClusterRoleBinding          = "node-scc-clusterrolebinding"
 
+	ResourceReqLimitsConfigMap      = "cos-csi-driver-configmap"
+	ObjectCSIDriverOperatorDeployNS = "ibm-object-csi-operator-system"
+	ObjectCSIDriver                 = "ibm-object-csi"
+
 	RcloneRetainStorageClass = "ibm-object-storage-rclone-retain-sc"
 	RcloneStorageClass       = "ibm-object-storage-rclone-sc"
 	S3fsRetainStorageClass   = "ibm-object-storage-s3fs-retain-sc"

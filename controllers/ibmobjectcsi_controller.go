@@ -37,8 +37,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	//"k8s.io/apimachinery/pkg/api/resource"
-	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -106,7 +104,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	r.ControllerHelper.Log = csiLog
 
 	// Check if the reconcile was triggered by the ConfigMap events
-	if req.Name == "cos-csi-driver-configmap" {
+	if req.Name == constants.ResourceReqLimitsConfigMap {
 		reqLogger.Info("Reconcile triggered by ConfigMap event")
 		// Handle the update of IBMObjectCSI
 		return r.handleConfigMapReconcile(ctx, req)
@@ -198,10 +196,10 @@ func (r *IBMObjectCSIReconciler) handleConfigMapReconcile(ctx context.Context, r
 	err := r.Get(ctx, req.NamespacedName, configMap)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			reqLogger.Info("ConfigMap ", "cos-csi-driver-configmap", " not found in namespace", req.Namespace)
+			reqLogger.Info("ConfigMap", req.Name, "not found in namespace", req.Namespace)
 			// what action should be taken when cm is not found?
 		} else {
-			reqLogger.Error(err, "Failed to get ConfigMap ", "cos-csi-driver-configmap")
+			reqLogger.Error(err, "Failed to get ConfigMap", req.Name)
 			// Error reading the object - requeue the request.
 			return reconcile.Result{}, err
 		}
@@ -212,14 +210,18 @@ func (r *IBMObjectCSIReconciler) handleConfigMapReconcile(ctx context.Context, r
 	CSINodeMemoryRequest := configMap.Data["CSINodeMemoryRequest"]
 	CSINodeCPULimit := configMap.Data["CSINodeCPULimit"]
 	CSINodeMemoryLimit := configMap.Data["CSINodeMemoryLimit"]
+
 	reqLogger.Info("The resource requests and limits fetched from configmap",
-		" CSINodeCPURequest: ", CSINodeCPURequest, " CSINodeMemoryRequest: ", CSINodeMemoryRequest,
-		" CSINodeCPULimit: ", CSINodeCPULimit, " CSINodeMemoryLimit: ", CSINodeMemoryLimit)
+		"CSINodeCPURequest", CSINodeCPURequest, "CSINodeMemoryRequest", CSINodeMemoryRequest,
+		"CSINodeCPULimit", CSINodeCPULimit, "CSINodeMemoryLimit", CSINodeMemoryLimit)
 
 	// Fetch the IBMObjectCSI instance
 	instance := &objectdriverv1alpha1.IBMObjectCSI{}
 
-	err = r.Get(ctx, types.NamespacedName{Namespace: "ibm-object-csi-operator-system", Name: "ibm-object-csi"}, instance)
+	err = r.Get(ctx, types.NamespacedName{
+		Namespace: constants.ObjectCSIDriverOperatorDeployNS,
+		Name:      constants.ObjectCSIDriver},
+		instance)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get IBMObjectCSI instance")
 		return reconcile.Result{}, err
@@ -239,7 +241,7 @@ func (r *IBMObjectCSIReconciler) handleConfigMapReconcile(ctx context.Context, r
 		reqLogger.Error(err, "Failed to update IBMObjectCSI instance with ConfigMap values")
 		return reconcile.Result{}, err
 	}
-	reqLogger.Info("IBMObjectCSI CR updated successfully. Node pods will get restarted to reflect updated resource requests and limits")
+	reqLogger.Info("IBMObjectCSI CR is getting updated. Node pods will get restarted to reflect updated resource requests and limits")
 
 	return reconcile.Result{}, nil
 }
@@ -585,16 +587,16 @@ func configMapPredicate() predicate.Predicate {
 	triggerReconcile := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
 			configmap := e.Object.(*corev1.ConfigMap)
-			if configmap.Name == "cos-csi-driver-configmap" {
-				logger.Info("Create detected on the configmap", " configmap:", configmap.Name)
+			if configmap.Name == constants.ResourceReqLimitsConfigMap {
+				logger.Info("Create detected on the configmap", "configmap", configmap.Name)
 				return true
 			}
 			return false
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			configmap := e.ObjectNew.(*corev1.ConfigMap)
-			if configmap.Name == "cos-csi-driver-configmap" {
-				logger.Info("Update detected on the configmap", " configmap:", configmap.Name)
+			if configmap.Name == constants.ResourceReqLimitsConfigMap {
+				logger.Info("Update detected on the configmap", "configmap", configmap.Name)
 				return true
 			}
 			return false
