@@ -92,12 +92,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 	reqLogger.Info("Tail Log Lines to fetch", "number", logTailLines)
 
-	nsData := instance.Spec.Data
-	if len(nsData) == 0 {
-		reqLogger.Info("No Data Found")
-	}
-
-	for _, data := range nsData {
+	for _, data := range instance.Spec.Data {
 		namespace := data.Namespace
 		deployments := util.Remove(data.Deployments, "")
 		// If namespace is not set, use `default` ns
