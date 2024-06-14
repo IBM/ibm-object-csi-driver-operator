@@ -129,7 +129,7 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 	nodePlugin.SecurityContext = &corev1.SecurityContext{
 		RunAsNonRoot: util.False(),
 		Privileged:   util.True(),
-		RunAsUser: func(uid int64) *int64 { return &uid }(0),
+		RunAsUser:    func(uid int64) *int64 { return &uid }(0),
 	}
 	fillSecurityContextCapabilities(
 		nodePlugin.SecurityContext,
