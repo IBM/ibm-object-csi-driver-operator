@@ -7,7 +7,7 @@ metadata:
   name: recoverstalevolume-sample
   namespace: ibm-object-csi-operator-system
 spec:
-  noOfLogLines: 200
-  deploymentData:
-    - deploymentName: cos-csi-app-deployment
-      deploymentNamespace: default
+  logHistory: 200
+  data:
+    - namespace: default
+      deployments: []

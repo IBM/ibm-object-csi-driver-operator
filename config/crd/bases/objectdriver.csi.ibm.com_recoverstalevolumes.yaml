@@ -40,19 +40,25 @@ spec:
           spec:
             description: RecoverStaleVolumeSpec defines the desired state of RecoverStaleVolume
             properties:
-              deploymentData:
+              data:
                 items:
-                  description: DeploymentData ...
+                  description: NamespacedDeploymentData ...
                   properties:
-                    deploymentName:
+                    deployments:
+                      items:
+                        type: string
+                      type: array
+                    namespace:
                       type: string
-                    deploymentNamespace:
-                      type: string
+                  required:
+                  - namespace
                   type: object
                 type: array
-              noOfLogLines:
+              logHistory:
                 format: int64
                 type: integer
+            required:
+            - data
             type: object
           status:
             description: RecoverStaleVolumeStatus defines the observed state of RecoverStaleVolume

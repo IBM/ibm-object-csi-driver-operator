@@ -1,7 +1,10 @@
 // Package constants ...
 package constants
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 const (
 	APIGroup = "objectdriver.csi.ibm.com"
@@ -69,10 +72,18 @@ const (
 	CSINodeSCCClusterRole                 = "node-scc-clusterrole"
 	CSINodeSCCClusterRoleBinding          = "node-scc-clusterrolebinding"
 
-	RcloneRetainStorageClass = "ibm-object-storage-rclone-retain-sc"
-	RcloneStorageClass       = "ibm-object-storage-rclone-sc"
-	S3fsRetainStorageClass   = "ibm-object-storage-s3fs-retain-sc"
-	S3fsStorageClass         = "ibm-object-storage-s3fs-sc"
+	StorageClassPrefix = "ibm-object-storage-"
+	StorageClassSuffix = "-sc"
+
+	RcloneRetainStorageClass = StorageClassPrefix + "rclone-retain" + StorageClassSuffix
+	RcloneStorageClass       = StorageClassPrefix + "rclone" + StorageClassSuffix
+	S3fsRetainStorageClass   = StorageClassPrefix + "s3fs-retain" + StorageClassSuffix
+	S3fsStorageClass         = StorageClassPrefix + "s3fs" + StorageClassSuffix
+
+	DefaultLogTailLines    = 300
+	DefaultNamespace       = "default"
+	ReconcilationTime      = 5 * time.Minute
+	TransportEndpointError = "transport endpoint is not connected"
 )
 
 var CommonCSIResourceLabels = map[string]string{
