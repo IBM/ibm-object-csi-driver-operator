@@ -207,10 +207,10 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 		reqLogger.Info("node-names maped with volumes and deployment pods", "nodeVolumeMap", nodeVolumePodMapping)
 
 		// Get Pods in ibm-object-csi-driver-operator ns
-		k8sOps.Namespace = req.Namespace
+		k8sOps.Namespace = constants.CSIOperatorNamespace
 		podsInOpNs, err := k8sOps.ListPod()
 		if err != nil {
-			reqLogger.Error(err, "failed to fetch pods in namespace: "+req.Namespace)
+			reqLogger.Error(err, "failed to fetch pods in namespace: "+constants.CSIOperatorNamespace)
 			return ctrl.Result{}, err
 		}
 		reqLogger.Info("Successfully fetched pods in namespace", "number-of-pods", len(podsInOpNs.Items))
@@ -231,7 +231,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 		for nodeName, volumesData := range nodeVolumePodMapping {
 			// Fetch volume stats from Logs of the Node Server Pod
 			getVolStatsFromLogs, err := fetchVolumeStatsFromNodeServerPodLogs(ctx, csiNodeServerPods[nodeName],
-				req.Namespace, logTailLines, r.IsTest)
+				constants.CSIOperatorNamespace, logTailLines, r.IsTest)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
