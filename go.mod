@@ -2,8 +2,6 @@ module github.com/IBM/ibm-object-csi-driver-operator
 
 go 1.22.3
 
-
-
 require (
 	github.com/evanphx/json-patch/v5 v5.9.0
 	github.com/go-logr/logr v1.4.2
