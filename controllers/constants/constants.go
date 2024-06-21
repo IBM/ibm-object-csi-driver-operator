@@ -9,10 +9,11 @@ import (
 const (
 	APIGroup = "objectdriver.csi.ibm.com"
 
-	APIVersion      = "v1"
-	CSIOperatorName = "ibm-object-csi-driver-operator"
-	CSIDriverName   = "ibm-object-csi-driver"
-	DriverName      = "cos.s3.csi.ibm.io"
+	APIVersion           = "v1"
+	CSIOperatorName      = "ibm-object-csi-driver-operator"
+	CSIOperatorNamespace = "ibm-object-csi-operator"
+	CSIDriverName        = "ibm-object-csi-driver"
+	DriverName           = "cos.s3.csi.ibm.io"
 
 	RbacAuthorizationAPIGroup = "rbac.authorization.k8s.io"
 	SecurityOpenshiftAPIGroup = "security.openshift.io"
