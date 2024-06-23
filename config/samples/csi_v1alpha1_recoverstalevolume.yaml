@@ -5,9 +5,9 @@ metadata:
     app.kubernetes.io/name: recoverstalevolume
     app.kubernetes.io/instance: recoverstalevolume-sample
   name: recoverstalevolume-sample
-  namespace: ibm-object-csi-operator-system
+  namespace: ibm-object-csi-operator
 spec:
-  noOfLogLines: 200
-  deploymentData:
-    - deploymentName: cos-csi-app-deployment
-      deploymentNamespace: default
+  logHistory: 200
+  data:
+    - namespace: default
+      deployments: []

@@ -81,8 +81,12 @@ func (s *csiNodeSyncer) SyncFn() error {
 
 func (s *csiNodeSyncer) ensurePodSpec() corev1.PodSpec {
 	return corev1.PodSpec{
-		Containers:         s.ensureContainersSpec(),
-		Volumes:            s.ensureVolumes(),
+		Containers: s.ensureContainersSpec(),
+		Volumes:    s.ensureVolumes(),
+		SecurityContext: &corev1.PodSecurityContext{
+			RunAsNonRoot: func(b bool) *bool { return &b }(true),
+			RunAsUser:    func(uid int64) *int64 { return &uid }(2121),
+		},
 		ServiceAccountName: constants.GetResourceName(constants.CSINodeServiceAccount),
 	}
 }
@@ -123,12 +127,12 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 	})
 
 	nodePlugin.SecurityContext = &corev1.SecurityContext{
-		Privileged:               util.True(),
-		AllowPrivilegeEscalation: util.True(),
+		RunAsNonRoot: util.False(),
+		Privileged:   util.True(),
+		RunAsUser:    func(uid int64) *int64 { return &uid }(0),
 	}
 	fillSecurityContextCapabilities(
 		nodePlugin.SecurityContext,
-		"SYS_ADMIN",
 	)
 
 	// node driver registrar sidecar
@@ -140,7 +144,9 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 			"--v=5",
 		},
 	)
-	registrar.SecurityContext = &corev1.SecurityContext{AllowPrivilegeEscalation: util.False()}
+	registrar.SecurityContext = &corev1.SecurityContext{RunAsNonRoot: util.False(),
+		RunAsUser:  func(uid int64) *int64 { return &uid }(0),
+		Privileged: util.False()}
 	fillSecurityContextCapabilities(registrar.SecurityContext)
 	registrar.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
 	registrar.Resources = getSidecarResourceRequests(s.driver, constants.CSINodeDriverRegistrar)
@@ -154,7 +160,10 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 			healthPortArg,
 		},
 	)
-	livenessProbe.SecurityContext = &corev1.SecurityContext{AllowPrivilegeEscalation: util.False()}
+	livenessProbe.SecurityContext = &corev1.SecurityContext{RunAsNonRoot: util.False(),
+		RunAsUser:  func(uid int64) *int64 { return &uid }(0),
+		Privileged: util.False(),
+	}
 	fillSecurityContextCapabilities(livenessProbe.SecurityContext)
 	livenessProbe.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
 	livenessProbe.Resources = getSidecarResourceRequests(s.driver, constants.LivenessProbe)

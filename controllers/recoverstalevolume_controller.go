@@ -25,11 +25,14 @@ import (
 	"time"
 
 	objectdriverv1alpha1 "github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
-	appsv1 "k8s.io/api/apps/v1"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/crutils"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util"
+	"github.com/go-logr/logr"
+	"golang.org/x/exp/maps"
 	corev1 "k8s.io/api/core/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -50,9 +53,6 @@ type KubernetesClient struct {
 }
 
 var staleVolLog = logf.Log.WithName("recoverstalevolume_controller")
-var reconcileTime = 2 * time.Minute
-var csiNodePodPrefix = "ibm-object-csi-node"
-var transportEndpointError = "transport endpoint is not connected"
 var kubeClient = createK8sClient
 
 //+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=recoverstalevolumes,verbs=get;list;watch;create;update;patch;delete
@@ -86,39 +86,61 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	var logTailLines = instance.Spec.NoOfLogLines
+	var logTailLines = instance.Spec.LogHistory
 	if logTailLines == 0 {
-		logTailLines = int64(300)
+		logTailLines = int64(constants.DefaultLogTailLines)
 	}
 	reqLogger.Info("Tail Log Lines to fetch", "number", logTailLines)
 
-	for _, data := range instance.Spec.Deployment {
-		deploymentName := data.DeploymentName
-		deploymentNamespace := data.DeploymentNamespace
-		reqLogger.Info("Requested Workload to watch", "deployment-name", deploymentName, "deployment-namespace", deploymentNamespace)
-
-		// If workload not found, reconcile
-		if deploymentName == "" {
-			return ctrl.Result{RequeueAfter: reconcileTime}, nil
-		}
-
+	for _, data := range instance.Spec.Data {
+		namespace := data.Namespace
+		deployments := util.Remove(data.Deployments, "")
 		// If namespace is not set, use `default` ns
-		if deploymentNamespace == "" {
-			deploymentNamespace = "default"
+		if namespace == "" {
+			namespace = constants.DefaultNamespace
+		}
+		reqLogger.Info("Data Requested", "namespace", namespace, "deployments", deployments)
+
+		k8sOps := &crutils.K8sResourceOps{
+			Client:    r.Client,
+			Ctx:       ctx,
+			Namespace: namespace,
 		}
 
-		// Fetch deployment
-		deployment := &appsv1.Deployment{}
-		err = r.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: deploymentNamespace}, deployment)
-		if err != nil {
-			if k8serr.IsNotFound(err) {
-				reqLogger.Info("Deployment not found.")
-				continue
+		// If applications are not set, then fetch all deployments from given ns
+		if len(deployments) == 0 {
+			deploymentsList, err := k8sOps.ListDeployment()
+			if err != nil {
+				reqLogger.Error(err, "failed to get deployment list")
+				return ctrl.Result{}, err
 			}
-			reqLogger.Error(err, "failed to get deployment")
+
+			depNames := []string{}
+			for _, dep := range deploymentsList.Items {
+				depNames = append(depNames, dep.Name)
+			}
+			deployments = depNames
+		}
+
+		pvcAndPVNamesMap, err := fetchCSIPVCAndPVNames(k8sOps, reqLogger)
+		if err != nil {
 			return ctrl.Result{}, err
 		}
-		reqLogger.Info("Successfully fetched workload", "deployment", deployment)
+		reqLogger.Info("PVCs using CSI StorageClasses", "pvc:pv-names", pvcAndPVNamesMap)
+
+		pvcNames := maps.Keys(pvcAndPVNamesMap)
+
+		csiApplications, err := fetchDeploymentsUsingCSIVolumes(k8sOps, reqLogger, deployments, pvcNames)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		reqLogger.Info("Deployments which are using CSI Volumes in given namespace", "namespace", namespace,
+			"applications", csiApplications)
+
+		if len(csiApplications) == 0 {
+			reqLogger.Info("No Deployment found in requested namespace")
+			continue
+		}
 
 		var csiNodeServerPods = map[string]string{} // {nodeName1: csiNodePod1, nodeName2: csiNodePod2, ...}
 		var nodeVolumePodMapping = map[string]map[string][]string{}
@@ -135,66 +157,48 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 		*/
 		var deploymentPods = map[string]corev1.Pod{} // {pod1: corev1.Pod{}, pod2: corev1.Pod}
 
-		// Fetch Pods in given namespace
-		var listOptions = &client.ListOptions{Namespace: deploymentNamespace}
-		podsList := &corev1.PodList{}
-		err = r.List(ctx, podsList, listOptions)
+		// Fetch all Pods in given namespace
+		podsList, err := k8sOps.ListPod()
 		if err != nil {
 			reqLogger.Error(err, "failed to get pods list")
 			return ctrl.Result{}, err
 		}
-		reqLogger.Info("Successfully fetched pods in workload namespace", "number-of-pods", len(podsList.Items))
+		reqLogger.Info("Successfully fetched pods in given namespace", "namespace", namespace, "number-of-pods",
+			len(podsList.Items))
 
-		for ind := range podsList.Items {
-			appPod := podsList.Items[ind]
-			if strings.Contains(appPod.Name, deploymentName) {
-				reqLogger.Info("Deployment Pod", "name", appPod.Name)
+		for ind, podData := range podsList.Items {
+			podName := podData.Name
+			if util.MatchesPrefix(csiApplications, podName) {
+				reqLogger.Info("Application Pod found", "name", podName)
 
-				volumesUsed := appPod.Spec.Volumes
-				for _, volume := range volumesUsed {
+				volumesUsedByPod := podData.Spec.Volumes
+				for _, volume := range volumesUsedByPod {
 					pvcDetails := volume.VolumeSource.PersistentVolumeClaim
 					if pvcDetails != nil {
 						pvcName := pvcDetails.ClaimName
-						reqLogger.Info("PVC In Use", "pod-name", appPod.Name, "pvc-name", pvcName)
 
-						pvc := &corev1.PersistentVolumeClaim{}
-						err = r.Get(ctx, types.NamespacedName{Name: pvcName, Namespace: deploymentNamespace}, pvc)
-						if err != nil {
-							if k8serr.IsNotFound(err) {
-								reqLogger.Info("PVC not found.")
-								continue
-							}
-							reqLogger.Error(err, "failed to get pvc")
-							return ctrl.Result{}, err
-						}
-
-						storageClass := pvc.Spec.StorageClassName
-						scName := ""
-						if storageClass != nil {
-							scName = *storageClass
-						}
-						reqLogger.Info("PVC using Storage-class", "pvc-name", pvcName, "sc-name", scName)
-						// Check if the volume is using csi storage-class
-						if strings.Contains(scName, "csi") {
-							nodeName := appPod.Spec.NodeName
+						if util.Contains(pvcNames, pvcName) {
+							reqLogger.Info("Pod details", "pod-name", podName, "pvc-name", pvcName)
+							nodeName := podData.Spec.NodeName
 							volumeData, ok := nodeVolumePodMapping[nodeName]
 							if !ok {
 								volumeData = map[string][]string{}
 							}
 
-							volumeName := pvc.Spec.VolumeName
+							volumeName := pvcAndPVNamesMap[pvcName]
 							podData, ok := volumeData[volumeName]
 							if !ok {
 								podData = []string{}
 							}
 
-							if !contains(podData, appPod.Name) {
-								podData = append(podData, appPod.Name)
+							if !util.Contains(podData, podName) {
+								podData = append(podData, podName)
 							}
 
 							volumeData[volumeName] = podData
 							nodeVolumePodMapping[nodeName] = volumeData
-							deploymentPods[appPod.Name] = appPod
+
+							deploymentPods[podName] = podsList.Items[ind]
 						}
 					}
 				}
@@ -202,56 +206,51 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 		reqLogger.Info("node-names maped with volumes and deployment pods", "nodeVolumeMap", nodeVolumePodMapping)
 
-		// Get Pods in operator ns
-		var listOptions2 = &client.ListOptions{Namespace: req.Namespace}
-		csiPodsList := &corev1.PodList{}
-		err = r.List(ctx, csiPodsList, listOptions2)
+		// Get Pods in ibm-object-csi-driver-operator ns
+		k8sOps.Namespace = constants.CSIOperatorNamespace
+		podsInOpNs, err := k8sOps.ListPod()
 		if err != nil {
-			reqLogger.Error(err, "failed to fetch csi pods")
+			reqLogger.Error(err, "failed to fetch pods in namespace: "+constants.CSIOperatorNamespace)
 			return ctrl.Result{}, err
 		}
-		reqLogger.Info("Successfully fetched pods in operator ns", "number-of-pods", len(csiPodsList.Items))
+		reqLogger.Info("Successfully fetched pods in namespace", "number-of-pods", len(podsInOpNs.Items))
 
-		for ind := range csiPodsList.Items {
-			pod := csiPodsList.Items[ind]
-			if strings.HasPrefix(pod.Name, csiNodePodPrefix) {
-				reqLogger.Info("NodeServer Pod", "name", pod.Name)
+		for ind := range podsInOpNs.Items {
+			pod := podsInOpNs.Items[ind]
+			if strings.HasPrefix(pod.Name, constants.GetResourceName(constants.CSINode)) {
 				csiNodeServerPods[pod.Spec.NodeName] = pod.Name
 			}
 		}
-		reqLogger.Info("node-names maped with node-server pods", "csiNodeServerPods", csiNodeServerPods)
+		reqLogger.Info("node-names maped with csi node-server pods", "csiNodeServerPods", csiNodeServerPods)
 
 		// If CSI Driver Node Pods not found, reconcile
 		if len(csiNodeServerPods) == 0 {
-			return ctrl.Result{RequeueAfter: reconcileTime}, nil
+			continue
 		}
 
 		for nodeName, volumesData := range nodeVolumePodMapping {
 			// Fetch volume stats from Logs of the Node Server Pod
-			getVolStatsFromLogs, err := fetchVolumeStatsFromNodeServerLogs(ctx, csiNodeServerPods[nodeName], req.Namespace, logTailLines, r.IsTest)
+			getVolStatsFromLogs, err := fetchVolumeStatsFromNodeServerPodLogs(ctx, csiNodeServerPods[nodeName],
+				constants.CSIOperatorNamespace, logTailLines, r.IsTest)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
 			reqLogger.Info("Volume Stats from NodeServer Pod Logs", "volume-stas", getVolStatsFromLogs)
 
 			for volume, podData := range volumesData {
-				volStats, ok := getVolStatsFromLogs[volume]
+				getVolStatsFromLogs, ok := getVolStatsFromLogs[volume]
 				if !ok {
 					continue
 				}
 
-				if strings.Contains(volStats, transportEndpointError) {
+				if strings.Contains(getVolStatsFromLogs, constants.TransportEndpointError) {
 					reqLogger.Info("Stale Volume Found", "volume", volume)
 
-					reqLogger.Info("Restarting Pods!!")
 					for _, podName := range podData {
 						reqLogger.Info("Pod using stale volume", "volume-name", volume, "pod-name", podName)
 
-						var zero int64
-						var deleteOptions = &client.DeleteOptions{GracePeriodSeconds: &zero}
-
 						pod := deploymentPods[podName]
-						err = r.Delete(ctx, &pod, deleteOptions)
+						err = k8sOps.DeletePod(&pod)
 						if err != nil {
 							if k8serr.IsNotFound(err) {
 								reqLogger.Info("Pod not found.")
@@ -262,13 +261,12 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 						}
 						reqLogger.Info("Pod deleted.")
 					}
-					reqLogger.Info("Pods Restarted!!")
 				}
 			}
 		}
 	}
 
-	return ctrl.Result{RequeueAfter: reconcileTime}, nil
+	return ctrl.Result{RequeueAfter: constants.ReconcilationTime}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -278,13 +276,71 @@ func (r *RecoverStaleVolumeReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Complete(r)
 }
 
-func contains(slice []string, value string) bool {
-	for _, val := range slice {
-		if val == value {
-			return true
+func fetchCSIPVCAndPVNames(k8sOps *crutils.K8sResourceOps, log logr.Logger) (map[string]string, error) {
+	defer LogFunctionDuration(log, "fetchCSIPVCAndPVNames", time.Now())
+
+	pvcList, err := k8sOps.ListPVC()
+	if err != nil {
+		log.Error(err, "failed to get pvc list")
+		return nil, err
+	}
+
+	reqData := map[string]string{}
+
+	for _, pvc := range pvcList.Items {
+		log.Info("PVC Found", "pvc-name", pvc.Name, "namespace", pvc.Namespace)
+
+		storageClassName := pvc.Spec.StorageClassName
+		if storageClassName == nil {
+			log.Info("PVC does not have any storageClass", "pvc-name", pvc.Name)
+			continue
+		}
+
+		scName := *storageClassName
+		if scName == "" {
+			log.Info("PVC does not have any storageClass", "pvc-name", pvc.Name)
+			continue
+		}
+
+		if strings.HasPrefix(scName, constants.StorageClassPrefix) && strings.HasSuffix(scName, constants.StorageClassSuffix) {
+			reqData[pvc.Name] = pvc.Spec.VolumeName
 		}
 	}
-	return false
+
+	return reqData, nil
+}
+
+func fetchDeploymentsUsingCSIVolumes(k8sOps *crutils.K8sResourceOps, log logr.Logger, depNames []string,
+	reqPVCNames []string) ([]string, error) {
+	defer LogFunctionDuration(log, "fetchDeploymentsUsingCSIVolumes", time.Now())
+
+	var reqDeploymentNames []string
+
+	for _, name := range depNames {
+		deployment, err := k8sOps.GetDeployment(name)
+		if err != nil {
+			if k8serr.IsNotFound(err) {
+				log.Info("Deployment not found.")
+				continue
+			}
+			log.Error(err, "failed to get deployment")
+			return nil, err
+		}
+
+		volumes := deployment.Spec.Template.Spec.Volumes
+		for _, vol := range volumes {
+			pvcDetails := vol.VolumeSource.PersistentVolumeClaim
+			if pvcDetails != nil {
+				pvcName := pvcDetails.ClaimName
+				if util.Contains(reqPVCNames, pvcName) {
+					reqDeploymentNames = append(reqDeploymentNames, name)
+					break
+				}
+			}
+		}
+	}
+
+	return reqDeploymentNames, nil
 }
 
 func createK8sClient() (*KubernetesClient, error) {
@@ -303,11 +359,13 @@ func createK8sClient() (*KubernetesClient, error) {
 	}, nil
 }
 
-func fetchVolumeStatsFromNodeServerLogs(ctx context.Context, nodeServerPod, namespace string, logTailLines int64,
+func fetchVolumeStatsFromNodeServerPodLogs(ctx context.Context, nodeServerPod, namespace string, logTailLines int64,
 	isTest bool) (map[string]string, error) {
+	defer LogFunctionDuration(staleVolLog, "fetchVolumeStatsFromNodeServerPodLogs", time.Now())
+
 	staleVolLog.Info("Input Parameters: ", "nodeServerPod", nodeServerPod, "namespace", namespace, "isTest", isTest)
 	podLogOpts := &corev1.PodLogOptions{
-		Container: csiNodePodPrefix,
+		Container: constants.NodeContainerName,
 		TailLines: &logTailLines,
 	}
 
@@ -335,4 +393,10 @@ func fetchVolumeStatsFromNodeServerLogs(ctx context.Context, nodeServerPod, name
 	}
 
 	return parseLogs(nodeServerPodLogs), nil
+}
+
+// LogFunctionDuration calculates time taken by a method
+func LogFunctionDuration(logger logr.Logger, methodName string, start time.Time) {
+	duration := time.Since(start)
+	logger.Info("Time to complete", methodName, duration.Seconds())
 }
