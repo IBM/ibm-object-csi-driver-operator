@@ -69,10 +69,8 @@ const (
 	CSINodeSCCClusterRole                 = "node-scc-clusterrole"
 	CSINodeSCCClusterRoleBinding          = "node-scc-clusterrolebinding"
 
-	RcloneRetainStorageClass = "ibm-object-storage-rclone-retain-sc"
-	RcloneStorageClass       = "ibm-object-storage-rclone-sc"
-	S3fsRetainStorageClass   = "ibm-object-storage-s3fs-retain-sc"
-	S3fsStorageClass         = "ibm-object-storage-s3fs-sc"
+	StorageClassNamePrefix = "ibm-object-storage"
+	RetainPolicyTag        = "retain"
 )
 
 var CommonCSIResourceLabels = map[string]string{

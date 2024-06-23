@@ -149,7 +149,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		r.reconcileServiceAccount,
 		r.reconcileClusterRole,
 		r.reconcileClusterRoleBinding,
-		r.reconcileStorageClasses,
+		// r.reconcileStorageClasses,
 	} {
 		if err = rec(instance); err != nil {
 			return reconcile.Result{}, err
@@ -164,6 +164,11 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	csiNodeSyncer := clustersyncer.NewCSINodeSyncer(r.Client, instance)
 	if err := syncer.Sync(ctx, csiNodeSyncer, r.Recorder); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// TODO: Reconcile SC Check. First process RC, User may provide S3Provider in RC.
+	if err = r.reconcileStorageClasses(instance); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -469,18 +474,43 @@ func (r *IBMObjectCSIReconciler) getClusterRoleBindings(instance *crutils.IBMObj
 }
 
 func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCSI) []*storagev1.StorageClass {
-	rcloneRetainSC := instance.GenerateRcloneSC(constants.RcloneRetainStorageClass, corev1.PersistentVolumeReclaimRetain)
-	rcloneSC := instance.GenerateRcloneSC(constants.RcloneStorageClass, corev1.PersistentVolumeReclaimDelete)
 
-	s3fsRetainSC := instance.GenerateS3fsSC(constants.S3fsRetainStorageClass, corev1.PersistentVolumeReclaimRetain)
-	s3fsSC := instance.GenerateS3fsSC(constants.S3fsStorageClass, corev1.PersistentVolumeReclaimDelete)
+	cosRegion := r.ControllerHelper.GetRegion()
+	cosEP := r.ControllerHelper.GetCosEP()
+	s3Provider := r.ControllerHelper.GetS3Provider()
+	scNamePrefix := constants.StorageClassNamePrefix
 
-	return []*storagev1.StorageClass{
-		rcloneRetainSC,
-		rcloneSC,
-		s3fsRetainSC,
-		s3fsSC,
+	k8sSCs := []*storagev1.StorageClass{}
+	cosSCs := []string{}
+
+	reclaimPolicys := []corev1.PersistentVolumeReclaimPolicy{
+		corev1.PersistentVolumeReclaimRetain,
+		corev1.PersistentVolumeReclaimDelete}
+
+	if r.ControllerHelper.IsIBMColud() && (s3Provider == nil || *s3Provider == "ibm-cos") {
+		cosEP = r.ControllerHelper.GetIBMCosEP()
+		cosSC := r.ControllerHelper.GetIBMCosSC()
+		for _, sc := range cosSC {
+			ibmCosSC := fmt.Sprintf("%s-%s", *cosRegion, sc)
+			cosSCs = append(cosSCs, ibmCosSC)
+		}
+
+	} else {
+		cosSCs = append(cosSCs, "standard")
 	}
+
+	for _, sc := range cosSCs {
+		for _, rp := range reclaimPolicys {
+			k8sSc := instance.GenerateRcloneSC(scNamePrefix, rp,
+				cosRegion, cosEP, &sc)
+			k8sSCs = append(k8sSCs, k8sSc)
+
+			k8sSc = instance.GenerateS3fsSC(scNamePrefix, rp,
+				cosRegion, cosEP, &sc)
+			k8sSCs = append(k8sSCs, k8sSc)
+		}
+	}
+	return k8sSCs
 }
 
 func (r *IBMObjectCSIReconciler) deleteClusterRoles(instance *crutils.IBMObjectCSI) error {

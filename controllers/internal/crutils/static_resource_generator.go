@@ -2,6 +2,8 @@
 package crutils
 
 import (
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -215,7 +217,29 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRoleBinding() *rbacv1.ClusterRol
 }
 
 // Generates3fsSC ...
-func (c *IBMObjectCSI) GenerateS3fsSC(storageClassName string, reclaimPolicy corev1.PersistentVolumeReclaimPolicy) *storagev1.StorageClass {
+func (c *IBMObjectCSI) GenerateS3fsSC(storageClassNamePrefix string,
+	reclaimPolicy corev1.PersistentVolumeReclaimPolicy,
+	region *string, cosEndpoint *string, cosStorageClass *string) *storagev1.StorageClass {
+	// TODO: TIER Based SC
+	var storageClassName string
+	var cosEP string = ""
+	var cosSC string = "standard"
+
+	if cosEndpoint != nil {
+		cosEP = *cosEndpoint
+	}
+	if cosStorageClass != nil {
+		cosSC = *cosStorageClass
+	}
+
+	if reclaimPolicy == "Retain" {
+		// "ibm-object-storage-standard-s3fs-retain"
+		storageClassName = fmt.Sprintf("%s-%s-rclone-%s", storageClassNamePrefix, cosSC, constants.RetainPolicyTag)
+	} else {
+		// "ibm-object-storage-standard-s3fs"
+		storageClassName = fmt.Sprintf("%s-%s-rclone", storageClassNamePrefix, cosSC)
+	}
+
 	return &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   storageClassName,
@@ -232,8 +256,10 @@ func (c *IBMObjectCSI) GenerateS3fsSC(storageClassName string, reclaimPolicy cor
 			"kernel_cache",
 		},
 		Parameters: map[string]string{
-			"mounter": "s3fs",
-			"client":  "awss3",
+			"mounter":            "s3fs",
+			"client":             "awss3",
+			"cosEndpoint":        cosEP,
+			"locationConstraint": cosEP,
 			"csi.storage.k8s.io/provisioner-secret-name":       "${pvc.name}",
 			"csi.storage.k8s.io/provisioner-secret-namespace":  "${pvc.namespace}",
 			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.name}",
@@ -243,7 +269,29 @@ func (c *IBMObjectCSI) GenerateS3fsSC(storageClassName string, reclaimPolicy cor
 }
 
 // GenerateRcloneSC ...
-func (c *IBMObjectCSI) GenerateRcloneSC(storageClassName string, reclaimPolicy corev1.PersistentVolumeReclaimPolicy) *storagev1.StorageClass {
+func (c *IBMObjectCSI) GenerateRcloneSC(storageClassNamePrefix string,
+	reclaimPolicy corev1.PersistentVolumeReclaimPolicy,
+	region *string, cosEndpoint *string, cosStorageClass *string) *storagev1.StorageClass {
+
+	var storageClassName string
+	var cosEP string = ""
+	var cosSC string = "standard"
+
+	if cosEndpoint != nil {
+		cosEP = *cosEndpoint
+	}
+	if cosStorageClass != nil {
+		cosSC = *cosStorageClass
+	}
+
+	if reclaimPolicy == "Retain" {
+		// "ibm-object-storage-standard-rclone-retain"
+		storageClassName = fmt.Sprintf("%s-%s-rclone-%s", storageClassNamePrefix, cosSC, constants.RetainPolicyTag)
+	} else {
+		// "ibm-object-storage-standard-rclone"
+		storageClassName = fmt.Sprintf("%s-%s-rclone", storageClassNamePrefix, cosSC)
+	}
+
 	return &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   storageClassName,
@@ -263,8 +311,10 @@ func (c *IBMObjectCSI) GenerateRcloneSC(storageClassName string, reclaimPolicy c
 			"disable_checksum=true",
 		},
 		Parameters: map[string]string{
-			"mounter": "rclone",
-			"client":  "awss3",
+			"mounter":            "rclone",
+			"client":             "awss3",
+			"cosEndpoint":        cosEP,
+			"locationConstraint": cosEP,
 			"csi.storage.k8s.io/provisioner-secret-name":       "${pvc.name}",
 			"csi.storage.k8s.io/provisioner-secret-namespace":  "${pvc.namespace}",
 			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.name}",

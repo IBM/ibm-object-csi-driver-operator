@@ -93,6 +93,9 @@ func main() {
 	}
 	controllerHelper := common.NewControllerHelper(mgr.GetClient())
 
+	// TODO: TIER Based SC Get cluster info
+	controllerHelper.GetIBMClusterInfo()
+
 	if err = (&controllers.IBMObjectCSIReconciler{
 		Client:           mgr.GetClient(),
 		Scheme:           mgr.GetScheme(),
@@ -101,6 +104,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "IBMObjectCSI")
 		os.Exit(1)
 	}
+
 	if err = (&controllers.RecoverStaleVolumeReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
