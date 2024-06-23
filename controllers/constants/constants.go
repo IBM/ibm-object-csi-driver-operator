@@ -73,7 +73,6 @@ const (
 	CSINodeSCCClusterRole                 = "node-scc-clusterrole"
 	CSINodeSCCClusterRoleBinding          = "node-scc-clusterrolebinding"
 
-
 	StorageClassNamePrefix = "ibm-object-storage"
 	RetainPolicyTag        = "retain"
 
