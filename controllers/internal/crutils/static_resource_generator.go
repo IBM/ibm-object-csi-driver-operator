@@ -234,10 +234,10 @@ func (c *IBMObjectCSI) GenerateS3fsSC(storageClassNamePrefix string,
 
 	if reclaimPolicy == "Retain" {
 		// "ibm-object-storage-standard-s3fs-retain"
-		storageClassName = fmt.Sprintf("%s-%s-rclone-%s", storageClassNamePrefix, cosSC, constants.RetainPolicyTag)
+		storageClassName = fmt.Sprintf("%s-%s-s3fs-%s", storageClassNamePrefix, cosSC, constants.RetainPolicyTag)
 	} else {
 		// "ibm-object-storage-standard-s3fs"
-		storageClassName = fmt.Sprintf("%s-%s-rclone", storageClassNamePrefix, cosSC)
+		storageClassName = fmt.Sprintf("%s-%s-s3fs", storageClassNamePrefix, cosSC)
 	}
 
 	return &storagev1.StorageClass{

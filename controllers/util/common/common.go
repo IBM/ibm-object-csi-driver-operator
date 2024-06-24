@@ -257,10 +257,10 @@ func (ch *ControllerHelper) getAccessorAndFinalizerName(instance crutils.Instanc
 func (ch *ControllerHelper) GetIBMClusterInfo() {
 	var listOptions = &client.ListOptions{}
 
-	nodes := &corev1.NodeList{}
+	nodes := corev1.NodeList{}
 	logger := ch.Log.WithName("getClusterInfo")
 
-	err := ch.List(context.TODO(), nodes, listOptions)
+	err := ch.List(context.TODO(), &nodes, listOptions)
 	if err != nil {
 		logger.Error(err, "failed to get Cluster Info")
 		return
