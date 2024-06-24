@@ -185,7 +185,7 @@ var (
 	csiDriver = &storagev1.CSIDriver{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   constants.DriverName,
-			Labels: map[string]string{"app.kubernetes.io/name": constants.DriverPrefix},
+			Labels: map[string]string{"app.kubernetes.io/name": constants.ObjectCSIDriver},
 		},
 		Spec: storagev1.CSIDriverSpec{
 			AttachRequired: util.False(),
