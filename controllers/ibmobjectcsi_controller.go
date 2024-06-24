@@ -487,11 +487,11 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
 		corev1.PersistentVolumeReclaimRetain,
 		corev1.PersistentVolumeReclaimDelete}
 
-	if r.ControllerHelper.IsIBMColud() && (s3Provider == nil || *s3Provider == "ibm-cos") {
+	if r.ControllerHelper.IsIBMColud() && (len(s3Provider) == 0 || s3Provider == "ibm-cos") {
 		cosEP = r.ControllerHelper.GetIBMCosEP()
 		cosSC := r.ControllerHelper.GetIBMCosSC()
 		for _, sc := range cosSC {
-			ibmCosSC := fmt.Sprintf("%s-%s", *cosRegion, sc)
+			ibmCosSC := fmt.Sprintf("%s-%s", cosRegion, sc)
 			cosSCs = append(cosSCs, ibmCosSC)
 		}
 
@@ -502,11 +502,11 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
 	for _, sc := range cosSCs {
 		for _, rp := range reclaimPolicys {
 			k8sSc := instance.GenerateRcloneSC(scNamePrefix, rp,
-				cosRegion, cosEP, &sc)
+				cosRegion, cosEP, sc)
 			k8sSCs = append(k8sSCs, k8sSc)
 
 			k8sSc = instance.GenerateS3fsSC(scNamePrefix, rp,
-				cosRegion, cosEP, &sc)
+				cosRegion, cosEP, sc)
 			k8sSCs = append(k8sSCs, k8sSc)
 		}
 	}

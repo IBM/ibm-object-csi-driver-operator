@@ -219,17 +219,17 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRoleBinding() *rbacv1.ClusterRol
 // Generates3fsSC ...
 func (c *IBMObjectCSI) GenerateS3fsSC(storageClassNamePrefix string,
 	reclaimPolicy corev1.PersistentVolumeReclaimPolicy,
-	region *string, cosEndpoint *string, cosStorageClass *string) *storagev1.StorageClass {
+	region string, cosEndpoint string, cosStorageClass string) *storagev1.StorageClass {
 	// TODO: TIER Based SC
 	var storageClassName string
 	var cosEP string = ""
 	var cosSC string = "standard"
 
-	if cosEndpoint != nil {
-		cosEP = *cosEndpoint
+	if len(cosEndpoint) > 0 {
+		cosEP = cosEndpoint
 	}
-	if cosStorageClass != nil {
-		cosSC = *cosStorageClass
+	if len(cosStorageClass) > 0 {
+		cosSC = cosStorageClass
 	}
 
 	if reclaimPolicy == "Retain" {
@@ -271,17 +271,17 @@ func (c *IBMObjectCSI) GenerateS3fsSC(storageClassNamePrefix string,
 // GenerateRcloneSC ...
 func (c *IBMObjectCSI) GenerateRcloneSC(storageClassNamePrefix string,
 	reclaimPolicy corev1.PersistentVolumeReclaimPolicy,
-	region *string, cosEndpoint *string, cosStorageClass *string) *storagev1.StorageClass {
+	region string, cosEndpoint string, cosStorageClass string) *storagev1.StorageClass {
 
 	var storageClassName string
 	var cosEP string = ""
 	var cosSC string = "standard"
 
-	if cosEndpoint != nil {
-		cosEP = *cosEndpoint
+	if len(cosEndpoint) > 0 {
+		cosEP = cosEndpoint
 	}
-	if cosStorageClass != nil {
-		cosSC = *cosStorageClass
+	if len(cosStorageClass) > 0 {
+		cosSC = cosStorageClass
 	}
 
 	if reclaimPolicy == "Retain" {

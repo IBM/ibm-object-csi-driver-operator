@@ -95,6 +95,7 @@ func main() {
 
 	// TODO: TIER Based SC Get cluster info
 	controllerHelper.GetIBMClusterInfo()
+	setupLog.Info("Detected: ", controllerHelper.GetIaaSProvider())
 
 	if err = (&controllers.IBMObjectCSIReconciler{
 		Client:           mgr.GetClient(),
