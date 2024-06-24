@@ -2,7 +2,7 @@ apiVersion: objectdriver.csi.ibm.com/v1alpha1
 kind: IBMObjectCSI
 metadata:
   name: ibm-object-csi
-  namespace: ibm-object-csi-operator-system
+  namespace: ibm-object-csi-operator
   labels:
     app.kubernetes.io/name: ibm-object-csi
     app.kubernetes.io/instance: ibm-object-csi

@@ -26,14 +26,14 @@ import (
 
 // RecoverStaleVolumeSpec defines the desired state of RecoverStaleVolume
 type RecoverStaleVolumeSpec struct {
-	NoOfLogLines int64            `json:"noOfLogLines,omitempty"`
-	Deployment   []DeploymentData `json:"deploymentData,omitempty"`
+	LogHistory int64                      `json:"logHistory,omitempty"`
+	Data       []NamespacedDeploymentData `json:"data"`
 }
 
-// DeploymentData ...
-type DeploymentData struct {
-	DeploymentName      string `json:"deploymentName,omitempty"`
-	DeploymentNamespace string `json:"deploymentNamespace,omitempty"`
+// NamespacedDeploymentData ...
+type NamespacedDeploymentData struct {
+	Namespace   string   `json:"namespace"`
+	Deployments []string `json:"deployments,omitempty"`
 }
 
 // RecoverStaleVolumeStatus defines the observed state of RecoverStaleVolume

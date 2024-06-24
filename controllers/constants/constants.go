@@ -1,15 +1,19 @@
 // Package constants ...
 package constants
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 const (
 	APIGroup = "objectdriver.csi.ibm.com"
 
-	APIVersion      = "v1"
-	CSIOperatorName = "ibm-object-csi-driver-operator"
-	CSIDriverName   = "ibm-object-csi-driver"
-	DriverName      = "cos.s3.csi.ibm.io"
+	APIVersion           = "v1"
+	CSIOperatorName      = "ibm-object-csi-driver-operator"
+	CSIOperatorNamespace = "ibm-object-csi-operator"
+	CSIDriverName        = "ibm-object-csi-driver"
+	DriverName           = "cos.s3.csi.ibm.io"
 
 	RbacAuthorizationAPIGroup = "rbac.authorization.k8s.io"
 	SecurityOpenshiftAPIGroup = "security.openshift.io"
@@ -73,10 +77,18 @@ const (
 	ObjectCSIDriverOperatorDeployNS = "ibm-object-csi-operator-system"
 	ObjectCSIDriver                 = "ibm-object-csi"
 
-	RcloneRetainStorageClass = "ibm-object-storage-rclone-retain-sc"
-	RcloneStorageClass       = "ibm-object-storage-rclone-sc"
-	S3fsRetainStorageClass   = "ibm-object-storage-s3fs-retain-sc"
-	S3fsStorageClass         = "ibm-object-storage-s3fs-sc"
+	StorageClassPrefix = "ibm-object-storage-"
+	StorageClassSuffix = "-sc"
+
+	RcloneRetainStorageClass = StorageClassPrefix + "rclone-retain" + StorageClassSuffix
+	RcloneStorageClass       = StorageClassPrefix + "rclone" + StorageClassSuffix
+	S3fsRetainStorageClass   = StorageClassPrefix + "s3fs-retain" + StorageClassSuffix
+	S3fsStorageClass         = StorageClassPrefix + "s3fs" + StorageClassSuffix
+
+	DefaultLogTailLines    = 300
+	DefaultNamespace       = "default"
+	ReconcilationTime      = 5 * time.Minute
+	TransportEndpointError = "transport endpoint is not connected"
 )
 
 var CommonCSIResourceLabels = map[string]string{
