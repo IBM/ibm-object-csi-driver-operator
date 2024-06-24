@@ -260,17 +260,21 @@ func (ch *ControllerHelper) GetIBMClusterInfo() {
 	nodes := corev1.NodeList{}
 	logger := ch.Log.WithName("getClusterInfo")
 
+	logger.Info("Checking cluster platform...")
+
 	err := ch.List(context.TODO(), &nodes, listOptions)
 	if err != nil {
 		logger.Error(err, "failed to get Cluster Info")
 		return
 	}
 
+	logger.Info("Get cluster region...")
 	if val, ok := nodes.Items[0].Labels["ibm-cloud.kubernetes.io/region"]; ok {
 		ch.Region = &val
 		logger.Info("Detected IBM Cluster region: ", ch.Region)
 	}
 
+	logger.Info("Get cluster IaaS Provider...")
 	if val, ok := nodes.Items[0].Labels["ibm-cloud.kubernetes.io/iaas-provider"]; ok {
 		logger.Info("Detected IBM IaaS provider: ", val)
 		// ch.S3Provider = &cosIBMProvider Do not set Provider here user may specify S3 Provider in CR
