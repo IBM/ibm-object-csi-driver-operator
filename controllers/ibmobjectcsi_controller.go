@@ -601,7 +601,7 @@ func configMapPredicate() predicate.Predicate {
 			}
 			return false
 		},
-		DeleteFunc: func(e event.DeleteEvent) bool {
+		DeleteFunc: func(event.DeleteEvent) bool {
 			return false
 		},
 		GenericFunc: func(event.GenericEvent) bool {
