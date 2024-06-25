@@ -218,7 +218,7 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRoleBinding() *rbacv1.ClusterRol
 
 // Generates3fsSC ...
 func (c *IBMObjectCSI) GenerateS3fsSC(storageClassNamePrefix string,
-	reclaimPolicy corev1.PersistentVolumeReclaimPolicy,
+	reclaimPolicy corev1.PersistentVolumeReclaimPolicy, isIBMColud bool,
 	region string, cosEndpoint string, cosStorageClass string) *storagev1.StorageClass {
 	// TODO: TIER Based SC
 	var storageClassName string
@@ -240,6 +240,11 @@ func (c *IBMObjectCSI) GenerateS3fsSC(storageClassNamePrefix string,
 		storageClassName = fmt.Sprintf("%s-%s-s3fs", storageClassNamePrefix, cosSC)
 	}
 
+	if isIBMColud == true {
+		ibmCosSC := fmt.Sprintf("%s-%s", region, cosSC)
+		cosSC = ibmCosSC
+	}
+
 	return &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   storageClassName,
@@ -259,7 +264,7 @@ func (c *IBMObjectCSI) GenerateS3fsSC(storageClassNamePrefix string,
 			"mounter":            "s3fs",
 			"client":             "awss3",
 			"cosEndpoint":        cosEP,
-			"locationConstraint": cosEP,
+			"locationConstraint": cosSC,
 			"csi.storage.k8s.io/provisioner-secret-name":       "${pvc.name}",
 			"csi.storage.k8s.io/provisioner-secret-namespace":  "${pvc.namespace}",
 			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.name}",
@@ -270,7 +275,7 @@ func (c *IBMObjectCSI) GenerateS3fsSC(storageClassNamePrefix string,
 
 // GenerateRcloneSC ...
 func (c *IBMObjectCSI) GenerateRcloneSC(storageClassNamePrefix string,
-	reclaimPolicy corev1.PersistentVolumeReclaimPolicy,
+	reclaimPolicy corev1.PersistentVolumeReclaimPolicy, isIBMColud bool,
 	region string, cosEndpoint string, cosStorageClass string) *storagev1.StorageClass {
 
 	var storageClassName string
@@ -290,6 +295,11 @@ func (c *IBMObjectCSI) GenerateRcloneSC(storageClassNamePrefix string,
 	} else {
 		// "ibm-object-storage-standard-rclone"
 		storageClassName = fmt.Sprintf("%s-%s-rclone", storageClassNamePrefix, cosSC)
+	}
+
+	if isIBMColud == true {
+		ibmCosSC := fmt.Sprintf("%s-%s", region, cosSC)
+		cosSC = ibmCosSC
 	}
 
 	return &storagev1.StorageClass{
@@ -314,7 +324,7 @@ func (c *IBMObjectCSI) GenerateRcloneSC(storageClassNamePrefix string,
 			"mounter":            "rclone",
 			"client":             "awss3",
 			"cosEndpoint":        cosEP,
-			"locationConstraint": cosEP,
+			"locationConstraint": cosSC,
 			"csi.storage.k8s.io/provisioner-secret-name":       "${pvc.name}",
 			"csi.storage.k8s.io/provisioner-secret-namespace":  "${pvc.namespace}",
 			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.name}",

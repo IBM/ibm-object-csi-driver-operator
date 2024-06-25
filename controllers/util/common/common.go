@@ -328,7 +328,7 @@ func (ch *ControllerHelper) GetIBMCosSC() []string {
 	if len(ch.IaaSProvider) == 0 || len(ch.Region) == 0 {
 		return make([]string, 0)
 	}
-	cosSC := []string{"standard", "standard"}
+	cosSC := []string{"standard", "smart"}
 	return cosSC
 }
 
