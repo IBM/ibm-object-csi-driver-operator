@@ -94,8 +94,11 @@ func main() {
 	controllerHelper := common.NewControllerHelper(mgr.GetClient())
 
 	// TODO: TIER Based SC Get cluster info
-	controllerHelper.GetIBMClusterInfo()
-	setupLog.Info("Detected: ", controllerHelper.GetIaaSProvider())
+	chErr := controllerHelper.GetIBMClusterInfo()
+	if chErr != nil {
+		setupLog.Info("Get Cluster Info", "warning", *chErr)
+	}
+	setupLog.Info("Detected: ", "IaaS Provider", controllerHelper.GetIaaSProvider())
 
 	if err = (&controllers.IBMObjectCSIReconciler{
 		Client:           mgr.GetClient(),

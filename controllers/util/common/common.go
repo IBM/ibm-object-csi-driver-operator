@@ -254,7 +254,7 @@ func (ch *ControllerHelper) getAccessorAndFinalizerName(instance crutils.Instanc
 }
 
 // Check the platform, if IBM Cloud then get Region and IaaS provider
-func (ch *ControllerHelper) GetIBMClusterInfo() {
+func (ch *ControllerHelper) GetIBMClusterInfo() *error {
 	var listOptions = &client.ListOptions{}
 
 	nodes := corev1.NodeList{}
@@ -265,7 +265,7 @@ func (ch *ControllerHelper) GetIBMClusterInfo() {
 	err := ch.List(context.TODO(), &nodes, listOptions)
 	if err != nil {
 		logger.Error(err, "failed to get Cluster Info")
-		return
+		return &err
 	}
 
 	logger.Info("Get cluster region...")
@@ -285,6 +285,7 @@ func (ch *ControllerHelper) GetIBMClusterInfo() {
 		}
 		logger.Info("Detected endpoint type: ", ch.IaaSProvider)
 	}
+	return nil
 }
 
 func (ch *ControllerHelper) GetS3Provider() string {
