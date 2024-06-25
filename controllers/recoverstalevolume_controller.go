@@ -95,10 +95,6 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 	for _, data := range instance.Spec.Data {
 		namespace := data.Namespace
 		deployments := util.Remove(data.Deployments, "")
-		// If namespace is not set, use `default` ns
-		if namespace == "" {
-			namespace = constants.DefaultNamespace
-		}
 		reqLogger.Info("Data Requested", "namespace", namespace, "deployments", deployments)
 
 		k8sOps := &crutils.K8sResourceOps{
@@ -125,6 +121,9 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 		pvcAndPVNamesMap, err := fetchCSIPVCAndPVNames(k8sOps, reqLogger)
 		if err != nil {
 			return ctrl.Result{}, err
+		}
+		if len(pvcAndPVNamesMap) == 0 {
+			return ctrl.Result{RequeueAfter: constants.ReconcilationTime}, nil
 		}
 		reqLogger.Info("PVCs using CSI StorageClasses", "pvc:pv-names", pvcAndPVNamesMap)
 
