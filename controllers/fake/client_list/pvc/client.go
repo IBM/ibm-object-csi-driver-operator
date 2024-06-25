@@ -454,39 +454,34 @@ func (t versionedTracker) update(gvr schema.GroupVersionResource, obj runtime.Ob
 }
 
 func (c *fakeClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-	switch obj.(type) {
-	case *corev1.PersistentVolumeClaim:
-		return errors.New("failed to get persistentvolumeclaim")
-	default:
-		gvr, err := getGVRFromObject(obj, c.scheme)
-		if err != nil {
-			return err
-		}
-		o, err := c.tracker.Get(gvr, key.Namespace, key.Name)
-		if err != nil {
-			return err
-		}
-
-		if _, isUnstructured := obj.(runtime.Unstructured); isUnstructured {
-			gvk, err := apiutil.GVKForObject(obj, c.scheme)
-			if err != nil {
-				return err
-			}
-			ta, err := meta.TypeAccessor(o)
-			if err != nil {
-				return err
-			}
-			ta.SetKind(gvk.Kind)
-			ta.SetAPIVersion(gvk.GroupVersion().String())
-		}
-
-		j, err := json.Marshal(o)
-		if err != nil {
-			return err
-		}
-		zero(obj)
-		return json.Unmarshal(j, obj)
+	gvr, err := getGVRFromObject(obj, c.scheme)
+	if err != nil {
+		return err
 	}
+	o, err := c.tracker.Get(gvr, key.Namespace, key.Name)
+	if err != nil {
+		return err
+	}
+
+	if _, isUnstructured := obj.(runtime.Unstructured); isUnstructured {
+		gvk, err := apiutil.GVKForObject(obj, c.scheme)
+		if err != nil {
+			return err
+		}
+		ta, err := meta.TypeAccessor(o)
+		if err != nil {
+			return err
+		}
+		ta.SetKind(gvk.Kind)
+		ta.SetAPIVersion(gvk.GroupVersion().String())
+	}
+
+	j, err := json.Marshal(o)
+	if err != nil {
+		return err
+	}
+	zero(obj)
+	return json.Unmarshal(j, obj)
 }
 
 func (c *fakeClient) Watch(ctx context.Context, list client.ObjectList, opts ...client.ListOption) (watch.Interface, error) {
@@ -505,6 +500,11 @@ func (c *fakeClient) Watch(ctx context.Context, list client.ObjectList, opts ...
 }
 
 func (c *fakeClient) List(ctx context.Context, obj client.ObjectList, opts ...client.ListOption) error {
+	switch obj.(type) {
+	case *corev1.PersistentVolumeClaimList:
+		return errors.New("failed to list object")
+	}
+
 	gvk, err := apiutil.GVKForObject(obj, c.scheme)
 	if err != nil {
 		return err

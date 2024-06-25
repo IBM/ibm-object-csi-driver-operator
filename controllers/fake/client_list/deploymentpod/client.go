@@ -31,7 +31,6 @@ import (
 	"time"
 
 	// Using v4 to match upstream
-	"github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -506,7 +505,7 @@ func (c *fakeClient) List(ctx context.Context, obj client.ObjectList, opts ...cl
 
 	switch obj.(type) {
 	case *corev1.PodList:
-		if listOpts.Namespace == constants.CSIOperatorNamespace {
+		if listOpts.Namespace == "default" {
 			return errors.New("failed to list object")
 		}
 	}
