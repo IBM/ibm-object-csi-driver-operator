@@ -1,18 +1,19 @@
 package controllers
 
-/*
 import (
 	"errors"
 	"os"
 	"testing"
 
 	"github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
+	"github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
 	fakedelete "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_delete"
 	fakeget "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_get"
 	fakegetdeploy "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_get/deployment"
-	fakegetpvc "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_get/pvc"
 	fakelist "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_list"
+	fakelistdeploypod "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_list/deploymentpod"
 	fakelistnodeserverpod "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_list/nodeserverpod"
+	fakelistpvc "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_list/pvc"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -27,6 +28,8 @@ import (
 )
 
 var (
+	emptyVal = ""
+
 	recoverStaleVolumeReconcileRequest = reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      recoverStaleVolCRName,
@@ -40,14 +43,10 @@ var (
 			Namespace: TestNamespace,
 		},
 		Spec: v1alpha1.RecoverStaleVolumeSpec{
-			NoOfLogLines: int64(100),
-			Deployment: []v1alpha1.DeploymentData{
+			LogHistory: int64(100),
+			Data: []v1alpha1.NamespacedDeploymentData{
 				{
-					DeploymentName: testDeploymentName,
-				},
-				{
-					DeploymentName:      "deployment-not-existing",
-					DeploymentNamespace: testDeploymentNamespace,
+					Namespace: testDeploymentNamespace,
 				},
 			},
 		},
@@ -58,7 +57,21 @@ var (
 			Name:      testDeploymentName,
 			Namespace: testDeploymentNamespace,
 		},
-		Spec: appsv1.DeploymentSpec{},
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Volumes: []corev1.Volume{
+						{
+							VolumeSource: corev1.VolumeSource{
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+									ClaimName: testPVCName1,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	deploymentPod1 = &corev1.Pod{
@@ -89,26 +102,6 @@ var (
 		},
 	}
 
-	deploymentPod2 = &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      testDeploymentName + "-pod2",
-			Namespace: testDeploymentNamespace,
-		},
-		Spec: corev1.PodSpec{
-			NodeName: testNode1,
-			Volumes: []corev1.Volume{
-				{
-					Name: testPVName2,
-					VolumeSource: corev1.VolumeSource{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-							ClaimName: testPVCName2,
-						},
-					},
-				},
-			},
-		},
-	}
-
 	pvc1 = &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testPVCName1,
@@ -120,21 +113,10 @@ var (
 		},
 	}
 
-	pvc2 = &corev1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      testPVCName2,
-			Namespace: testDeploymentNamespace,
-		},
-		Spec: corev1.PersistentVolumeClaimSpec{
-			StorageClassName: &testStorageClassName,
-			VolumeName:       testPVName2,
-		},
-	}
-
 	nodeServerPod1 = &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      csiNodePodPrefix + "-pod1",
-			Namespace: TestNamespace,
+			Name:      constants.GetResourceName(constants.CSINode) + "-pod1",
+			Namespace: constants.CSIOperatorNamespace,
 		},
 		Spec: corev1.PodSpec{
 			NodeName: testNode1,
@@ -143,8 +125,8 @@ var (
 
 	nodeServerPod2 = &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      csiNodePodPrefix + "-pod2",
-			Namespace: TestNamespace,
+			Name:      constants.GetResourceName(constants.CSINode) + "-pod2",
+			Namespace: constants.CSIOperatorNamespace,
 		},
 		Spec: corev1.PodSpec{
 			NodeName: testNode2,
@@ -153,8 +135,8 @@ var (
 
 	nodeServerPod3 = &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      csiNodePodPrefix + "-pod3",
-			Namespace: TestNamespace,
+			Name:      constants.GetResourceName(constants.CSINode) + "-pod3",
+			Namespace: constants.CSIOperatorNamespace,
 		},
 		Spec: corev1.PodSpec{
 			NodeName: testNode3,
@@ -177,9 +159,7 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 				recoverStaleVolumeCR,
 				deployment,
 				deploymentPod1,
-				deploymentPod2,
 				pvc1,
-				pvc2,
 				nodeServerPod1,
 				nodeServerPod2,
 				nodeServerPod3,
@@ -192,7 +172,7 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 					Clientset: fakeK8s.NewSimpleClientset(),
 				}, nil
 			},
-			expectedResp: reconcile.Result{RequeueAfter: reconcileTime},
+			expectedResp: reconcile.Result{RequeueAfter: constants.ReconcilationTime},
 			expectedErr:  nil,
 		},
 		{
@@ -208,10 +188,14 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 			expectedErr:  nil,
 		},
 		{
-			testCaseName: "Positive: No workload is passed to watch",
+			testCaseName: "Incomplete: StorageClassName is nil",
 			objects: []runtime.Object{
-				&v1alpha1.RecoverStaleVolume{
-					ObjectMeta: recoverStaleVolumeCR.ObjectMeta,
+				recoverStaleVolumeCR,
+				&corev1.PersistentVolumeClaim{
+					ObjectMeta: pvc1.ObjectMeta,
+					Spec: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: nil,
+					},
 				},
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
@@ -220,11 +204,56 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 			kubeClientFunc: func() (*KubernetesClient, error) {
 				return nil, nil
 			},
-			expectedResp: reconcile.Result{RequeueAfter: reconcileTime},
+			expectedResp: reconcile.Result{RequeueAfter: constants.ReconcilationTime},
 			expectedErr:  nil,
 		},
 		{
-			testCaseName: "Positive: Node Server Pods not found",
+			testCaseName: "Incomplete: StorageClassName is empty",
+			objects: []runtime.Object{
+				recoverStaleVolumeCR,
+				&corev1.PersistentVolumeClaim{
+					ObjectMeta: pvc1.ObjectMeta,
+					Spec: corev1.PersistentVolumeClaimSpec{
+						StorageClassName: &emptyVal,
+					},
+				},
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			kubeClientFunc: func() (*KubernetesClient, error) {
+				return nil, nil
+			},
+			expectedResp: reconcile.Result{RequeueAfter: constants.ReconcilationTime},
+			expectedErr:  nil,
+		},
+		{
+			testCaseName: "Incomplete: No deploymnets to watch",
+			objects: []runtime.Object{
+				&v1alpha1.RecoverStaleVolume{
+					ObjectMeta: recoverStaleVolumeCR.ObjectMeta,
+					Spec: v1alpha1.RecoverStaleVolumeSpec{
+						Data: []v1alpha1.NamespacedDeploymentData{
+							{
+								Namespace:   testDeploymentNamespace,
+								Deployments: []string{testDeploymentName},
+							},
+						},
+					},
+				},
+				pvc1,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			kubeClientFunc: func() (*KubernetesClient, error) {
+				return nil, nil
+			},
+			expectedResp: reconcile.Result{RequeueAfter: constants.ReconcilationTime},
+			expectedErr:  nil,
+		},
+		{
+			testCaseName: "Incomplete: Node Server Pods not found",
 			objects: []runtime.Object{
 				recoverStaleVolumeCR,
 				deployment,
@@ -237,7 +266,7 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 			kubeClientFunc: func() (*KubernetesClient, error) {
 				return nil, nil
 			},
-			expectedResp: reconcile.Result{RequeueAfter: reconcileTime},
+			expectedResp: reconcile.Result{RequeueAfter: constants.ReconcilationTime},
 			expectedErr:  nil,
 		},
 		{
@@ -253,47 +282,9 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 			expectedErr:  errors.New(GetError),
 		},
 		{
-			testCaseName: "Negative: Deployment Name is missing",
-			objects: []runtime.Object{
-				&v1alpha1.RecoverStaleVolume{
-					ObjectMeta: recoverStaleVolumeCR.ObjectMeta,
-					Spec: v1alpha1.RecoverStaleVolumeSpec{
-						Deployment: []v1alpha1.DeploymentData{
-							{
-								DeploymentName: "",
-							},
-						},
-					},
-				},
-			},
-			clientFunc: func(objs []runtime.Object) client.WithWatch {
-				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
-			},
-			kubeClientFunc: func() (*KubernetesClient, error) {
-				return nil, nil
-			},
-			expectedResp: reconcile.Result{RequeueAfter: reconcileTime},
-			expectedErr:  nil,
-		},
-		{
-			testCaseName: "Negative: Failed to get deployment",
+			testCaseName: "Negative: Failed to list deployments",
 			objects: []runtime.Object{
 				recoverStaleVolumeCR,
-			},
-			clientFunc: func(objs []runtime.Object) client.WithWatch {
-				return fakegetdeploy.NewClientBuilder().WithRuntimeObjects(objs...).Build()
-			},
-			kubeClientFunc: func() (*KubernetesClient, error) {
-				return nil, nil
-			},
-			expectedResp: reconcile.Result{},
-			expectedErr:  errors.New(GetError),
-		},
-		{
-			testCaseName: "Negative: Failed to get deployment pods list",
-			objects: []runtime.Object{
-				recoverStaleVolumeCR,
-				deployment,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fakelist.NewClientBuilder().WithRuntimeObjects(objs...).Build()
@@ -305,14 +296,28 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 			expectedErr:  errors.New(ListError),
 		},
 		{
-			testCaseName: "Megative: Failed to get pvc",
+			testCaseName: "Negative: Failed to list pvc",
+			objects: []runtime.Object{
+				recoverStaleVolumeCR,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fakelistpvc.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			kubeClientFunc: func() (*KubernetesClient, error) {
+				return nil, nil
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(ListError),
+		},
+		{
+			testCaseName: "Negative: Failed to get deployment",
 			objects: []runtime.Object{
 				recoverStaleVolumeCR,
 				deployment,
-				deploymentPod1,
+				pvc1,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
-				return fakegetpvc.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+				return fakegetdeploy.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 			},
 			kubeClientFunc: func() (*KubernetesClient, error) {
 				return nil, nil
@@ -321,7 +326,24 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 			expectedErr:  errors.New(GetError),
 		},
 		{
-			testCaseName: "Negative: Failed to get node-server-pods list",
+			testCaseName: "Negative: Failed to list deployment pods",
+			objects: []runtime.Object{
+				recoverStaleVolumeCR,
+				deployment,
+				deploymentPod1,
+				pvc1,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fakelistdeploypod.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			kubeClientFunc: func() (*KubernetesClient, error) {
+				return nil, nil
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(ListError),
+		},
+		{
+			testCaseName: "Negative: Failed to list node-server-pods",
 			objects: []runtime.Object{
 				recoverStaleVolumeCR,
 				deployment,
@@ -417,13 +439,6 @@ func TestRecoverStaleVolumeSetupWithManager(t *testing.T) {
 	})
 }
 
-func TestContains(t *testing.T) {
-	t.Run("Positive: Successful", func(t *testing.T) {
-		res := contains([]string{"ele1", "ele2"}, "ele1")
-		assert.True(t, res)
-	})
-}
-
 func TestCreateK8sClient(t *testing.T) {
 	t.Run("", func(t *testing.T) {
 		os.Setenv("KUBERNETES_SERVICE_HOST", "test-service-host") // #nosec G104 Skip error
@@ -434,4 +449,3 @@ func TestCreateK8sClient(t *testing.T) {
 		assert.Error(t, err)
 	})
 }
-*/
