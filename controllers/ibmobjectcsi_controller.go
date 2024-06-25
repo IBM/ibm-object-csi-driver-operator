@@ -42,9 +42,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -64,7 +68,7 @@ type IBMObjectCSIReconciler struct {
 //+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=ibmobjectcsis/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=ibmobjectcsis/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;delete;list;watch
-//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;create;delete
+//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;create;delete;list;watch;update
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;update;patch
 //+kubebuilder:rbac:groups="",resources=persistentvolumeclaims/status,verbs=get;update;patch
@@ -98,6 +102,13 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	reqLogger := csiLog.WithValues("Request.Namespace", req.Namespace, "Request.Name", req.Name)
 	reqLogger.Info("Reconciling IBMObjectCSI")
 	r.ControllerHelper.Log = csiLog
+
+	// Check if the reconcile was triggered by the ConfigMap events
+	if req.Name == constants.ResourceReqLimitsConfigMap {
+		reqLogger.Info("Reconcile triggered by ConfigMap event")
+		// Handle the update of IBMObjectCSI
+		return r.handleConfigMapReconcile(ctx, req)
+	}
 
 	// Fetch the CSIDriver instance
 	instance := crutils.New(&objectdriverv1alpha1.IBMObjectCSI{})
@@ -177,6 +188,66 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	// Resources created successfully - don't requeue
+	return reconcile.Result{}, nil
+}
+
+// handleConfigMapReconcile handles reconciliation triggered by the ConfigMap event
+func (r *IBMObjectCSIReconciler) handleConfigMapReconcile(ctx context.Context, req ctrl.Request) (reconcile.Result, error) {
+	reqLogger := csiLog.WithValues("Request.Namespace", req.Namespace, "Request.Name", req.Name)
+	reqLogger.Info("Handling Reconcile IBMObjectCSI for ConfigMap event")
+
+	// Fetch the ConfigMap instance
+	configMap := &corev1.ConfigMap{}
+	err := r.Get(ctx, req.NamespacedName, configMap)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			reqLogger.Info("ConfigMap", req.Name, "not found in namespace", req.Namespace)
+			// what action should be taken when cm is not found?
+		} else {
+			reqLogger.Error(err, "Failed to get ConfigMap", req.Name)
+			// Error reading the object - requeue the request.
+			return reconcile.Result{}, err
+		}
+	}
+
+	//get values from configMap
+	CSINodeCPURequest := configMap.Data["CSINodeCPURequest"]
+	CSINodeMemoryRequest := configMap.Data["CSINodeMemoryRequest"]
+	CSINodeCPULimit := configMap.Data["CSINodeCPULimit"]
+	CSINodeMemoryLimit := configMap.Data["CSINodeMemoryLimit"]
+
+	reqLogger.Info("The resource requests and limits fetched from configmap",
+		"CSINodeCPURequest", CSINodeCPURequest, "CSINodeMemoryRequest", CSINodeMemoryRequest,
+		"CSINodeCPULimit", CSINodeCPULimit, "CSINodeMemoryLimit", CSINodeMemoryLimit)
+
+	// Fetch the IBMObjectCSI instance
+	instance := &objectdriverv1alpha1.IBMObjectCSI{}
+
+	err = r.Get(ctx, types.NamespacedName{
+		Namespace: constants.ObjectCSIDriverOperatorDeployNS,
+		Name:      constants.ObjectCSIDriver},
+		instance)
+	if err != nil {
+		reqLogger.Error(err, "Failed to get IBMObjectCSI instance")
+		return reconcile.Result{}, err
+	}
+	reqLogger.Info("IBMObjectCSI CR fetched successfully")
+
+	// Update the IBMObjectCSI instance with values from ConfigMap
+	instance.Spec.Node.Resources.Requests.CPU = CSINodeCPURequest
+	instance.Spec.Node.Resources.Requests.Memory = CSINodeMemoryRequest
+	instance.Spec.Node.Resources.Limits.CPU = CSINodeCPULimit
+	instance.Spec.Node.Resources.Limits.Memory = CSINodeMemoryLimit
+
+	// Update the instance in the Kubernetes API server
+	reqLogger.Info("Updating IBMObjectCSI CR with resource requests and limits for Node pods")
+	err = r.Update(ctx, instance)
+	if err != nil {
+		reqLogger.Error(err, "Failed to update IBMObjectCSI instance with ConfigMap values")
+		return reconcile.Result{}, err
+	}
+	reqLogger.Info("IBMObjectCSI CR is getting updated. Node pods will get restarted to reflect updated resource requests and limits")
+
 	return reconcile.Result{}, nil
 }
 
@@ -538,5 +609,35 @@ func (r *IBMObjectCSIReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&appsv1.Deployment{}).
 		Owns(&appsv1.DaemonSet{}).
 		Owns(&corev1.ServiceAccount{}).
+		Watches(&corev1.ConfigMap{}, &handler.EnqueueRequestForObject{}, builder.WithPredicates(configMapPredicate())).
 		Complete(r)
+}
+
+func configMapPredicate() predicate.Predicate {
+	logger := csiLog.WithName("configMapPredicate")
+	triggerReconcile := predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			configmap := e.Object.(*corev1.ConfigMap)
+			if configmap.Name == constants.ResourceReqLimitsConfigMap {
+				logger.Info("Create detected on the configmap", "configmap", configmap.Name)
+				return true
+			}
+			return false
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			configmap := e.ObjectNew.(*corev1.ConfigMap)
+			if configmap.Name == constants.ResourceReqLimitsConfigMap {
+				logger.Info("Update detected on the configmap", "configmap", configmap.Name)
+				return true
+			}
+			return false
+		},
+		DeleteFunc: func(event.DeleteEvent) bool {
+			return false
+		},
+		GenericFunc: func(event.GenericEvent) bool {
+			return false
+		},
+	}
+	return triggerReconcile
 }
