@@ -18,7 +18,7 @@ func (c *IBMObjectCSI) GenerateCSIDriver() *storagev1.CSIDriver {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: constants.DriverName,
 			Labels: map[string]string{
-				"app.kubernetes.io/name":       constants.DriverPrefix,
+				"app.kubernetes.io/name":       constants.ObjectCSIDriver,
 				"app.kubernetes.io/part-of":    constants.CSIDriverName,
 				"app.kubernetes.io/managed-by": constants.CSIOperatorName,
 			},

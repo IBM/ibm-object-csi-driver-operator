@@ -60,8 +60,6 @@ const (
 	HealthPortName   = "healthz"
 	HealthPortNumber = 9808
 
-	DriverPrefix = "ibm-object-csi"
-
 	CSIController                         = "controller"
 	CSINode                               = "node"
 	CSIControllerServiceAccount           = "controller-sa"
@@ -72,6 +70,10 @@ const (
 	CSIControllerSCCClusterRoleBinding    = "controller-scc-clusterrolebinding"
 	CSINodeSCCClusterRole                 = "node-scc-clusterrole"
 	CSINodeSCCClusterRoleBinding          = "node-scc-clusterrolebinding"
+
+	ResourceReqLimitsConfigMap      = "cos-csi-driver-configmap"
+	ObjectCSIDriverOperatorDeployNS = "ibm-object-csi-operator"
+	ObjectCSIDriver                 = "ibm-object-csi"
 
 	StorageClassPrefix = "ibm-object-storage-"
 	StorageClassSuffix = "-sc"
@@ -94,5 +96,5 @@ var CommonCSIResourceLabels = map[string]string{
 
 // GetResourceName returns the name of a resource for a CSI driver
 func GetResourceName(name string) string {
-	return fmt.Sprintf("%s-%s", DriverPrefix, name)
+	return fmt.Sprintf("%s-%s", ObjectCSIDriver, name)
 }

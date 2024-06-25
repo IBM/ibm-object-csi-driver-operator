@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cos-csi-driver-configmap
+  namespace: ibm-object-csi-operator
+data:
+  ReconcileStorageClasses: "true"
+  #Resource Requests per container
+  CSINodeCPURequest: "40m"                    #container:ibm-object-csi-node, resource-type: cpu-request
+  CSINodeMemoryRequest: "40Mi"                #container:ibm-object-csi-node, resource-type: memory-request
+
+  #Resource Limits per container
+  CSINodeCPULimit: "4"                         #container:ibm-object-csi-node, resource-type: cpu-limit
+  CSINodeMemoryLimit: "800Mi"                  #container:ibm-object-csi-node, resource-type: memory-limit
