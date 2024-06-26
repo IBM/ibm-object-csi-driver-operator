@@ -219,7 +219,7 @@ func (r *IBMObjectCSIReconciler) handleConfigMapReconcile(ctx context.Context, r
 	instance := &objectdriverv1alpha1.IBMObjectCSI{}
 
 	err = r.Get(ctx, types.NamespacedName{
-		Namespace: constants.ObjectCSIDriverOperatorDeployNS,
+		Namespace: constants.CSIOperatorNamespace,
 		Name:      constants.ObjectCSIDriver},
 		instance)
 	if err != nil {
