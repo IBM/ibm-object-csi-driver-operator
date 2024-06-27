@@ -222,8 +222,8 @@ func (c *IBMObjectCSI) GenerateS3fsSC(storageClassNamePrefix string,
 	region string, cosEndpoint string, cosStorageClass string) *storagev1.StorageClass {
 	// TODO: TIER Based SC
 	var storageClassName string
-	var cosEP string = ""
-	var cosSC string = "standard"
+	var cosEP string
+	var cosSC = "standard"
 
 	if len(cosEndpoint) > 0 {
 		cosEP = cosEndpoint
@@ -240,7 +240,7 @@ func (c *IBMObjectCSI) GenerateS3fsSC(storageClassNamePrefix string,
 		storageClassName = fmt.Sprintf("%s-%s-s3fs", storageClassNamePrefix, cosSC)
 	}
 
-	if isIBMColud == true {
+	if isIBMColud {
 		ibmCosSC := fmt.Sprintf("%s-%s", region, cosSC)
 		cosSC = ibmCosSC
 	}
@@ -277,10 +277,9 @@ func (c *IBMObjectCSI) GenerateS3fsSC(storageClassNamePrefix string,
 func (c *IBMObjectCSI) GenerateRcloneSC(storageClassNamePrefix string,
 	reclaimPolicy corev1.PersistentVolumeReclaimPolicy, isIBMColud bool,
 	region string, cosEndpoint string, cosStorageClass string) *storagev1.StorageClass {
-
 	var storageClassName string
-	var cosEP string = ""
-	var cosSC string = "standard"
+	var cosEP string
+	var cosSC = "standard"
 
 	if len(cosEndpoint) > 0 {
 		cosEP = cosEndpoint
@@ -297,7 +296,7 @@ func (c *IBMObjectCSI) GenerateRcloneSC(storageClassNamePrefix string,
 		storageClassName = fmt.Sprintf("%s-%s-rclone", storageClassNamePrefix, cosSC)
 	}
 
-	if isIBMColud == true {
+	if isIBMColud {
 		ibmCosSC := fmt.Sprintf("%s-%s", region, cosSC)
 		cosSC = ibmCosSC
 	}
