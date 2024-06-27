@@ -549,7 +549,6 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
 	cosRegion := r.ControllerHelper.GetRegion()
 	cosEP := r.ControllerHelper.GetCosEP()
 	s3Provider := r.ControllerHelper.GetS3Provider()
-	scNamePrefix := constants.StorageClassPrefix
 
 	k8sSCs := []*storagev1.StorageClass{}
 	cosSCs := []string{}
@@ -562,22 +561,16 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
 	if isIBMCloud && (len(s3Provider) == 0 || s3Provider == constants.S3ProviderIBM) {
 		cosEP = r.ControllerHelper.GetIBMCosEP()
 		cosSCs = r.ControllerHelper.GetIBMCosSC()
-		// for _, sc := range cosSC {
-		// 	ibmCosSC := fmt.Sprintf("%s-%s", cosRegion, sc)
-		// 	cosSCs = append(cosSCs, ibmCosSC)
-		// }
 	} else {
 		cosSCs = append(cosSCs, "standard")
 	}
 
 	for _, sc := range cosSCs {
 		for _, rp := range reclaimPolicys {
-			k8sSc := instance.GenerateRcloneSC(scNamePrefix, rp,
-				isIBMCloud, cosRegion, cosEP, sc)
+			k8sSc := instance.GenerateRcloneSC(rp, isIBMCloud, cosRegion, cosEP, sc)
 			k8sSCs = append(k8sSCs, k8sSc)
 
-			k8sSc = instance.GenerateS3fsSC(scNamePrefix, rp,
-				isIBMCloud, cosRegion, cosEP, sc)
+			k8sSc = instance.GenerateS3fsSC(rp, isIBMCloud, cosRegion, cosEP, sc)
 			k8sSCs = append(k8sSCs, k8sSc)
 		}
 	}
