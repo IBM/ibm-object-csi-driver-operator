@@ -8,6 +8,7 @@ metadata:
     app.kubernetes.io/instance: ibm-object-csi
     release: v1.0.0
 spec:
+  s3Provider: "ibm-cos"
   # controller is a deployment with ibm-object-csi-controller container
   # and csi-provisioner, csi-attacher, csi-snapshotter and livenessprobe sidecars.
   controller:

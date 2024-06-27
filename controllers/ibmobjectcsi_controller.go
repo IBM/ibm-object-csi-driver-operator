@@ -160,7 +160,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 	r.ControllerHelper.S3Provider = s3Provider
 
-	// create the resources which never change if not exist
+	// create the resources if not exist
 	for _, rec := range []reconciler{
 		r.reconcileCSIDriver,
 		r.reconcileServiceAccount,
@@ -546,7 +546,6 @@ func (r *IBMObjectCSIReconciler) getClusterRoleBindings(instance *crutils.IBMObj
 }
 
 func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCSI) []*storagev1.StorageClass {
-
 	cosRegion := r.ControllerHelper.GetRegion()
 	cosEP := r.ControllerHelper.GetCosEP()
 	s3Provider := r.ControllerHelper.GetS3Provider()
@@ -567,7 +566,6 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
 		// 	ibmCosSC := fmt.Sprintf("%s-%s", cosRegion, sc)
 		// 	cosSCs = append(cosSCs, ibmCosSC)
 		// }
-
 	} else {
 		cosSCs = append(cosSCs, "standard")
 	}
