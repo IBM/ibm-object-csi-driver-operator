@@ -17,7 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
@@ -251,23 +250,23 @@ func (ch *ControllerHelper) getAccessorAndFinalizerName(instance crutils.Instanc
 }
 
 // Check the platform, if IBM Cloud then get Region and IaaS provider
-func (ch *ControllerHelper) GetIBMClusterInfo(clientset *kubernetes.Clientset) error {
+// func (ch *ControllerHelper) GetIBMClusterInfo(clientset *kubernetes.Clientset) error {
+func (ch *ControllerHelper) GetIBMClusterInfo() error {
 	var listOptions = &client.ListOptions{}
-	var err error
+	// var err error
 	nodes := corev1.NodeList{}
 
 	logger := ch.Log.WithName("getClusterInfo")
-
 	logger.Info("Checking cluster platform...")
 
-	if clientset != nil {
-		list, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
-		if err == nil {
-			nodes = *list
-		}
-	} else {
-		err = ch.List(context.TODO(), &nodes, listOptions)
-	}
+	// if clientset != nil {
+	// list, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	// if err == nil {
+	// 	nodes = *list
+	// }
+	// } else {
+	err := ch.List(context.TODO(), &nodes, listOptions)
+	// }
 	if err != nil {
 		logger.Error(err, "Get Cluster Info")
 		return err
@@ -282,7 +281,6 @@ func (ch *ControllerHelper) GetIBMClusterInfo(clientset *kubernetes.Clientset) e
 	logger.Info("Get cluster IaaS Provider...")
 	if val, ok := nodes.Items[0].Labels["ibm-cloud.kubernetes.io/iaas-provider"]; ok {
 		logger.Info("Detected IBM IaaS provider: ", val)
-		// ch.S3Provider = &constants.S3ProviderIBM Do not set Provider here user may specify S3 Provider in CR
 		if val == "g2" {
 			ch.IaaSProvider = constants.IaasIBMVPC
 		} else {

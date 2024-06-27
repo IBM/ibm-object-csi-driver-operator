@@ -25,10 +25,8 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -96,22 +94,31 @@ func main() {
 	controllerHelper := common.NewControllerHelper(mgr.GetClient())
 
 	// TODO: TIER Based SC Get cluster info
-	var clstrClient *kubernetes.Clientset
-	inConfig, err := rest.InClusterConfig()
+
+	// var clstrClient *kubernetes.Clientset
+	// inConfig, err := rest.InClusterConfig()
+	// if err != nil {
+	// 	setupLog.Info("Get Cluster Info: Unable to load config")
+	// } else {
+	// clstrClient, err = kubernetes.NewForConfig(inConfig)
+	// if err != nil {
+	// 	setupLog.Info("Get Cluster Info: Unable to load config")
+	// } else {
+	// err = controllerHelper.GetIBMClusterInfo(clstrClient)
+	// if err != nil {
+	// 	setupLog.Info("Get Cluster Info", "warning", err)
+	// } else {
+	// 	setupLog.Info("Detected: ", "IaaS Provider", controllerHelper.GetIaaSProvider())
+	// }
+	// }
+	// }
+
+	err = controllerHelper.GetIBMClusterInfo()
 	if err != nil {
-		setupLog.Info("Get Cluster Info: Unable to load config")
+		setupLog.Info("Get Cluster Info", "warning", err)
 	} else {
-		clstrClient, err = kubernetes.NewForConfig(inConfig)
-		if err != nil {
-			setupLog.Info("Get Cluster Info: Unable to load config")
-		} else {
-			err = controllerHelper.GetIBMClusterInfo(clstrClient)
-		}
-		if err != nil {
-			setupLog.Info("Get Cluster Info", "warning", err)
-		}
+		setupLog.Info("Detected: ", "IaaS Provider", controllerHelper.GetIaaSProvider())
 	}
-	setupLog.Info("Detected: ", "IaaS Provider", controllerHelper.GetIaaSProvider())
 
 	if err = (&controllers.IBMObjectCSIReconciler{
 		Client:           mgr.GetClient(),

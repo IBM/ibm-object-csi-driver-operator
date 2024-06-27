@@ -154,13 +154,19 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 	originalStatus := *instance.Status.DeepCopy()
 
+	s3Provider := instance.Spec.S3Provider
+	if s3Provider == "" {
+		s3Provider = constants.S3ProviderIBM
+	}
+	r.ControllerHelper.S3Provider = s3Provider
+
 	// create the resources which never change if not exist
 	for _, rec := range []reconciler{
 		r.reconcileCSIDriver,
 		r.reconcileServiceAccount,
 		r.reconcileClusterRole,
 		r.reconcileClusterRoleBinding,
-		// r.reconcileStorageClasses,
+		r.reconcileStorageClasses,
 	} {
 		if err = rec(instance); err != nil {
 			return reconcile.Result{}, err
@@ -175,11 +181,6 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	csiNodeSyncer := clustersyncer.NewCSINodeSyncer(r.Client, instance)
 	if err := syncer.Sync(ctx, csiNodeSyncer, r.Recorder); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	// TODO: Reconcile SC Check. First process RC, User may provide S3Provider in RC.
-	if err = r.reconcileStorageClasses(instance); err != nil {
 		return reconcile.Result{}, err
 	}
 
