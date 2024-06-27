@@ -71,13 +71,10 @@ const (
 	CSINodeSCCClusterRole                 = "node-scc-clusterrole"
 	CSINodeSCCClusterRoleBinding          = "node-scc-clusterrolebinding"
 
+	ResourceReqLimitsConfigMap = "cos-csi-driver-configmap"
+	ObjectCSIDriver            = "ibm-object-csi"
 
-	StorageClassNamePrefix = "ibm-object-storage"
-	RetainPolicyTag        = "retain"
-
-	ResourceReqLimitsConfigMap      = "cos-csi-driver-configmap"
-	ObjectCSIDriverOperatorDeployNS = "ibm-object-csi-operator"
-	ObjectCSIDriver                 = "ibm-object-csi"
+	RetainPolicyTag = "retain"
 
 	StorageClassPrefix = "ibm-object-storage"
 

@@ -343,7 +343,7 @@ var (
 
 	rCloneSC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-standard-rclone", constants.StorageClassNamePrefix),
+			Name: fmt.Sprintf("%s-standard-rclone", constants.StorageClassPrefix),
 		},
 		Provisioner:   constants.DriverName,
 		ReclaimPolicy: &reclaimPolicyDelete,
@@ -370,7 +370,7 @@ var (
 
 	rCloneRetainSC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-standard-rclone-retain", constants.StorageClassNamePrefix),
+			Name: fmt.Sprintf("%s-standard-rclone-retain", constants.StorageClassPrefix),
 		},
 		Provisioner:   constants.DriverName,
 		ReclaimPolicy: &reclaimPolicyRetain,
@@ -397,7 +397,7 @@ var (
 
 	s3fsSC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-standard-s3fs", constants.StorageClassNamePrefix),
+			Name: fmt.Sprintf("%s-standard-s3fs", constants.StorageClassPrefix),
 		},
 		Provisioner:   constants.DriverName,
 		ReclaimPolicy: &reclaimPolicyDelete,
@@ -421,7 +421,7 @@ var (
 
 	s3fsRetainSC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-standard-s3fs-retain", constants.StorageClassNamePrefix),
+			Name: fmt.Sprintf("%s-standard-s3fs-retain", constants.StorageClassPrefix),
 		},
 		Provisioner:   constants.DriverName,
 		ReclaimPolicy: &reclaimPolicyRetain,

@@ -224,7 +224,7 @@ func (r *IBMObjectCSIReconciler) handleConfigMapReconcile(ctx context.Context, r
 	instance := &objectdriverv1alpha1.IBMObjectCSI{}
 
 	err = r.Get(ctx, types.NamespacedName{
-		Namespace: constants.ObjectCSIDriverOperatorDeployNS,
+		Namespace: constants.CSIOperatorNamespace,
 		Name:      constants.ObjectCSIDriver},
 		instance)
 	if err != nil {
@@ -549,7 +549,7 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
 	cosRegion := r.ControllerHelper.GetRegion()
 	cosEP := r.ControllerHelper.GetCosEP()
 	s3Provider := r.ControllerHelper.GetS3Provider()
-	scNamePrefix := constants.StorageClassNamePrefix
+	scNamePrefix := constants.StorageClassPrefix
 
 	k8sSCs := []*storagev1.StorageClass{}
 	cosSCs := []string{}
