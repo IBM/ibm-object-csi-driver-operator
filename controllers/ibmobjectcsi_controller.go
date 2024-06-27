@@ -545,7 +545,6 @@ func (r *IBMObjectCSIReconciler) getClusterRoleBindings(instance *crutils.IBMObj
 }
 
 func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCSI) []*storagev1.StorageClass {
-
 	cosRegion := r.ControllerHelper.GetRegion()
 	cosEP := r.ControllerHelper.GetCosEP()
 	s3Provider := r.ControllerHelper.GetS3Provider()
@@ -566,7 +565,6 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
 		// 	ibmCosSC := fmt.Sprintf("%s-%s", cosRegion, sc)
 		// 	cosSCs = append(cosSCs, ibmCosSC)
 		// }
-
 	} else {
 		cosSCs = append(cosSCs, "standard")
 	}

@@ -24,7 +24,6 @@ import (
 
 var iaasIBMVPC = "ibm-vpc"
 var iaasIBMClassic = "ibm-classic"
-var cosIBMProvider = "ibm-cos"
 
 // ControllerHelper ...
 type ControllerHelper struct {
