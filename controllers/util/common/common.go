@@ -10,20 +10,30 @@ import (
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/crutils"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util"
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
+var iaasIBMVPC = "ibm-vpc"
+var iaasIBMClassic = "ibm-classic"
+var cosIBMProvider = "ibm-cos"
+
 // ControllerHelper ...
 type ControllerHelper struct {
 	client.Client
-	Log logr.Logger
+	Log          logr.Logger
+	Region       string
+	CosEP        string
+	IaaSProvider string
+	S3Provider   string // IBM COS / AWS S3 / Wasabi
 }
 
 // NewControllerHelper ...
@@ -242,4 +252,97 @@ func (ch *ControllerHelper) getAccessorAndFinalizerName(instance crutils.Instanc
 		return nil, "", err
 	}
 	return accessor, finalizerName, nil
+}
+
+// Check the platform, if IBM Cloud then get Region and IaaS provider
+func (ch *ControllerHelper) GetIBMClusterInfo(clientset *kubernetes.Clientset) error {
+	var listOptions = &client.ListOptions{}
+	var err error
+	nodes := corev1.NodeList{}
+
+	logger := ch.Log.WithName("getClusterInfo")
+
+	logger.Info("Checking cluster platform...")
+
+	if clientset != nil {
+		list, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+		if err == nil {
+			nodes = *list
+		}
+	} else {
+		err = ch.List(context.TODO(), &nodes, listOptions)
+	}
+	if err != nil {
+		logger.Error(err, "Get Cluster Info")
+		return err
+	}
+
+	logger.Info("Get cluster region...")
+	if val, ok := nodes.Items[0].Labels["ibm-cloud.kubernetes.io/region"]; ok {
+		ch.Region = val
+		logger.Info("Detected IBM Cluster region: ", ch.Region)
+	}
+
+	logger.Info("Get cluster IaaS Provider...")
+	if val, ok := nodes.Items[0].Labels["ibm-cloud.kubernetes.io/iaas-provider"]; ok {
+		logger.Info("Detected IBM IaaS provider: ", val)
+		// ch.S3Provider = &cosIBMProvider Do not set Provider here user may specify S3 Provider in CR
+		if val == "g2" {
+			ch.IaaSProvider = iaasIBMVPC
+		} else {
+			ch.IaaSProvider = iaasIBMClassic
+		}
+		logger.Info("Detected endpoint type: ", ch.IaaSProvider)
+	}
+	return nil
+}
+
+func (ch *ControllerHelper) GetS3Provider() string {
+	return ch.S3Provider
+}
+
+func (ch *ControllerHelper) GetIaaSProvider() string {
+	return ch.IaaSProvider
+}
+
+func (ch *ControllerHelper) GetRegion() string {
+	return ch.Region
+}
+
+func (ch *ControllerHelper) GetCosEP() string {
+	return ch.CosEP
+}
+
+func (ch *ControllerHelper) IsIBMColud() bool {
+	retVal := false
+	if len(ch.IaaSProvider) == 0 || len(ch.Region) == 0 {
+		return retVal
+	}
+	if ch.IaaSProvider == iaasIBMVPC || ch.IaaSProvider == iaasIBMClassic {
+		retVal = true
+	}
+	return retVal
+}
+
+func (ch *ControllerHelper) GetIBMCosSC() []string {
+	if len(ch.IaaSProvider) == 0 || len(ch.Region) == 0 {
+		return make([]string, 0)
+	}
+	cosSC := []string{"standard", "smart"}
+	return cosSC
+}
+
+func (ch *ControllerHelper) GetIBMCosEP() string {
+	var cosEP string
+	if len(ch.IaaSProvider) == 0 || len(ch.Region) == 0 {
+		return cosEP
+	}
+	if ch.IaaSProvider == iaasIBMVPC || ch.IaaSProvider == iaasIBMClassic {
+		epType := "private"
+		if ch.IaaSProvider == iaasIBMVPC {
+			epType = "direct"
+		}
+		cosEP = fmt.Sprintf("https://s3.%s.%s.cloud-object-storage.appdomain.cloud", epType, ch.Region)
+	}
+	return cosEP
 }

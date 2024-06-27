@@ -74,13 +74,15 @@ const (
 	ResourceReqLimitsConfigMap = "cos-csi-driver-configmap"
 	ObjectCSIDriver            = "ibm-object-csi"
 
-	StorageClassPrefix = "ibm-object-storage-"
-	StorageClassSuffix = "-sc"
+	StorageClassNamePrefix = "ibm-object-storage"
+	RetainPolicyTag        = "retain"
 
-	RcloneRetainStorageClass = StorageClassPrefix + "rclone-retain" + StorageClassSuffix
-	RcloneStorageClass       = StorageClassPrefix + "rclone" + StorageClassSuffix
-	S3fsRetainStorageClass   = StorageClassPrefix + "s3fs-retain" + StorageClassSuffix
-	S3fsStorageClass         = StorageClassPrefix + "s3fs" + StorageClassSuffix
+	StorageClassPrefix = "ibm-object-storage"
+
+	RcloneRetainStorageClass = StorageClassPrefix + "-rclone-retain"
+	RcloneStorageClass       = StorageClassPrefix + "-rclone"
+	S3fsRetainStorageClass   = StorageClassPrefix + "-s3fs-retain"
+	S3fsStorageClass         = StorageClassPrefix + "-s3fs"
 
 	DefaultLogTailLines    = 300
 	DefaultNamespace       = "default"

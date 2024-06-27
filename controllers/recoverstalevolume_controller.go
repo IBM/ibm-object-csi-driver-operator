@@ -301,7 +301,7 @@ func fetchCSIPVCAndPVNames(k8sOps *crutils.K8sResourceOps, log logr.Logger) (map
 			continue
 		}
 
-		if strings.HasPrefix(scName, constants.StorageClassPrefix) && strings.HasSuffix(scName, constants.StorageClassSuffix) {
+		if strings.HasPrefix(scName, constants.StorageClassPrefix) {
 			reqData[pvc.Name] = pvc.Spec.VolumeName
 		}
 	}
