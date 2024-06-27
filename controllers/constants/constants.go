@@ -83,6 +83,10 @@ const (
 	S3fsRetainStorageClass   = StorageClassPrefix + "-s3fs-retain"
 	S3fsStorageClass         = StorageClassPrefix + "-s3fs"
 
+	S3ProviderIBM  = "ibm-cos"
+	IaasIBMClassic = "ibm-classic"
+	IaasIBMVPC     = "ibm-vpc"
+
 	DefaultLogTailLines    = 300
 	DefaultNamespace       = "default"
 	ReconcilationTime      = 5 * time.Minute
