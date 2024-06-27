@@ -71,17 +71,20 @@ const (
 	CSINodeSCCClusterRole                 = "node-scc-clusterrole"
 	CSINodeSCCClusterRoleBinding          = "node-scc-clusterrolebinding"
 
+
+	StorageClassNamePrefix = "ibm-object-storage"
+	RetainPolicyTag        = "retain"
+
 	ResourceReqLimitsConfigMap      = "cos-csi-driver-configmap"
 	ObjectCSIDriverOperatorDeployNS = "ibm-object-csi-operator"
 	ObjectCSIDriver                 = "ibm-object-csi"
 
-	StorageClassPrefix = "ibm-object-storage-"
-	StorageClassSuffix = "-sc"
+	StorageClassPrefix = "ibm-object-storage"
 
-	RcloneRetainStorageClass = StorageClassPrefix + "rclone-retain" + StorageClassSuffix
-	RcloneStorageClass       = StorageClassPrefix + "rclone" + StorageClassSuffix
-	S3fsRetainStorageClass   = StorageClassPrefix + "s3fs-retain" + StorageClassSuffix
-	S3fsStorageClass         = StorageClassPrefix + "s3fs" + StorageClassSuffix
+	RcloneRetainStorageClass = StorageClassPrefix + "-rclone-retain"
+	RcloneStorageClass       = StorageClassPrefix + "-rclone"
+	S3fsRetainStorageClass   = StorageClassPrefix + "-s3fs-retain"
+	S3fsStorageClass         = StorageClassPrefix + "-s3fs"
 
 	DefaultLogTailLines    = 300
 	DefaultNamespace       = "default"
