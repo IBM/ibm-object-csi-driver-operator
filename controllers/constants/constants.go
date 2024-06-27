@@ -74,8 +74,7 @@ const (
 	ResourceReqLimitsConfigMap = "cos-csi-driver-configmap"
 	ObjectCSIDriver            = "ibm-object-csi"
 
-	StorageClassNamePrefix = "ibm-object-storage"
-	RetainPolicyTag        = "retain"
+	RetainPolicyTag = "retain"
 
 	StorageClassPrefix = "ibm-object-storage"
 
