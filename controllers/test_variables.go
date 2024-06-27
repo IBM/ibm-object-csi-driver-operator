@@ -42,7 +42,7 @@ var (
 	testDeploymentNamespace = "default"
 	testPVName1             = "test-pv-1"
 	testPVCName1            = "test-pvc-1"
-	testStorageClassName    = constants.StorageClassPrefix + "test" + constants.StorageClassSuffix
+	testStorageClassName    = constants.StorageClassPrefix + "test"
 	testNode1               = "test-node-1"
 	testNode2               = "test-node-2"
 	testNode3               = "test-node-3"
