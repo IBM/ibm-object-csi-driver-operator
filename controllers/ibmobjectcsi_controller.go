@@ -559,14 +559,16 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
 		corev1.PersistentVolumeReclaimDelete}
 
 	isIBMCloud := r.ControllerHelper.IsIBMColud()
-	if isIBMCloud && (len(s3Provider) == 0 || s3Provider == constants.S3ProviderIBM) {
-		r.ControllerHelper.SetIBMCosEP()
-		cosSCs = r.ControllerHelper.GetIBMCosSC()
-		requiredRegion = r.ControllerHelper.GetRegion()
-	} else {
-		r.ControllerHelper.SetS3ProviderEP()
-		cosSCs = append(cosSCs, "standard")
-		requiredRegion = r.ControllerHelper.S3ProviderRegion
+	if isIBMCloud {
+		if len(s3Provider) == 0 || s3Provider == constants.S3ProviderIBM {
+			r.ControllerHelper.SetIBMCosEP()
+			cosSCs = r.ControllerHelper.GetIBMCosSC()
+			requiredRegion = r.ControllerHelper.GetRegion()
+		} else {
+			r.ControllerHelper.SetS3ProviderEP()
+			cosSCs = append(cosSCs, "standard")
+			requiredRegion = r.ControllerHelper.S3ProviderRegion
+		}
 	}
 	cosEP := r.ControllerHelper.GetCosEP()
 
