@@ -242,6 +242,8 @@ func (c *IBMObjectCSI) GenerateS3fsSC(reclaimPolicy corev1.PersistentVolumeRecla
 	if isIBMColud {
 		ibmCosSC := fmt.Sprintf("%s-%s", region, cosSC)
 		cosSC = ibmCosSC
+	} else {
+		cosSC = region
 	}
 
 	return &storagev1.StorageClass{
@@ -297,6 +299,8 @@ func (c *IBMObjectCSI) GenerateRcloneSC(reclaimPolicy corev1.PersistentVolumeRec
 	if isIBMColud {
 		ibmCosSC := fmt.Sprintf("%s-%s", region, cosSC)
 		cosSC = ibmCosSC
+	} else {
+		cosSC = region
 	}
 
 	return &storagev1.StorageClass{
