@@ -159,6 +159,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		s3Provider = constants.S3ProviderIBM
 	}
 	r.ControllerHelper.S3Provider = s3Provider
+	r.ControllerHelper.S3ProviderRegion = instance.Spec.S3ProviderRegion
 
 	// create the resources if not exist
 	for _, rec := range []reconciler{
@@ -546,8 +547,8 @@ func (r *IBMObjectCSIReconciler) getClusterRoleBindings(instance *crutils.IBMObj
 }
 
 func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCSI) []*storagev1.StorageClass {
-	cosRegion := r.ControllerHelper.GetRegion()
-	cosEP := r.ControllerHelper.GetCosEP()
+	var requiredRegion string
+
 	s3Provider := r.ControllerHelper.GetS3Provider()
 
 	k8sSCs := []*storagev1.StorageClass{}
@@ -559,18 +560,22 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
 
 	isIBMCloud := r.ControllerHelper.IsIBMColud()
 	if isIBMCloud && (len(s3Provider) == 0 || s3Provider == constants.S3ProviderIBM) {
-		cosEP = r.ControllerHelper.GetIBMCosEP()
+		r.ControllerHelper.SetIBMCosEP()
 		cosSCs = r.ControllerHelper.GetIBMCosSC()
+		requiredRegion = r.ControllerHelper.GetRegion()
 	} else {
+		r.ControllerHelper.SetS3ProviderEP()
 		cosSCs = append(cosSCs, "standard")
+		requiredRegion = r.ControllerHelper.S3ProviderRegion
 	}
+	cosEP := r.ControllerHelper.GetCosEP()
 
 	for _, sc := range cosSCs {
 		for _, rp := range reclaimPolicys {
-			k8sSc := instance.GenerateRcloneSC(rp, isIBMCloud, cosRegion, cosEP, sc)
+			k8sSc := instance.GenerateRcloneSC(rp, isIBMCloud, requiredRegion, cosEP, sc)
 			k8sSCs = append(k8sSCs, k8sSc)
 
-			k8sSc = instance.GenerateS3fsSC(rp, isIBMCloud, cosRegion, cosEP, sc)
+			k8sSc = instance.GenerateS3fsSC(rp, isIBMCloud, requiredRegion, cosEP, sc)
 			k8sSCs = append(k8sSCs, k8sSc)
 		}
 	}

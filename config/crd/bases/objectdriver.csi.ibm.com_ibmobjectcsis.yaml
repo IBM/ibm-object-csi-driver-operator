@@ -2066,6 +2066,8 @@ spec:
                 type: object
               s3Provider:
                 type: string
+              s3ProviderRegion:
+                type: string
               sidecars:
                 items:
                   description: CSISidecar ...
