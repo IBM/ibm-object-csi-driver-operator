@@ -278,12 +278,8 @@ func (c *IBMObjectCSI) GenerateS3fsSC(reclaimPolicy corev1.PersistentVolumeRecla
 func (c *IBMObjectCSI) GenerateRcloneSC(reclaimPolicy corev1.PersistentVolumeReclaimPolicy, isIBMColud bool,
 	region string, cosEndpoint string, cosStorageClass string) *storagev1.StorageClass {
 	var storageClassName string
-	var cosEP string
 	var cosSC = "standard"
 
-	if len(cosEndpoint) > 0 {
-		cosEP = cosEndpoint
-	}
 	if len(cosStorageClass) > 0 {
 		cosSC = cosStorageClass
 	}
@@ -324,7 +320,7 @@ func (c *IBMObjectCSI) GenerateRcloneSC(reclaimPolicy corev1.PersistentVolumeRec
 		Parameters: map[string]string{
 			"mounter":            "rclone",
 			"client":             "awss3",
-			"cosEndpoint":        cosEP,
+			"cosEndpoint":        cosEndpoint,
 			"locationConstraint": cosSC,
 			"csi.storage.k8s.io/provisioner-secret-name":       "${pvc.name}",
 			"csi.storage.k8s.io/provisioner-secret-namespace":  "${pvc.namespace}",

@@ -329,27 +329,27 @@ func (ch *ControllerHelper) GetIBMCosSC() []string {
 
 func (ch *ControllerHelper) SetIBMCosEP() {
 	if len(ch.IaaSProvider) == 0 || len(ch.Region) == 0 {
-		ch.S3ProviderRegion = ""
+		ch.CosEP = ""
 	}
 	if ch.IaaSProvider == constants.IaasIBMVPC || ch.IaaSProvider == constants.IaasIBMClassic {
 		epType := "private"
 		if ch.IaaSProvider == constants.IaasIBMVPC {
 			epType = "direct"
 		}
-		ch.S3ProviderRegion = fmt.Sprintf("https://s3.%s.%s.cloud-object-storage.appdomain.cloud", epType, ch.Region)
+		ch.CosEP = fmt.Sprintf("https://s3.%s.%s.cloud-object-storage.appdomain.cloud", epType, ch.Region)
 	}
 }
 
 func (ch *ControllerHelper) SetS3ProviderEP() {
 	if ch.S3ProviderRegion == "" {
-		ch.S3ProviderRegion = ""
+		ch.CosEP = ""
 	}
 
 	if ch.S3Provider == constants.S3ProviderAWS {
-		ch.S3ProviderRegion = fmt.Sprintf("https://s3.%s.amazonaws.com", ch.S3ProviderRegion)
+		ch.CosEP = fmt.Sprintf("https://s3.%s.amazonaws.com", ch.S3ProviderRegion)
 	}
 
 	if ch.S3Provider == constants.S3ProviderWasabi {
-		ch.S3ProviderRegion = fmt.Sprintf("https://s3.%s.wasabisys.com", ch.S3ProviderRegion)
+		ch.CosEP = fmt.Sprintf("https://s3.%s.wasabisys.com", ch.S3ProviderRegion)
 	}
 }
