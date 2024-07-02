@@ -217,7 +217,10 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRoleBinding() *rbacv1.ClusterRol
 }
 
 // Generates3fsSC ...
-func (c *IBMObjectCSI) GenerateS3fsSC(reclaimPolicy corev1.PersistentVolumeReclaimPolicy, isIBMColud bool,
+// func (c *IBMObjectCSI) GenerateS3fsSC(reclaimPolicy corev1.PersistentVolumeReclaimPolicy, isIBMColud bool,
+//
+//	region string, cosEndpoint string, cosStorageClass string) *storagev1.StorageClass {
+func (c *IBMObjectCSI) GenerateS3fsSC(reclaimPolicy corev1.PersistentVolumeReclaimPolicy, s3Provider string,
 	region string, cosEndpoint string, cosStorageClass string) *storagev1.StorageClass {
 	// TODO: TIER Based SC
 	var storageClassName string
@@ -239,7 +242,7 @@ func (c *IBMObjectCSI) GenerateS3fsSC(reclaimPolicy corev1.PersistentVolumeRecla
 		storageClassName = fmt.Sprintf("%s-%s-s3fs", constants.StorageClassPrefix, cosSC)
 	}
 
-	if isIBMColud {
+	if s3Provider == constants.S3ProviderIBM {
 		ibmCosSC := fmt.Sprintf("%s-%s", region, cosSC)
 		cosSC = ibmCosSC
 	} else {
@@ -275,7 +278,10 @@ func (c *IBMObjectCSI) GenerateS3fsSC(reclaimPolicy corev1.PersistentVolumeRecla
 }
 
 // GenerateRcloneSC ...
-func (c *IBMObjectCSI) GenerateRcloneSC(reclaimPolicy corev1.PersistentVolumeReclaimPolicy, isIBMColud bool,
+// func (c *IBMObjectCSI) GenerateRcloneSC(reclaimPolicy corev1.PersistentVolumeReclaimPolicy, isIBMColud bool,
+//
+//	region string, cosEndpoint string, cosStorageClass string) *storagev1.StorageClass {
+func (c *IBMObjectCSI) GenerateRcloneSC(reclaimPolicy corev1.PersistentVolumeReclaimPolicy, s3Provider string,
 	region string, cosEndpoint string, cosStorageClass string) *storagev1.StorageClass {
 	var storageClassName string
 	var cosSC = "standard"
@@ -292,7 +298,7 @@ func (c *IBMObjectCSI) GenerateRcloneSC(reclaimPolicy corev1.PersistentVolumeRec
 		storageClassName = fmt.Sprintf("%s-%s-rclone", constants.StorageClassPrefix, cosSC)
 	}
 
-	if isIBMColud {
+	if s3Provider == constants.S3ProviderIBM {
 		ibmCosSC := fmt.Sprintf("%s-%s", region, cosSC)
 		cosSC = ibmCosSC
 	} else {
