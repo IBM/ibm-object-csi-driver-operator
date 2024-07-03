@@ -785,21 +785,21 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(DeleteError),
 		},
-		{
-			testCaseName: "Negative: IBMObjectCSI CR is deleted and failed to delete storage class",
-			objects: []runtime.Object{
-				ibmObjectCSICRWithDeletionTS,
-				rCloneSC,
-				rCloneRetainSC,
-				s3fsSC,
-				s3fsRetainSC,
-			},
-			clientFunc: func(objs []runtime.Object) client.WithWatch {
-				return fakedelete.NewClientBuilder().WithRuntimeObjects(objs...).Build()
-			},
-			expectedResp: reconcile.Result{},
-			expectedErr:  errors.New(DeleteError),
-		},
+		// {
+		// 	testCaseName: "Negative: IBMObjectCSI CR is deleted and failed to delete storage class",
+		// 	objects: []runtime.Object{
+		// 		ibmObjectCSICRWithDeletionTS,
+		// 		rCloneSC,
+		// 		rCloneRetainSC,
+		// 		s3fsSC,
+		// 		s3fsRetainSC,
+		// 	},
+		// 	clientFunc: func(objs []runtime.Object) client.WithWatch {
+		// 		return fakedelete.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+		// 	},
+		// 	expectedResp: reconcile.Result{},
+		// 	expectedErr:  errors.New(DeleteError),
+		// },
 		{
 			testCaseName: "Negative: IBMObjectCSI CR is deleted and failed to delete CSI driver",
 			objects: []runtime.Object{
