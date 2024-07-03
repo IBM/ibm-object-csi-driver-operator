@@ -14,7 +14,7 @@ spec:
   # and csi-provisioner, csi-attacher, csi-snapshotter and livenessprobe sidecars.
   controller:
     repository: icr.io/ibm/ibm-object-csi-driver
-    tag: "v1.0.4-alpha"
+    tag: "v0.1.5"
     imagePullPolicy: IfNotPresent
     resources:
       limits:
@@ -37,7 +37,7 @@ spec:
   # and csi-node-driver-registrar and livenessprobe sidecars.
   node:
     repository: icr.io/ibm/ibm-object-csi-driver
-    tag: "v1.0.4-alpha"
+    tag: "v0.1.5"
     imagePullPolicy: Always
     affinity:
       nodeAffinity:
