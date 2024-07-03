@@ -219,31 +219,20 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRoleBinding() *rbacv1.ClusterRol
 // Generates3fsSC ...
 func (c *IBMObjectCSI) GenerateS3fsSC(reclaimPolicy corev1.PersistentVolumeReclaimPolicy, s3Provider string,
 	region string, cosEndpoint string, cosStorageClass string) *storagev1.StorageClass {
-	// TODO: TIER Based SC
-	var storageClassName string
-	var cosEP string
-	var cosSC = "standard"
-
-	if len(cosEndpoint) > 0 {
-		cosEP = cosEndpoint
-	}
-	if len(cosStorageClass) > 0 {
-		cosSC = cosStorageClass
-	}
+	var storageClassName, locationConstraint string
 
 	if reclaimPolicy == corev1.PersistentVolumeReclaimRetain {
 		// "ibm-object-storage-standard-s3fs-retain"
-		storageClassName = fmt.Sprintf("%s-%s-s3fs-%s", constants.StorageClassPrefix, cosSC, constants.RetainPolicyTag)
+		storageClassName = fmt.Sprintf("%s-%s-s3fs-%s", constants.StorageClassPrefix, cosStorageClass, constants.RetainPolicyTag)
 	} else {
 		// "ibm-object-storage-standard-s3fs"
-		storageClassName = fmt.Sprintf("%s-%s-s3fs", constants.StorageClassPrefix, cosSC)
+		storageClassName = fmt.Sprintf("%s-%s-s3fs", constants.StorageClassPrefix, cosStorageClass)
 	}
 
 	if s3Provider == constants.S3ProviderIBM {
-		ibmCosSC := fmt.Sprintf("%s-%s", region, cosSC)
-		cosSC = ibmCosSC
+		locationConstraint = fmt.Sprintf("%s-%s", region, cosStorageClass)
 	} else {
-		cosSC = region
+		locationConstraint = region
 	}
 
 	return &storagev1.StorageClass{
@@ -264,8 +253,8 @@ func (c *IBMObjectCSI) GenerateS3fsSC(reclaimPolicy corev1.PersistentVolumeRecla
 		Parameters: map[string]string{
 			"mounter":            "s3fs",
 			"client":             "awss3",
-			"cosEndpoint":        cosEP,
-			"locationConstraint": cosSC,
+			"cosEndpoint":        cosEndpoint,
+			"locationConstraint": locationConstraint,
 			"csi.storage.k8s.io/provisioner-secret-name":       "${pvc.name}",
 			"csi.storage.k8s.io/provisioner-secret-namespace":  "${pvc.namespace}",
 			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.name}",
@@ -277,26 +266,20 @@ func (c *IBMObjectCSI) GenerateS3fsSC(reclaimPolicy corev1.PersistentVolumeRecla
 // GenerateRcloneSC ...
 func (c *IBMObjectCSI) GenerateRcloneSC(reclaimPolicy corev1.PersistentVolumeReclaimPolicy, s3Provider string,
 	region string, cosEndpoint string, cosStorageClass string) *storagev1.StorageClass {
-	var storageClassName string
-	var cosSC = "standard"
-
-	if len(cosStorageClass) > 0 {
-		cosSC = cosStorageClass
-	}
+	var storageClassName, locationConstraint string
 
 	if reclaimPolicy == corev1.PersistentVolumeReclaimRetain {
 		// "ibm-object-storage-standard-rclone-retain"
-		storageClassName = fmt.Sprintf("%s-%s-rclone-%s", constants.StorageClassPrefix, cosSC, constants.RetainPolicyTag)
+		storageClassName = fmt.Sprintf("%s-%s-rclone-%s", constants.StorageClassPrefix, cosStorageClass, constants.RetainPolicyTag)
 	} else {
 		// "ibm-object-storage-standard-rclone"
-		storageClassName = fmt.Sprintf("%s-%s-rclone", constants.StorageClassPrefix, cosSC)
+		storageClassName = fmt.Sprintf("%s-%s-rclone", constants.StorageClassPrefix, cosStorageClass)
 	}
 
 	if s3Provider == constants.S3ProviderIBM {
-		ibmCosSC := fmt.Sprintf("%s-%s", region, cosSC)
-		cosSC = ibmCosSC
+		locationConstraint = fmt.Sprintf("%s-%s", region, cosStorageClass)
 	} else {
-		cosSC = region
+		locationConstraint = region
 	}
 
 	return &storagev1.StorageClass{
@@ -321,7 +304,7 @@ func (c *IBMObjectCSI) GenerateRcloneSC(reclaimPolicy corev1.PersistentVolumeRec
 			"mounter":            "rclone",
 			"client":             "awss3",
 			"cosEndpoint":        cosEndpoint,
-			"locationConstraint": cosSC,
+			"locationConstraint": locationConstraint,
 			"csi.storage.k8s.io/provisioner-secret-name":       "${pvc.name}",
 			"csi.storage.k8s.io/provisioner-secret-namespace":  "${pvc.namespace}",
 			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.name}",

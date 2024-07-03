@@ -308,17 +308,6 @@ func (ch *ControllerHelper) GetCosEP() string {
 	return ch.CosEP
 }
 
-func (ch *ControllerHelper) IsIBMColud() bool {
-	retVal := false
-	if len(ch.IaaSProvider) == 0 || len(ch.Region) == 0 {
-		return retVal
-	}
-	if ch.IaaSProvider == constants.IaasIBMVPC || ch.IaaSProvider == constants.IaasIBMClassic {
-		retVal = true
-	}
-	return retVal
-}
-
 func (ch *ControllerHelper) GetIBMCosSC() []string {
 	if len(ch.IaaSProvider) == 0 || len(ch.Region) == 0 {
 		return make([]string, 0)
