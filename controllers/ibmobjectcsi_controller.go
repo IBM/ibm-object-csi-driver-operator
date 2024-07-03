@@ -19,7 +19,6 @@ package controllers
 
 import (
 	"context"
-	e "errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -186,7 +185,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	s3ProviderRegion := instance.Spec.S3ProviderRegion
 	if s3ProviderRegion == "" && s3Provider != constants.S3ProviderIBM {
-		return reconcile.Result{}, e.New(fmt.Sprintf("s3provider region can't be empty for provider: %s", s3Provider))
+		return reconcile.Result{}, fmt.Errorf("s3provider region can't be empty for provider: %s", s3Provider)
 	}
 	r.ControllerHelper.S3ProviderRegion = s3ProviderRegion
 
