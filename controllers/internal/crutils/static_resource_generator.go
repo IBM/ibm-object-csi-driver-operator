@@ -217,9 +217,6 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRoleBinding() *rbacv1.ClusterRol
 }
 
 // Generates3fsSC ...
-// func (c *IBMObjectCSI) GenerateS3fsSC(reclaimPolicy corev1.PersistentVolumeReclaimPolicy, isIBMColud bool,
-//
-//	region string, cosEndpoint string, cosStorageClass string) *storagev1.StorageClass {
 func (c *IBMObjectCSI) GenerateS3fsSC(reclaimPolicy corev1.PersistentVolumeReclaimPolicy, s3Provider string,
 	region string, cosEndpoint string, cosStorageClass string) *storagev1.StorageClass {
 	// TODO: TIER Based SC
@@ -278,9 +275,6 @@ func (c *IBMObjectCSI) GenerateS3fsSC(reclaimPolicy corev1.PersistentVolumeRecla
 }
 
 // GenerateRcloneSC ...
-// func (c *IBMObjectCSI) GenerateRcloneSC(reclaimPolicy corev1.PersistentVolumeReclaimPolicy, isIBMColud bool,
-//
-//	region string, cosEndpoint string, cosStorageClass string) *storagev1.StorageClass {
 func (c *IBMObjectCSI) GenerateRcloneSC(reclaimPolicy corev1.PersistentVolumeReclaimPolicy, s3Provider string,
 	region string, cosEndpoint string, cosStorageClass string) *storagev1.StorageClass {
 	var storageClassName string
