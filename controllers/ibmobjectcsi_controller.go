@@ -128,6 +128,14 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		instance, instance.Unwrap()); err != nil {
 		return reconcile.Result{}, err
 	}
+
+	s3Provider := instance.Spec.S3Provider
+	if s3Provider == "" {
+		s3Provider = constants.S3ProviderIBM
+	}
+	r.ControllerHelper.S3Provider = s3Provider
+	r.ControllerHelper.S3ProviderRegion = instance.Spec.S3ProviderRegion
+
 	// If the deletion timestamp is set, perform cleanup operations and remove a finalizer before returning from the reconciliation process.
 	if !instance.GetDeletionTimestamp().IsZero() {
 		if err := r.deleteClusterRoleBindings(instance); err != nil {
@@ -176,18 +184,6 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	if err := syncer.Sync(ctx, csiNodeSyncer, r.Recorder); err != nil {
 		return reconcile.Result{}, err
 	}
-
-	s3Provider := instance.Spec.S3Provider
-	if s3Provider == "" {
-		s3Provider = constants.S3ProviderIBM
-	}
-	r.ControllerHelper.S3Provider = s3Provider
-
-	s3ProviderRegion := instance.Spec.S3ProviderRegion
-	// if s3ProviderRegion == "" && s3Provider != constants.S3ProviderIBM {
-	// 	return reconcile.Result{}, fmt.Errorf("s3provider region can't be empty for provider: %s", s3Provider)
-	// }
-	r.ControllerHelper.S3ProviderRegion = s3ProviderRegion
 
 	if err = r.reconcileStorageClasses(instance); err != nil {
 		return reconcile.Result{}, err
