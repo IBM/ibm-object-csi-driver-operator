@@ -185,10 +185,13 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRole() *rbacv1.ClusterRole {
 			},
 			{
 				APIGroups: []string{""},
-				Resources: []string{
-					constants.PersistentVolumesResource,
-					constants.SecretsResource},
-				Verbs: []string{constants.VerbGet},
+				Resources: []string{constants.PersistentVolumesResource, constants.SecretsResource},
+				Verbs:     []string{constants.VerbGet},
+			},
+			{
+				APIGroups: []string{""},
+				Resources: []string{constants.ConfigMapResource},
+				Verbs:     []string{constants.VerbGet, constants.VerbList},
 			},
 		},
 	}
