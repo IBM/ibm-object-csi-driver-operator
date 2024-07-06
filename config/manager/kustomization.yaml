@@ -5,7 +5,7 @@ kind: Kustomization
 images:
 - name: controller
   newName: icr.io/ibm/ibm-object-csi-driver-operator
-  newTag: v0.1.5
+  newTag: v0.1.8
 commonLabels:
-  app.kubernetes.io/part-of: ibm-object-csi-driver-operator
   app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/part-of: ibm-object-csi-driver-operator
