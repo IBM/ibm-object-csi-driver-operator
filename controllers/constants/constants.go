@@ -27,6 +27,7 @@ const (
 	NodesResource                      = "nodes"
 	PersistentVolumesResource          = "persistentvolumes"
 	PersistentVolumeClaimsResource     = "persistentvolumeclaims"
+	ConfigMapResource                  = "configmaps"
 
 	VerbGet    = "get"
 	VerbList   = "list"
