@@ -10,7 +10,6 @@ rules:
   - configmaps
   verbs:
   - create
-  - delete
   - get
   - list
   - update
@@ -20,7 +19,12 @@ rules:
   resources:
   - events
   verbs:
-  - '*'
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -94,7 +98,6 @@ rules:
   - serviceaccounts
   verbs:
   - create
-  - delete
   - get
   - list
   - watch
@@ -104,7 +107,6 @@ rules:
   - customresourcedefinitions
   verbs:
   - create
-  - delete
   - list
   - watch
 - apiGroups:
@@ -112,10 +114,8 @@ rules:
   resources:
   - daemonsets
   - deployments
-  - statefulsets
   verbs:
   - create
-  - delete
   - get
   - list
   - update
@@ -200,7 +200,6 @@ rules:
   - clusterroles
   verbs:
   - create
-  - delete
   - get
   - list
   - update
@@ -220,7 +219,6 @@ rules:
   - csidrivers
   verbs:
   - create
-  - delete
   - get
   - list
   - watch
@@ -238,7 +236,6 @@ rules:
   - storageclasses
   verbs:
   - create
-  - delete
   - get
   - list
   - update
