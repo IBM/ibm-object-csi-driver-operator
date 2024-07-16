@@ -44,6 +44,13 @@ func NewCSINodeSyncer(c client.Client, driver *crutils.IBMObjectCSI) syncer.Inte
 				},
 				Spec: corev1.PodSpec{},
 			},
+			MinReadySeconds: 30,
+			UpdateStrategy: appsv1.DaemonSetUpdateStrategy{
+				Type: appsv1.RollingUpdateDaemonSetStrategyType,
+				RollingUpdate: &appsv1.RollingUpdateDaemonSet{
+					MaxUnavailable: func(i intstr.IntOrString) *intstr.IntOrString { return &i }(intstr.FromString("10%")),
+				},
+			},
 		},
 	}
 
