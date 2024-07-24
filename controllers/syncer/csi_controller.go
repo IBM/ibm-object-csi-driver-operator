@@ -44,6 +44,7 @@ func NewCSIControllerSyncer(c client.Client, driver *crutils.IBMObjectCSI) synce
 				},
 				Spec: corev1.PodSpec{},
 			},
+			MinReadySeconds: 30,
 		},
 	}
 
