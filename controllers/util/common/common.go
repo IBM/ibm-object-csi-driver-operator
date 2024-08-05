@@ -325,7 +325,7 @@ func (ch *ControllerHelper) SetIBMCosEP() {
 		if ch.IaaSProvider == constants.IaasIBMVPC {
 			epType = "direct"
 		}
-		ch.CosEP = fmt.Sprintf("https://s3.%s.%s.cloud-object-storage.appdomain.cloud", epType, ch.Region)
+		ch.CosEP = fmt.Sprintf(constants.IBMEP, epType, ch.Region)
 	}
 }
 
@@ -335,10 +335,10 @@ func (ch *ControllerHelper) SetS3ProviderEP() {
 	}
 
 	if ch.S3Provider == constants.S3ProviderAWS {
-		ch.CosEP = fmt.Sprintf("https://s3.%s.amazonaws.com", ch.S3ProviderRegion)
+		ch.CosEP = fmt.Sprintf(constants.AWSEP, ch.S3ProviderRegion)
 	}
 
 	if ch.S3Provider == constants.S3ProviderWasabi {
-		ch.CosEP = fmt.Sprintf("https://s3.%s.wasabisys.com", ch.S3ProviderRegion)
+		ch.CosEP = fmt.Sprintf(constants.WasabiEP, ch.S3ProviderRegion)
 	}
 }
