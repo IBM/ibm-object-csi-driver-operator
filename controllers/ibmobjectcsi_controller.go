@@ -88,6 +88,7 @@ type IBMObjectCSIReconciler struct {
 //+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=create;list;watch;delete
 //+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=*,verbs=*
 //+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=create;get;list;watch;delete;update
+//+kubebuilder:rbac:groups=config.openshift.io,resources=infrastructures,verbs=get;list
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
