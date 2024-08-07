@@ -220,32 +220,22 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRoleBinding() *rbacv1.ClusterRol
 }
 
 // Generates3fsSC ...
-func (c *IBMObjectCSI) GenerateS3fsSC(storageClassNamePrefix string,
-	reclaimPolicy corev1.PersistentVolumeReclaimPolicy, isIBMColud bool,
+func (c *IBMObjectCSI) GenerateS3fsSC(reclaimPolicy corev1.PersistentVolumeReclaimPolicy, s3Provider string,
 	region string, cosEndpoint string, cosStorageClass string) *storagev1.StorageClass {
-	// TODO: TIER Based SC
-	var storageClassName string
-	var cosEP string
-	var cosSC = "standard"
+	var storageClassName, locationConstraint string
 
-	if len(cosEndpoint) > 0 {
-		cosEP = cosEndpoint
-	}
-	if len(cosStorageClass) > 0 {
-		cosSC = cosStorageClass
-	}
-
-	if reclaimPolicy == "Retain" {
+	if reclaimPolicy == corev1.PersistentVolumeReclaimRetain {
 		// "ibm-object-storage-standard-s3fs-retain"
-		storageClassName = fmt.Sprintf("%s-%s-s3fs-%s", storageClassNamePrefix, cosSC, constants.RetainPolicyTag)
+		storageClassName = fmt.Sprintf("%s-%s-s3fs-%s", constants.StorageClassPrefix, cosStorageClass, constants.RetainPolicyTag)
 	} else {
 		// "ibm-object-storage-standard-s3fs"
-		storageClassName = fmt.Sprintf("%s-%s-s3fs", storageClassNamePrefix, cosSC)
+		storageClassName = fmt.Sprintf("%s-%s-s3fs", constants.StorageClassPrefix, cosStorageClass)
 	}
 
-	if isIBMColud {
-		ibmCosSC := fmt.Sprintf("%s-%s", region, cosSC)
-		cosSC = ibmCosSC
+	if s3Provider == constants.S3ProviderIBM {
+		locationConstraint = fmt.Sprintf("%s-%s", region, cosStorageClass)
+	} else {
+		locationConstraint = region
 	}
 
 	return &storagev1.StorageClass{
@@ -266,8 +256,8 @@ func (c *IBMObjectCSI) GenerateS3fsSC(storageClassNamePrefix string,
 		Parameters: map[string]string{
 			"mounter":            "s3fs",
 			"client":             "awss3",
-			"cosEndpoint":        cosEP,
-			"locationConstraint": cosSC,
+			"cosEndpoint":        cosEndpoint,
+			"locationConstraint": locationConstraint,
 			"csi.storage.k8s.io/provisioner-secret-name":       "${pvc.name}",
 			"csi.storage.k8s.io/provisioner-secret-namespace":  "${pvc.namespace}",
 			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.name}",
@@ -277,31 +267,22 @@ func (c *IBMObjectCSI) GenerateS3fsSC(storageClassNamePrefix string,
 }
 
 // GenerateRcloneSC ...
-func (c *IBMObjectCSI) GenerateRcloneSC(storageClassNamePrefix string,
-	reclaimPolicy corev1.PersistentVolumeReclaimPolicy, isIBMColud bool,
+func (c *IBMObjectCSI) GenerateRcloneSC(reclaimPolicy corev1.PersistentVolumeReclaimPolicy, s3Provider string,
 	region string, cosEndpoint string, cosStorageClass string) *storagev1.StorageClass {
-	var storageClassName string
-	var cosEP string
-	var cosSC = "standard"
+	var storageClassName, locationConstraint string
 
-	if len(cosEndpoint) > 0 {
-		cosEP = cosEndpoint
-	}
-	if len(cosStorageClass) > 0 {
-		cosSC = cosStorageClass
-	}
-
-	if reclaimPolicy == "Retain" {
+	if reclaimPolicy == corev1.PersistentVolumeReclaimRetain {
 		// "ibm-object-storage-standard-rclone-retain"
-		storageClassName = fmt.Sprintf("%s-%s-rclone-%s", storageClassNamePrefix, cosSC, constants.RetainPolicyTag)
+		storageClassName = fmt.Sprintf("%s-%s-rclone-%s", constants.StorageClassPrefix, cosStorageClass, constants.RetainPolicyTag)
 	} else {
 		// "ibm-object-storage-standard-rclone"
-		storageClassName = fmt.Sprintf("%s-%s-rclone", storageClassNamePrefix, cosSC)
+		storageClassName = fmt.Sprintf("%s-%s-rclone", constants.StorageClassPrefix, cosStorageClass)
 	}
 
-	if isIBMColud {
-		ibmCosSC := fmt.Sprintf("%s-%s", region, cosSC)
-		cosSC = ibmCosSC
+	if s3Provider == constants.S3ProviderIBM {
+		locationConstraint = fmt.Sprintf("%s-%s", region, cosStorageClass)
+	} else {
+		locationConstraint = region
 	}
 
 	return &storagev1.StorageClass{
@@ -325,8 +306,8 @@ func (c *IBMObjectCSI) GenerateRcloneSC(storageClassNamePrefix string,
 		Parameters: map[string]string{
 			"mounter":            "rclone",
 			"client":             "awss3",
-			"cosEndpoint":        cosEP,
-			"locationConstraint": cosSC,
+			"cosEndpoint":        cosEndpoint,
+			"locationConstraint": locationConstraint,
 			"csi.storage.k8s.io/provisioner-secret-name":       "${pvc.name}",
 			"csi.storage.k8s.io/provisioner-secret-namespace":  "${pvc.namespace}",
 			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.name}",

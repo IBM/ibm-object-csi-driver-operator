@@ -29,7 +29,7 @@ import (
 	crutils "github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/crutils"
 	clustersyncer "github.com/IBM/ibm-object-csi-driver-operator/controllers/syncer"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util/common"
-	oversion "github.com/IBM/ibm-object-csi-driver-operator/version"
+	"github.com/IBM/ibm-object-csi-driver-operator/version"
 	"github.com/go-logr/logr"
 	"github.com/presslabs/controller-util/pkg/syncer"
 	appsv1 "k8s.io/api/apps/v1"
@@ -128,6 +128,14 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		instance, instance.Unwrap()); err != nil {
 		return reconcile.Result{}, err
 	}
+
+	s3Provider := instance.Spec.S3Provider
+	if s3Provider == "" {
+		s3Provider = constants.S3ProviderIBM
+	}
+	r.ControllerHelper.S3Provider = s3Provider
+	r.ControllerHelper.S3ProviderRegion = instance.Spec.S3ProviderRegion
+
 	// If the deletion timestamp is set, perform cleanup operations and remove a finalizer before returning from the reconciliation process.
 	if !instance.GetDeletionTimestamp().IsZero() {
 		if err := r.deleteClusterRoleBindings(instance); err != nil {
@@ -154,13 +162,12 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 	originalStatus := *instance.Status.DeepCopy()
 
-	// create the resources which never change if not exist
+	// create the resources if not exist
 	for _, rec := range []reconciler{
 		r.reconcileCSIDriver,
 		r.reconcileServiceAccount,
 		r.reconcileClusterRole,
 		r.reconcileClusterRoleBinding,
-		// r.reconcileStorageClasses,
 	} {
 		if err = rec(instance); err != nil {
 			return reconcile.Result{}, err
@@ -178,7 +185,6 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return reconcile.Result{}, err
 	}
 
-	// TODO: Reconcile SC Check. First process RC, User may provide S3Provider in RC.
 	if err = r.reconcileStorageClasses(instance); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -284,7 +290,7 @@ func (r *IBMObjectCSIReconciler) updateStatus(instance *crutils.IBMObjectCSI, or
 		phase = objectdriverv1alpha1.DriverPhaseCreating
 	}
 	instance.Status.Phase = phase
-	instance.Status.Version = oversion.DriverVersion
+	instance.Status.Version = version.DriverVersion
 
 	if !reflect.DeepEqual(originalStatus, instance.Status) {
 		logger.Info("updating IBMObjectCSI status", "name", instance.Name, "from", originalStatus, "to", instance.Status)
@@ -545,10 +551,9 @@ func (r *IBMObjectCSIReconciler) getClusterRoleBindings(instance *crutils.IBMObj
 }
 
 func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCSI) []*storagev1.StorageClass {
-	cosRegion := r.ControllerHelper.GetRegion()
-	cosEP := r.ControllerHelper.GetCosEP()
+	var requiredRegion string
+
 	s3Provider := r.ControllerHelper.GetS3Provider()
-	scNamePrefix := constants.StorageClassPrefix
 
 	k8sSCs := []*storagev1.StorageClass{}
 	cosSCs := []string{}
@@ -557,26 +562,23 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
 		corev1.PersistentVolumeReclaimRetain,
 		corev1.PersistentVolumeReclaimDelete}
 
-	isIBMCloud := r.ControllerHelper.IsIBMColud()
-	if isIBMCloud && (len(s3Provider) == 0 || s3Provider == "ibm-cos") {
-		cosEP = r.ControllerHelper.GetIBMCosEP()
+	if len(s3Provider) == 0 || s3Provider == constants.S3ProviderIBM {
+		r.ControllerHelper.SetIBMCosEP()
 		cosSCs = r.ControllerHelper.GetIBMCosSC()
-		// for _, sc := range cosSC {
-		// 	ibmCosSC := fmt.Sprintf("%s-%s", cosRegion, sc)
-		// 	cosSCs = append(cosSCs, ibmCosSC)
-		// }
+		requiredRegion = r.ControllerHelper.GetRegion()
 	} else {
+		r.ControllerHelper.SetS3ProviderEP()
 		cosSCs = append(cosSCs, "standard")
+		requiredRegion = r.ControllerHelper.S3ProviderRegion
 	}
+	cosEP := r.ControllerHelper.GetCosEP()
 
 	for _, sc := range cosSCs {
 		for _, rp := range reclaimPolicys {
-			k8sSc := instance.GenerateRcloneSC(scNamePrefix, rp,
-				isIBMCloud, cosRegion, cosEP, sc)
+			k8sSc := instance.GenerateRcloneSC(rp, s3Provider, requiredRegion, cosEP, sc)
 			k8sSCs = append(k8sSCs, k8sSc)
 
-			k8sSc = instance.GenerateS3fsSC(scNamePrefix, rp,
-				isIBMCloud, cosRegion, cosEP, sc)
+			k8sSc = instance.GenerateS3fsSC(rp, s3Provider, requiredRegion, cosEP, sc)
 			k8sSCs = append(k8sSCs, k8sSc)
 		}
 	}

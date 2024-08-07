@@ -84,6 +84,16 @@ const (
 	S3fsRetainStorageClass   = StorageClassPrefix + "-s3fs-retain"
 	S3fsStorageClass         = StorageClassPrefix + "-s3fs"
 
+	S3ProviderIBM    = "ibm-cos"
+	S3ProviderAWS    = "aws"
+	S3ProviderWasabi = "wasabi"
+	IaasIBMClassic   = "ibm-classic"
+	IaasIBMVPC       = "ibm-vpc"
+
+	IBMEP    = "https://s3.%s.%s.cloud-object-storage.appdomain.cloud"
+	AWSEP    = "https://s3.%s.amazonaws.com"
+	WasabiEP = "https://s3.%s.wasabisys.com"
+
 	DefaultLogTailLines    = 300
 	DefaultNamespace       = "default"
 	ReconcilationTime      = 5 * time.Minute

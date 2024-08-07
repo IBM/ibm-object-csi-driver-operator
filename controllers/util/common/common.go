@@ -22,17 +22,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
-var iaasIBMVPC = "ibm-vpc"
-var iaasIBMClassic = "ibm-classic"
-
 // ControllerHelper ...
 type ControllerHelper struct {
 	client.Client
-	Log          logr.Logger
-	Region       string
-	CosEP        string
-	IaaSProvider string
-	S3Provider   string // IBM COS / AWS S3 / Wasabi
+	Log              logr.Logger
+	Region           string
+	CosEP            string
+	IaaSProvider     string
+	S3Provider       string // IBM COS / AWS S3 / Wasabi
+	S3ProviderRegion string
 }
 
 // NewControllerHelper ...
@@ -260,7 +258,6 @@ func (ch *ControllerHelper) GetIBMClusterInfo(clientset *kubernetes.Clientset) e
 	nodes := corev1.NodeList{}
 
 	logger := ch.Log.WithName("getClusterInfo")
-
 	logger.Info("Checking cluster platform...")
 
 	if clientset != nil {
@@ -285,11 +282,10 @@ func (ch *ControllerHelper) GetIBMClusterInfo(clientset *kubernetes.Clientset) e
 	logger.Info("Get cluster IaaS Provider...")
 	if val, ok := nodes.Items[0].Labels["ibm-cloud.kubernetes.io/iaas-provider"]; ok {
 		logger.Info("Detected IBM IaaS provider: ", val)
-		// ch.S3Provider = &cosIBMProvider Do not set Provider here user may specify S3 Provider in CR
 		if val == "g2" {
-			ch.IaaSProvider = iaasIBMVPC
+			ch.IaaSProvider = constants.IaasIBMVPC
 		} else {
-			ch.IaaSProvider = iaasIBMClassic
+			ch.IaaSProvider = constants.IaasIBMClassic
 		}
 		logger.Info("Detected endpoint type: ", ch.IaaSProvider)
 	}
@@ -312,17 +308,6 @@ func (ch *ControllerHelper) GetCosEP() string {
 	return ch.CosEP
 }
 
-func (ch *ControllerHelper) IsIBMColud() bool {
-	retVal := false
-	if len(ch.IaaSProvider) == 0 || len(ch.Region) == 0 {
-		return retVal
-	}
-	if ch.IaaSProvider == iaasIBMVPC || ch.IaaSProvider == iaasIBMClassic {
-		retVal = true
-	}
-	return retVal
-}
-
 func (ch *ControllerHelper) GetIBMCosSC() []string {
 	if len(ch.IaaSProvider) == 0 || len(ch.Region) == 0 {
 		return make([]string, 0)
@@ -331,17 +316,29 @@ func (ch *ControllerHelper) GetIBMCosSC() []string {
 	return cosSC
 }
 
-func (ch *ControllerHelper) GetIBMCosEP() string {
-	var cosEP string
+func (ch *ControllerHelper) SetIBMCosEP() {
 	if len(ch.IaaSProvider) == 0 || len(ch.Region) == 0 {
-		return cosEP
+		ch.CosEP = ""
 	}
-	if ch.IaaSProvider == iaasIBMVPC || ch.IaaSProvider == iaasIBMClassic {
+	if ch.IaaSProvider == constants.IaasIBMVPC || ch.IaaSProvider == constants.IaasIBMClassic {
 		epType := "private"
-		if ch.IaaSProvider == iaasIBMVPC {
+		if ch.IaaSProvider == constants.IaasIBMVPC {
 			epType = "direct"
 		}
-		cosEP = fmt.Sprintf("https://s3.%s.%s.cloud-object-storage.appdomain.cloud", epType, ch.Region)
+		ch.CosEP = fmt.Sprintf(constants.IBMEP, epType, ch.Region)
 	}
-	return cosEP
+}
+
+func (ch *ControllerHelper) SetS3ProviderEP() {
+	if ch.S3ProviderRegion == "" {
+		ch.CosEP = ""
+	}
+
+	if ch.S3Provider == constants.S3ProviderAWS {
+		ch.CosEP = fmt.Sprintf(constants.AWSEP, ch.S3ProviderRegion)
+	}
+
+	if ch.S3Provider == constants.S3ProviderWasabi {
+		ch.CosEP = fmt.Sprintf(constants.WasabiEP, ch.S3ProviderRegion)
+	}
 }

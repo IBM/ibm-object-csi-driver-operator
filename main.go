@@ -106,12 +106,13 @@ func main() {
 			setupLog.Info("Get Cluster Info: Unable to load config")
 		} else {
 			err = controllerHelper.GetIBMClusterInfo(clstrClient)
-		}
-		if err != nil {
-			setupLog.Info("Get Cluster Info", "warning", err)
+			if err != nil {
+				setupLog.Info("Get Cluster Info", "warning", err)
+			} else {
+				setupLog.Info("Detected: ", "IaaS Provider", controllerHelper.GetIaaSProvider())
+			}
 		}
 	}
-	setupLog.Info("Detected: ", "IaaS Provider", controllerHelper.GetIaaSProvider())
 
 	if err = (&controllers.IBMObjectCSIReconciler{
 		Client:           mgr.GetClient(),

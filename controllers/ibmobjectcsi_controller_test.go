@@ -8,6 +8,7 @@ import (
 	"github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
 	fakecreate "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_create"
+	fakecreatesc "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_create/storageclass"
 	fakedelete "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_delete"
 	fakeget "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_get"
 	fakegetcsidriver "github.com/IBM/ibm-object-csi-driver-operator/controllers/fake/client_get/csidriver"
@@ -126,12 +127,29 @@ var (
 		},
 	}
 
+	ibmObjectCSICRWithAWSProvider = &v1alpha1.IBMObjectCSI{
+		ObjectMeta: ibmObjectCSICR.ObjectMeta,
+		Spec: v1alpha1.IBMObjectCSISpec{
+			Controller:       ibmObjectCSICR.Spec.Controller,
+			Node:             ibmObjectCSICR.Spec.Node,
+			Sidecars:         ibmObjectCSICR.Spec.Sidecars,
+			ImagePullSecrets: ibmObjectCSICR.Spec.ImagePullSecrets,
+			HealthPort:       ibmObjectCSICR.Spec.HealthPort,
+			S3Provider:       constants.S3ProviderAWS,
+			S3ProviderRegion: "us-east-2",
+		},
+	}
+
 	ibmObjectCSICRWithDeletionTS = &v1alpha1.IBMObjectCSI{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              ibmObjectCSICRName,
 			Namespace:         TestNamespace,
 			Finalizers:        []string{ibmObjectCSIfinalizer},
 			DeletionTimestamp: &currentTime,
+		},
+		Spec: v1alpha1.IBMObjectCSISpec{
+			S3Provider:       constants.S3ProviderAWS,
+			S3ProviderRegion: "us-east-2",
 		},
 	}
 
@@ -343,7 +361,8 @@ var (
 
 	rCloneSC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-standard-rclone", constants.StorageClassPrefix),
+			Name:   fmt.Sprintf("%s-standard-rclone", constants.StorageClassPrefix),
+			Labels: constants.CommonCSIResourceLabels,
 		},
 		Provisioner:   constants.DriverName,
 		ReclaimPolicy: &reclaimPolicyDelete,
@@ -359,8 +378,10 @@ var (
 			"disable_checksum=true",
 		},
 		Parameters: map[string]string{
-			"mounter": "rclone",
-			"client":  "awss3",
+			"mounter":            "rclone",
+			"client":             "awss3",
+			"cosEndpoint":        "https://s3.us-east-2.amazonaws.com",
+			"locationConstraint": "us-east-2",
 			"csi.storage.k8s.io/provisioner-secret-name":       "${pvc.name}",
 			"csi.storage.k8s.io/provisioner-secret-namespace":  "${pvc.namespace}",
 			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.name}",
@@ -370,7 +391,8 @@ var (
 
 	rCloneRetainSC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-standard-rclone-retain", constants.StorageClassPrefix),
+			Name:   fmt.Sprintf("%s-standard-rclone-retain", constants.StorageClassPrefix),
+			Labels: constants.CommonCSIResourceLabels,
 		},
 		Provisioner:   constants.DriverName,
 		ReclaimPolicy: &reclaimPolicyRetain,
@@ -386,8 +408,10 @@ var (
 			"disable_checksum=true",
 		},
 		Parameters: map[string]string{
-			"mounter": "rclone",
-			"client":  "awss3",
+			"mounter":            "rclone",
+			"client":             "awss3",
+			"cosEndpoint":        "https://s3.us-east-2.amazonaws.com",
+			"locationConstraint": "us-east-2",
 			"csi.storage.k8s.io/provisioner-secret-name":       "${pvc.name}",
 			"csi.storage.k8s.io/provisioner-secret-namespace":  "${pvc.namespace}",
 			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.name}",
@@ -397,7 +421,8 @@ var (
 
 	s3fsSC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-standard-s3fs", constants.StorageClassPrefix),
+			Name:   fmt.Sprintf("%s-standard-s3fs", constants.StorageClassPrefix),
+			Labels: constants.CommonCSIResourceLabels,
 		},
 		Provisioner:   constants.DriverName,
 		ReclaimPolicy: &reclaimPolicyDelete,
@@ -410,8 +435,10 @@ var (
 			"kernel_cache",
 		},
 		Parameters: map[string]string{
-			"mounter": "s3fs",
-			"client":  "awss3",
+			"mounter":            "s3fs",
+			"client":             "awss3",
+			"cosEndpoint":        "https://s3.us-east-2.amazonaws.com",
+			"locationConstraint": "us-east-2",
 			"csi.storage.k8s.io/provisioner-secret-name":       "${pvc.name}",
 			"csi.storage.k8s.io/provisioner-secret-namespace":  "${pvc.namespace}",
 			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.name}",
@@ -421,7 +448,8 @@ var (
 
 	s3fsRetainSC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-standard-s3fs-retain", constants.StorageClassPrefix),
+			Name:   fmt.Sprintf("%s-standard-s3fs-retain", constants.StorageClassPrefix),
+			Labels: constants.CommonCSIResourceLabels,
 		},
 		Provisioner:   constants.DriverName,
 		ReclaimPolicy: &reclaimPolicyRetain,
@@ -434,8 +462,10 @@ var (
 			"kernel_cache",
 		},
 		Parameters: map[string]string{
-			"mounter": "s3fs",
-			"client":  "awss3",
+			"mounter":            "s3fs",
+			"client":             "awss3",
+			"cosEndpoint":        "https://s3.us-east-2.amazonaws.com",
+			"locationConstraint": "us-east-2",
 			"csi.storage.k8s.io/provisioner-secret-name":       "${pvc.name}",
 			"csi.storage.k8s.io/provisioner-secret-namespace":  "${pvc.namespace}",
 			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.name}",
@@ -479,7 +509,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Positive: Sync controller deployment & pod containers and update status in IBMObjectCSI CR",
 			objects: []runtime.Object{
-				ibmObjectCSICR,
+				ibmObjectCSICRWithAWSProvider,
 				csiNode,
 				&appsv1.Deployment{
 					ObjectMeta: controllerDeployment.ObjectMeta,
@@ -718,6 +748,20 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			},
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(UpdateError),
+		},
+		{
+			testCaseName: "Negative: Failed to create storage class while reconciling",
+			objects: []runtime.Object{
+				ibmObjectCSICRWithAWSProvider,
+				csiNode,
+				controllerDeployment,
+				controllerPod,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fakecreatesc.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(CreateError),
 		},
 		{
 			testCaseName: "Negative: Failed to update status in IBMObjectCSI CR",
