@@ -325,7 +325,7 @@ func (ch *ControllerHelper) GetClusterInfo(inConfig rest.Config) error {
 		platformType := infra.Status.PlatformStatus.Type
 		logger.Info("Detected", "infra cloud provider platform: ", platformType)
 
-		if platformType == "IBMCloud" {
+		if platformType == constants.CloudProviderIBM {
 			logger.Info("Get cluster region...")
 			region := infra.Status.PlatformStatus.IBMCloud.Location
 			if region != "" {
@@ -339,7 +339,7 @@ func (ch *ControllerHelper) GetClusterInfo(inConfig rest.Config) error {
 			providerType := infra.Status.PlatformStatus.IBMCloud.ProviderType
 			if providerType != "" {
 				logger.Info("Detected", "IaaS provider: ", providerType)
-				if providerType == "VPC" {
+				if providerType == constants.InfraProviderType {
 					ch.IaaSProvider = constants.IaasIBMVPC
 				} else {
 					ch.IaaSProvider = constants.IaasIBMClassic
