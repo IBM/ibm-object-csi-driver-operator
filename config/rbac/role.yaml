@@ -129,6 +129,13 @@ rules:
   verbs:
   - update
 - apiGroups:
+  - config.openshift.io
+  resources:
+  - infrastructures
+  verbs:
+  - get
+  - list
+- apiGroups:
   - monitoring.coreos.com
   resources:
   - servicemonitors

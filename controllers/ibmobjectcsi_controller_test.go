@@ -898,7 +898,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 				Client: client,
 				Scheme: scheme,
 				// Recorder:         record.NewFakeRecorder(0),
-				ControllerHelper: common.NewControllerHelper(client),
+				ControllerHelper: common.NewControllerHelper(client, TestLog),
 			}
 
 			res, err := ibmObjectCSIReconciler.Reconcile(TestCtx, ibmObjectCSIReconcileRequest)

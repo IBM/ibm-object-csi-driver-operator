@@ -10,6 +10,7 @@ import (
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/crutils"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util"
 	"github.com/go-logr/logr"
+	openshiftclient "github.com/openshift/client-go/config/clientset/versioned"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -18,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
@@ -34,9 +36,10 @@ type ControllerHelper struct {
 }
 
 // NewControllerHelper ...
-func NewControllerHelper(client client.Client) *ControllerHelper {
+func NewControllerHelper(client client.Client, logger logr.Logger) *ControllerHelper {
 	return &ControllerHelper{
 		Client: client,
+		Log:    logger,
 	}
 }
 
@@ -251,17 +254,24 @@ func (ch *ControllerHelper) getAccessorAndFinalizerName(instance crutils.Instanc
 	return accessor, finalizerName, nil
 }
 
-// Check the platform, if IBM Cloud then get Region and IaaS provider
-func (ch *ControllerHelper) GetIBMClusterInfo(clientset *kubernetes.Clientset) error {
+// Check the platform, if IBMCloud then get Region and IaaS provider
+// If not IBMCloud, check if it is unmanaged/IPI cluster
+func (ch *ControllerHelper) GetClusterInfo(inConfig rest.Config) error {
+	logger := ch.Log.WithName("getClusterInfo")
+	logger.Info("Checking cluster platform...")
+
 	var listOptions = &client.ListOptions{}
 	var err error
 	nodes := corev1.NodeList{}
 
-	logger := ch.Log.WithName("getClusterInfo")
-	logger.Info("Checking cluster platform...")
+	k8sClient, err := kubernetes.NewForConfig(&inConfig)
+	if err != nil {
+		logger.Error(err, "Unable to load cluster config")
+		return err
+	}
 
-	if clientset != nil {
-		list, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	if k8sClient != nil {
+		list, err := k8sClient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 		if err == nil {
 			nodes = *list
 		}
@@ -273,21 +283,74 @@ func (ch *ControllerHelper) GetIBMClusterInfo(clientset *kubernetes.Clientset) e
 		return err
 	}
 
-	logger.Info("Get cluster region...")
+	logger.Info("Get IBM cluster region...")
 	if val, ok := nodes.Items[0].Labels["ibm-cloud.kubernetes.io/region"]; ok {
 		ch.Region = val
-		logger.Info("Detected IBM Cluster region: ", ch.Region)
+		logger.Info("Detected", "IBM Cluster region: ", ch.Region)
+	} else {
+		logger.Info("Node label 'ibm-cloud.kubernetes.io/region' not found")
 	}
 
-	logger.Info("Get cluster IaaS Provider...")
+	logger.Info("Get IBM cluster IaaS Provider...")
 	if val, ok := nodes.Items[0].Labels["ibm-cloud.kubernetes.io/iaas-provider"]; ok {
-		logger.Info("Detected IBM IaaS provider: ", val)
+		logger.Info("Detected", "IBM IaaS provider: ", val)
 		if val == "g2" {
 			ch.IaaSProvider = constants.IaasIBMVPC
 		} else {
 			ch.IaaSProvider = constants.IaasIBMClassic
 		}
-		logger.Info("Detected endpoint type: ", ch.IaaSProvider)
+		logger.Info("Detected", "endpoint type: ", ch.IaaSProvider)
+	} else {
+		logger.Info("Node label 'ibm-cloud.kubernetes.io/iaas-provider' not found")
+	}
+
+	if ch.Region == "" || ch.IaaSProvider == "" {
+		// check if it is unmanaged cluster
+		logger.Info("Region or IaaSProvider not set. checking if it is unmanaged cluster")
+
+		ocClient, err := openshiftclient.NewForConfig(&inConfig)
+		if err != nil {
+			logger.Error(err, "Unable to load cluster config")
+			return err
+		}
+
+		infra, err := ocClient.ConfigV1().Infrastructures().Get(context.TODO(), "cluster", metav1.GetOptions{})
+		if err != nil {
+			logger.Error(err, "Failed to get infrastructure")
+			return err
+		}
+
+		logger.Info("cluster infrastructure", "platformStatus:", infra.Status.PlatformStatus)
+
+		platformType := infra.Status.PlatformStatus.Type
+		logger.Info("Detected", "infra cloud provider platform: ", platformType)
+
+		if platformType == constants.InfraProviderPlatformIBM {
+			logger.Info("Get cluster region...")
+			region := infra.Status.PlatformStatus.IBMCloud.Location
+			if region != "" {
+				ch.Region = region
+				logger.Info("Detected", "Cluster region: ", ch.Region)
+			} else {
+				logger.Info("cluster region not found")
+			}
+
+			logger.Info("Get cluster Provider...")
+			providerType := infra.Status.PlatformStatus.IBMCloud.ProviderType
+			if providerType != "" {
+				logger.Info("Detected", "IaaS provider: ", providerType)
+				if providerType == constants.InfraProviderType {
+					ch.IaaSProvider = constants.IaasIBMVPC
+				} else {
+					ch.IaaSProvider = constants.IaasIBMClassic
+				}
+				logger.Info("Detected", "endpoint type: ", ch.IaaSProvider)
+			} else {
+				logger.Info("cluster IaaS provider not found")
+			}
+		} else {
+			logger.Info("cloud provider is not IBMCloud")
+		}
 	}
 	return nil
 }

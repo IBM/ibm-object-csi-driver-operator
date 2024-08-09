@@ -25,7 +25,6 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
@@ -93,24 +92,16 @@ func main() {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
-	controllerHelper := common.NewControllerHelper(mgr.GetClient())
+	controllerHelper := common.NewControllerHelper(mgr.GetClient(), setupLog)
 
 	// TODO: TIER Based SC Get cluster info
-	var clstrClient *kubernetes.Clientset
 	inConfig, err := rest.InClusterConfig()
 	if err != nil {
 		setupLog.Info("Get Cluster Info: Unable to load config")
 	} else {
-		clstrClient, err = kubernetes.NewForConfig(inConfig)
+		err = controllerHelper.GetClusterInfo(*inConfig)
 		if err != nil {
-			setupLog.Info("Get Cluster Info: Unable to load config")
-		} else {
-			err = controllerHelper.GetIBMClusterInfo(clstrClient)
-			if err != nil {
-				setupLog.Info("Get Cluster Info", "warning", err)
-			} else {
-				setupLog.Info("Detected: ", "IaaS Provider", controllerHelper.GetIaaSProvider())
-			}
+			setupLog.Info("Get Cluster Info", "warning", err)
 		}
 	}
 
