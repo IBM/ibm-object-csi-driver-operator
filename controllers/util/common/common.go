@@ -325,7 +325,7 @@ func (ch *ControllerHelper) GetClusterInfo(inConfig rest.Config) error {
 		platformType := infra.Status.PlatformStatus.Type
 		logger.Info("Detected", "infra cloud provider platform: ", platformType)
 
-		if platformType == constants.CloudProviderIBM {
+		if platformType == constants.InfraProviderPlatformIBM {
 			logger.Info("Get cluster region...")
 			region := infra.Status.PlatformStatus.IBMCloud.Location
 			if region != "" {
