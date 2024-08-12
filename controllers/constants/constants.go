@@ -98,6 +98,9 @@ const (
 	DefaultNamespace       = "default"
 	ReconcilationTime      = 5 * time.Minute
 	TransportEndpointError = "transport endpoint is not connected"
+
+	InfraProviderPlatformIBM = "IBMCloud"
+	InfraProviderType        = "VPC"
 )
 
 var CommonCSIResourceLabels = map[string]string{
