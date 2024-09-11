@@ -131,9 +131,17 @@ run: manifests generate fmt vet ## Run a controller from your host.
 docker-build: test ## Build docker image with the manager.
 	docker build -t ${IMG} . --platform linux/amd64
 
+.PHONY: podman-build
+podman-build: test ## Build docker image with the manager.
+	podman build -t ${IMG} . --platform linux/amd64
+
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
+
+.PHONY: podman-push
+podman-push: ## Push docker image with the manager.
+	podman push ${IMG}
 
 # PLATFORMS defines the target platforms for  the manager image be build to provide support to multiple
 # architectures. (i.e. make docker-buildx IMG=myregistry/mypoperator:0.0.1). To use this option you need to:

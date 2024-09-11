@@ -1,8 +1,9 @@
 # ibm-object-csi-driver-operator
-// TODO(user): Add simple overview of use/purpose
+A CSI based object storage plugin with dynamic bucket provisioning and plugable mounters, like rclone, goofys, s3fs and other. The plugin should seamlessly work in IBM, AWS and GCP platforms.
 
 ## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+ibm-object-csi-driver-operator is a user defined storage controller extending K8S capability to manage COS Buckets as PV/PVC resource.
+This is designed and developed as per CSI specification. It enables the application workloads to dynamically provision volumes backed by COS buckets as per PVC/PV framework. As of now it supports s3fs & rclone mounters to mount the bucket as a fuse FileSystem inside the POD. 
 
 ## Getting Started
 You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
@@ -13,13 +14,13 @@ You’ll need a Kubernetes cluster to run against. You can use [KIND](https://si
 1. Build and push your image to the location specified by `IMG`:
 
 ```sh
-make docker-build docker-push IMG=<some-registry>/ibm-object-csi-driver-operator:tag
+make docker-build docker-push IMG=<image-registry>/ibm-object-csi-driver-operator:<image-tag>
 ```
 
 2. Deploy the controller to the cluster with the image specified by `IMG`:
 
 ```sh
-make deploy IMG=<some-registry>/ibm-object-csi-driver-operator:tag
+make deploy IMG=<image-registry>/ibm-object-csi-driver-operator:<image-tag>
 ```
 
 3. Install Instances of Custom Resources:
