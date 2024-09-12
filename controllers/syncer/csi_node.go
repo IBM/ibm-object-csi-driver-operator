@@ -95,6 +95,7 @@ func (s *csiNodeSyncer) ensurePodSpec() corev1.PodSpec {
 			RunAsUser:    func(uid int64) *int64 { return &uid }(2121),
 		},
 		ServiceAccountName: constants.GetResourceName(constants.CSINodeServiceAccount),
+		PriorityClassName:  constants.CSINodePriorityClassName,
 	}
 }
 
