@@ -1,5 +1,5 @@
 # ibm-object-csi-driver-operator
-A CSI based object storage plugin with dynamic bucket provisioning and plugable mounters, like rclone, goofys, s3fs and other. The plugin should seamlessly work in IBM, AWS and GCP platforms.
+A CSI based object storage plugin with dynamic bucket provisioning and plugable mounters, like rclone, s3fs and other. The plugin should seamlessly work in IBM, AWS and GCP platforms.
 
 ## Description
 ibm-object-csi-driver-operator is a user defined storage controller extending K8S capability to manage COS Buckets as PV/PVC resource.
