@@ -130,6 +130,7 @@ func (s *csiControllerSyncer) ensureContainersSpec() []corev1.Container {
 		"--csi-address=$(ADDRESS)",
 		"--v=5",
 		"--timeout=120s",
+		"--extra-create-metadata=true",
 	}
 	provisioner := s.ensureContainer(constants.CSIProvisioner,
 		s.getCSIProvisionerImage(),
