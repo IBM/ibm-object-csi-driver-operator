@@ -91,9 +91,11 @@ func (s *csiNodeSyncer) ensurePodSpec() corev1.PodSpec {
 		Containers: s.ensureContainersSpec(),
 		Volumes:    s.ensureVolumes(),
 		SecurityContext: &corev1.PodSecurityContext{
-			RunAsNonRoot: func(b bool) *bool { return &b }(true),
+			RunAsNonRoot: util.True(),
 			RunAsUser:    func(uid int64) *int64 { return &uid }(2121),
 		},
+		Affinity:           s.driver.Spec.Node.Affinity,
+		Tolerations:        s.driver.Spec.Node.Tolerations,
 		ServiceAccountName: constants.GetResourceName(constants.CSINodeServiceAccount),
 		PriorityClassName:  constants.CSINodePriorityClassName,
 	}
