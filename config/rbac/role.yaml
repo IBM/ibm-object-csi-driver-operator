@@ -25,6 +25,7 @@ rules:
   - ""
   resources:
   - nodes
+  - secrets
   verbs:
   - get
   - list
@@ -80,14 +81,6 @@ rules:
   - pods/log
   verbs:
   - get
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - get
-  - list
-  - watch
 - apiGroups:
   - ""
   resources:
@@ -152,31 +145,6 @@ rules:
   - objectdriver.csi.ibm.com
   resources:
   - ibmobjectcsis
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - objectdriver.csi.ibm.com
-  resources:
-  - ibmobjectcsis/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - objectdriver.csi.ibm.com
-  resources:
-  - ibmobjectcsis/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - objectdriver.csi.ibm.com
-  resources:
   - recoverstalevolumes
   verbs:
   - create
@@ -189,12 +157,14 @@ rules:
 - apiGroups:
   - objectdriver.csi.ibm.com
   resources:
+  - ibmobjectcsis/finalizers
   - recoverstalevolumes/finalizers
   verbs:
   - update
 - apiGroups:
   - objectdriver.csi.ibm.com
   resources:
+  - ibmobjectcsis/status
   - recoverstalevolumes/status
   verbs:
   - get

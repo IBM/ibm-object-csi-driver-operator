@@ -7,6 +7,12 @@ metadata:
     app.kubernetes.io/instance: system
     app.kubernetes.io/component: manager
     app.kubernetes.io/created-by: ibm-object-csi-driver-operator
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/warn: privileged
+    pod-security.kubernetes.io/warn-version: latest
   name: system
 ---
 apiVersion: apps/v1

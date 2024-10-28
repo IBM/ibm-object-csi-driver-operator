@@ -303,7 +303,7 @@ func (t versionedTracker) Add(obj runtime.Object) error {
 	return nil
 }
 
-func (t versionedTracker) Create(gvr schema.GroupVersionResource, obj runtime.Object, ns string) error {
+func (t versionedTracker) Create(gvr schema.GroupVersionResource, obj runtime.Object, ns string, opts ...metav1.CreateOptions) error {
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
 		return fmt.Errorf("failed to get accessor for object: %w", err)
@@ -361,7 +361,7 @@ func convertFromUnstructuredIfNecessary(s *runtime.Scheme, o runtime.Object) (ru
 	return typed, nil
 }
 
-func (t versionedTracker) Update(gvr schema.GroupVersionResource, obj runtime.Object, ns string) error {
+func (t versionedTracker) Update(gvr schema.GroupVersionResource, obj runtime.Object, ns string, opts ...metav1.UpdateOptions) error {
 	isStatus := false
 	// We apply patches using a client-go reaction that ends up calling the trackers Update. As we can't change
 	// that reaction, we use the callstack to figure out if this originated from the status client.
