@@ -157,9 +157,6 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 	registrar.SecurityContext = &corev1.SecurityContext{RunAsNonRoot: util.False(),
 		RunAsUser:  func(uid int64) *int64 { return &uid }(0),
 		Privileged: util.False(),
-		SeccompProfile: &corev1.SeccompProfile{
-			Type: corev1.SeccompProfileTypeRuntimeDefault,
-		},
 	}
 	fillSecurityContextCapabilities(registrar.SecurityContext)
 	registrar.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()

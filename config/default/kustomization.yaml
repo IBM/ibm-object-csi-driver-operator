@@ -8,11 +8,7 @@ namespace: ibm-object-csi-operator
 # field above.
 namePrefix: ibm-object-csi-operator-
 
-# Labels to add to all resources and selectors.
-#commonLabels:
-#  someName: someValue
-
-bases:
+resources:
 - ../crd
 - ../rbac
 - ../manager
@@ -24,11 +20,11 @@ bases:
 # [PROMETHEUS] To enable prometheus monitor, uncomment all sections with 'PROMETHEUS'.
 #- ../prometheus
 
-patchesStrategicMerge:
+patches:
 # Protect the /metrics endpoint by putting it behind auth.
 # If you want your controller-manager to expose the /metrics
 # endpoint w/o any authn/z, please comment the following line.
-- manager_auth_proxy_patch.yaml
+- path: manager_auth_proxy_patch.yaml
 
 
 
