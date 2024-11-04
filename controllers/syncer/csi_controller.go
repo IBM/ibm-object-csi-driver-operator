@@ -160,16 +160,12 @@ func (s *csiControllerSyncer) ensureContainersSpec() []corev1.Container {
 func (s *csiControllerSyncer) ensureContainer(name, image string, args []string) corev1.Container {
 	sc := &corev1.SecurityContext{
 		AllowPrivilegeEscalation: util.False(),
-		SeccompProfile: &corev1.SeccompProfile{
-			Type: corev1.SeccompProfileTypeRuntimeDefault,
-		},
 	}
 	fillSecurityContextCapabilities(sc)
 	return corev1.Container{
-		Name:  name,
-		Image: image,
-		Args:  args,
-		//EnvFrom:         s.getEnvSourcesFor(name),
+		Name:            name,
+		Image:           image,
+		Args:            args,
 		Env:             s.getEnvFor(name),
 		VolumeMounts:    s.getVolumeMountsFor(name),
 		SecurityContext: sc,
