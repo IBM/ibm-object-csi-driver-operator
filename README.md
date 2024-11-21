@@ -29,6 +29,12 @@ make deploy IMG=<image-registry>/ibm-object-csi-driver-operator:<image-tag>
 kubectl apply -k config/samples/
 ```
 
+**Note**: By default, in the IBM Object CSI Driver, the secret name is not tied to the PVC name. This allows you to use a single secret across multiple PVCs. For this, you’ll need to add two specific annotations in the PVC YAML. These annotations help the driver map the PVC to the correct secret.
+```
+annotations:
+    cos.csi.driver/secret: "custom-secret"
+    cos.csi.driver/secret-namespace: "default"
+```
 
 ### Uninstall CRDs
 To delete the CRDs from the cluster:
