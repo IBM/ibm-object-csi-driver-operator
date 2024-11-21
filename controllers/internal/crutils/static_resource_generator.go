@@ -258,9 +258,7 @@ func (c *IBMObjectCSI) GenerateS3fsSC(reclaimPolicy corev1.PersistentVolumeRecla
 			"client":             "awss3",
 			"cosEndpoint":        cosEndpoint,
 			"locationConstraint": locationConstraint,
-			"csi.storage.k8s.io/provisioner-secret-name":       "${pvc.name}",
-			"csi.storage.k8s.io/provisioner-secret-namespace":  "${pvc.namespace}",
-			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.name}",
+			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.annotations['cos.csi.driver/secret']}",
 			"csi.storage.k8s.io/node-publish-secret-namespace": "${pvc.namespace}",
 		},
 	}
@@ -308,9 +306,7 @@ func (c *IBMObjectCSI) GenerateRcloneSC(reclaimPolicy corev1.PersistentVolumeRec
 			"client":             "awss3",
 			"cosEndpoint":        cosEndpoint,
 			"locationConstraint": locationConstraint,
-			"csi.storage.k8s.io/provisioner-secret-name":       "${pvc.name}",
-			"csi.storage.k8s.io/provisioner-secret-namespace":  "${pvc.namespace}",
-			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.name}",
+			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.annotations['cos.csi.driver/secret']}",
 			"csi.storage.k8s.io/node-publish-secret-namespace": "${pvc.namespace}",
 		},
 	}
