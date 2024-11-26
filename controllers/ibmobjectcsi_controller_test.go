@@ -382,9 +382,7 @@ var (
 			"client":             "awss3",
 			"cosEndpoint":        "https://s3.us-east-2.amazonaws.com",
 			"locationConstraint": "us-east-2",
-			"csi.storage.k8s.io/provisioner-secret-name":       "${pvc.name}",
-			"csi.storage.k8s.io/provisioner-secret-namespace":  "${pvc.namespace}",
-			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.name}",
+			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.annotations['cos.csi.driver/secret']}",
 			"csi.storage.k8s.io/node-publish-secret-namespace": "${pvc.namespace}",
 		},
 	}
@@ -412,9 +410,7 @@ var (
 			"client":             "awss3",
 			"cosEndpoint":        "https://s3.us-east-2.amazonaws.com",
 			"locationConstraint": "us-east-2",
-			"csi.storage.k8s.io/provisioner-secret-name":       "${pvc.name}",
-			"csi.storage.k8s.io/provisioner-secret-namespace":  "${pvc.namespace}",
-			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.name}",
+			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.annotations['cos.csi.driver/secret']}",
 			"csi.storage.k8s.io/node-publish-secret-namespace": "${pvc.namespace}",
 		},
 	}
@@ -439,9 +435,7 @@ var (
 			"client":             "awss3",
 			"cosEndpoint":        "https://s3.us-east-2.amazonaws.com",
 			"locationConstraint": "us-east-2",
-			"csi.storage.k8s.io/provisioner-secret-name":       "${pvc.name}",
-			"csi.storage.k8s.io/provisioner-secret-namespace":  "${pvc.namespace}",
-			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.name}",
+			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.annotations['cos.csi.driver/secret']}",
 			"csi.storage.k8s.io/node-publish-secret-namespace": "${pvc.namespace}",
 		},
 	}
@@ -466,9 +460,7 @@ var (
 			"client":             "awss3",
 			"cosEndpoint":        "https://s3.us-east-2.amazonaws.com",
 			"locationConstraint": "us-east-2",
-			"csi.storage.k8s.io/provisioner-secret-name":       "${pvc.name}",
-			"csi.storage.k8s.io/provisioner-secret-namespace":  "${pvc.namespace}",
-			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.name}",
+			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.annotations['cos.csi.driver/secret']}",
 			"csi.storage.k8s.io/node-publish-secret-namespace": "${pvc.namespace}",
 		},
 	}

@@ -29,6 +29,39 @@ make deploy IMG=<image-registry>/ibm-object-csi-driver-operator:<image-tag>
 kubectl apply -k config/samples/
 ```
 
+**Note**: 
+- By default, in the IBM Object CSI Driver, the secret name is not tied to the PVC name. This allows you to use a single secret across multiple PVCs. For this, you’ll need to add two specific annotations in the PVC YAML. These annotations help the driver map the PVC to the correct secret.
+```
+annotations:
+    cos.csi.driver/secret: "custom-secret"
+    cos.csi.driver/secret-namespace: "default"
+```
+- If you want to have 1-to-1 mapping between each PVC and secret(using same name for both) i.e., specific secret tied to respective PVC, then you need to create a custom storage class as below and use it to create PVC.
+```
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: custom-object-csi-storage-class
+  labels:
+provisioner: cos.s3.csi.ibm.io
+mountOptions:
+    - "multipart_size=62"
+    - "max_dirty_data=51200"
+    - "parallel_count=8"
+    - "max_stat_cache_size=100000"
+    - "retries=5"
+    - "kernel_cache"
+parameters:
+  mounter: <"s3fs" or "rclone">
+  client: "awss3"
+  cosEndpoint: "https://s3.direct.us-west.cloud-object-storage.appdomain.cloud"
+  locationConstraint: "us-west-smart"
+  csi.storage.k8s.io/provisioner-secret-name: ${pvc.name}
+  csi.storage.k8s.io/provisioner-secret-namespace: ${pvc.namespace}
+  csi.storage.k8s.io/node-publish-secret-name: ${pvc.name}
+  csi.storage.k8s.io/node-publish-secret-namespace: ${pvc.namespace}
+reclaimPolicy: <Retain or Delete>
+```
 
 ### Uninstall CRDs
 To delete the CRDs from the cluster:
