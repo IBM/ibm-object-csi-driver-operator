@@ -1,5 +1,5 @@
 resources:
 - monitor.yaml
 commonLabels:
-  app.kubernetes.io/part-of: ibm-object-csi-driver-operator
-  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/part-of: ibm-object-csi-driver
+  app.kubernetes.io/managed-by: ibm-object-csi-driver-operator

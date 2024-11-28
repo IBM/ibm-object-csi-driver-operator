@@ -3,6 +3,9 @@ kind: ConfigMap
 metadata:
   name: cos-csi-driver-configmap
   namespace: ibm-object-csi-operator
+  labels:
+    app.kubernetes.io/part-of: ibm-object-csi-driver
+    app.kubernetes.io/managed-by: ibm-object-csi-driver-operator
 data:
   ReconcileStorageClasses: "true"
   #Resource Requests per container
