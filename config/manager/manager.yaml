@@ -105,5 +105,3 @@ spec:
             memory: 128Mi
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10
-      imagePullSecrets:
-      - name: bha-secret
