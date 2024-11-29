@@ -4,6 +4,8 @@ metadata:
   labels:
     app.kubernetes.io/name: recoverstalevolume
     app.kubernetes.io/instance: recoverstalevolume-sample
+    app.kubernetes.io/part-of: ibm-object-csi-driver
+    app.kubernetes.io/managed-by: ibm-object-csi-driver-operator
   name: recoverstalevolume-sample
   namespace: ibm-object-csi-operator
 spec:

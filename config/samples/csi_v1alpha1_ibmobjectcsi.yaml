@@ -6,6 +6,8 @@ metadata:
   labels:
     app.kubernetes.io/name: ibm-object-csi
     app.kubernetes.io/instance: ibm-object-csi
+    app.kubernetes.io/part-of: ibm-object-csi-driver
+    app.kubernetes.io/managed-by: ibm-object-csi-driver-operator
     release: v1.0.0
 spec:
   # controller is a deployment with ibm-object-csi-controller container
