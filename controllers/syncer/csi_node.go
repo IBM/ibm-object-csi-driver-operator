@@ -67,6 +67,18 @@ func NewCSINodeSyncer(c client.Client, driver *crutils.IBMObjectCSI) syncer.Inte
 func (s *csiNodeSyncer) SyncFn() error {
 	out := s.obj.(*appsv1.DaemonSet)
 
+	// Fetch initContainers from NodeSpec in the CR
+	crInitContainers := s.driver.Spec.Node.InitContainers
+
+	// Update DaemonSet initContainers if necessary
+	if len(crInitContainers) > 0 {
+		// Set initContainers to the DaemonSet
+		out.Spec.Template.Spec.InitContainers = crInitContainers
+	} else {
+		// If no initContainers defined in NodeSpec, clear DaemonSet initContainers
+		out.Spec.Template.Spec.InitContainers = nil
+	}
+
 	out.Spec.Selector = metav1.SetAsLabelSelector(s.driver.GetCSINodeSelectorLabels())
 
 	nodeLabels := s.driver.GetCSINodePodLabels()
@@ -88,17 +100,59 @@ func (s *csiNodeSyncer) SyncFn() error {
 
 func (s *csiNodeSyncer) ensurePodSpec() corev1.PodSpec {
 	return corev1.PodSpec{
-		Containers: s.ensureContainersSpec(),
-		Volumes:    s.ensureVolumes(),
+		InitContainers: s.ensureInitContainers(),
+		Containers:     s.ensureContainersSpec(),
+		Volumes:        s.ensureVolumes(),
 		SecurityContext: &corev1.PodSecurityContext{
 			RunAsNonRoot: util.True(),
-			RunAsUser:    func(uid int64) *int64 { return &uid }(2121),
+			RunAsUser:    func(uid int64) *int64 { return &uid }(0),
+			RunAsGroup:   func(uid int64) *int64 { return &uid }(0),
 		},
 		Affinity:           s.driver.Spec.Node.Affinity,
 		Tolerations:        s.driver.Spec.Node.Tolerations,
 		ServiceAccountName: constants.GetResourceName(constants.CSINodeServiceAccount),
 		PriorityClassName:  constants.CSINodePriorityClassName,
+		// HostIPC:            true,
+		// HostNetwork:        true,
+		// HostPID:            true,
 	}
+}
+
+func (s *csiNodeSyncer) ensureInitContainers() []corev1.Container {
+	// initContainer
+	initContainer := s.ensureContainer("cos-installer",
+		"bhagyak1/install-cos-driver:j1103",
+		[]string{
+			"/bin/sh",
+			"-c",
+			"/cos-installer/installScript.sh;  /cos-installer/installS3fs.sh; sleep 180",
+		},
+	)
+
+	initContainer.ImagePullPolicy = s.driver.Spec.Node.ImagePullPolicy
+
+	initContainer.SecurityContext = &corev1.SecurityContext{
+		RunAsNonRoot: util.False(),
+		Privileged:   util.True(),
+		RunAsUser:    func(uid int64) *int64 { return &uid }(0),
+	}
+	fillSecurityContextCapabilities(
+		initContainer.SecurityContext,
+	)
+
+	initContainer.TTY = *util.True()
+	initContainer.VolumeMounts = []corev1.VolumeMount{
+		{
+			Name:      "host-root",
+			MountPath: "/host",
+		},
+		{
+			Name:      "usr-local",
+			MountPath: "/host/local",
+		},
+	}
+
+	return []corev1.Container{initContainer}
 }
 
 func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
@@ -301,6 +355,8 @@ func (s *csiNodeSyncer) ensureVolumes() []corev1.Volume {
 		ensureVolume("fuse-device", ensureHostPathVolumeSource("/dev/fuse", "")),
 		ensureVolume("log-dev", ensureHostPathVolumeSource("/dev/log", "")),
 		ensureVolume("host-log", ensureHostPathVolumeSource("/var/log", "")),
+		ensureVolume("host-root", ensureHostPathVolumeSource("/", "")),
+		ensureVolume("usr-local", ensureHostPathVolumeSource("/usr/local", "")),
 	}
 }
 

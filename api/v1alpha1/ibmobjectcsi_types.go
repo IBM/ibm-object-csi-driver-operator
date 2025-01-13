@@ -63,6 +63,9 @@ type IBMObjectCSINodeSpec struct {
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy"`
 
 	// +kubebuilder:validation:Optional
+	InitContainers []corev1.Container `json:"initContainers,omitempty"`
+
+	// +kubebuilder:validation:Optional
 	Affinity *corev1.Affinity `json:"affinity,omitempty"`
 
 	// +kubebuilder:validation:Optional
