@@ -107,7 +107,7 @@ vet: ## Run go vet against code.
 
 .PHONY: test
 test: manifests generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" 
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)"
     ## go test -coverprofile=coverage.out ./...
 	go test -coverprofile=coverage.out $$(go list ./... | grep -v '/e2e' | grep -v '/fake' | grep -v 'api/v1alpha1')
 
