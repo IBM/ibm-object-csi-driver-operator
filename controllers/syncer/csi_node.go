@@ -112,20 +112,20 @@ func (s *csiNodeSyncer) ensurePodSpec() corev1.PodSpec {
 		Tolerations:        s.driver.Spec.Node.Tolerations,
 		ServiceAccountName: constants.GetResourceName(constants.CSINodeServiceAccount),
 		PriorityClassName:  constants.CSINodePriorityClassName,
-		// HostIPC:            true,
-		// HostNetwork:        true,
-		// HostPID:            true,
+		HostIPC:            true,
+		HostNetwork:        true,
+		HostPID:            true,
 	}
 }
 
 func (s *csiNodeSyncer) ensureInitContainers() []corev1.Container {
 	// initContainer
 	initContainer := s.ensureContainer("cos-installer",
-		"bhagyak1/install-cos-driver:j1103",
+		"bhagyak1/install-cos-driver:m14v01",
 		[]string{
 			"/bin/sh",
 			"-c",
-			"/cos-installer/installScript.sh;  /cos-installer/installS3fs.sh; sleep 180",
+			"/cos-installer/installS3fsDeps.sh;  /cos-installer/installS3fs.sh; /cos-installer/installRclone.sh;  sleep 3600",
 		},
 	)
 

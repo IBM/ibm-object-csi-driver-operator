@@ -11,10 +11,10 @@ metadata:
     release: v1.0.0
 spec:
   # controller is a deployment with ibm-object-csi-controller container
-  # and csi-provisioner, csi-attacher, csi-snapshotter and livenessprobe sidecars.
+  # and csi-provisioner, csi-snapshotter and livenessprobe sidecars.
   controller:
     repository: icr.io/ibm/ibm-object-csi-driver
-    tag: "v0.1.15"
+    tag: "v0.1.17"
     imagePullPolicy: IfNotPresent
     resources:
       limits:
@@ -57,7 +57,7 @@ spec:
   # and csi-node-driver-registrar and livenessprobe sidecars.
   node:
     repository: icr.io/ibm/ibm-object-csi-driver
-    tag: "v0.1.15"
+    tag: "v0.1.17"
     imagePullPolicy: Always
 
   sidecars:
