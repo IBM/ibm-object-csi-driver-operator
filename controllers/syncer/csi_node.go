@@ -326,6 +326,14 @@ func (s *csiNodeSyncer) getVolumeMountsFor(name string) []corev1.VolumeMount {
 				MountPath: "/var/lib/ibmshare.sock",
 				ReadOnly:  false,
 			},
+			{
+				Name:      "mount-path-s3fs",
+				MountPath: "/host/var/lib/ibmc-s3fs",
+			},
+			{
+				Name:      "mount-path-rclone",
+				MountPath: "/host/var/lib/ibmc-rclone",
+			},
 		}
 
 	case constants.CSINodeDriverRegistrar:
