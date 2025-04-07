@@ -14,7 +14,7 @@ spec:
   # and csi-provisioner, csi-attacher, csi-snapshotter and livenessprobe sidecars.
   controller:
     repository: icr.io/ibm/ibm-object-csi-driver
-    tag: "v0.1.15"
+    tag: "v0.1.14"
     imagePullPolicy: IfNotPresent
     resources:
       limits:
@@ -57,13 +57,13 @@ spec:
   # and csi-node-driver-registrar and livenessprobe sidecars.
   node:
     repository: icr.io/ibm/ibm-object-csi-driver
-    tag: "v0.1.15"
+    tag: "v0.1.14"
     imagePullPolicy: Always
 
   sidecars:
   - name: csi-node-driver-registrar
     repository: k8s.gcr.io/sig-storage/csi-node-driver-registrar
-    tag: "v2.6.3"
+    tag: "v2.12.0"
     imagePullPolicy: IfNotPresent
     resources:
       limits:
@@ -74,7 +74,7 @@ spec:
         memory: 20Mi
   - name: csi-provisioner
     repository: k8s.gcr.io/sig-storage/csi-provisioner
-    tag: "v3.4.1"
+    tag: "v5.1.0"
     imagePullPolicy: IfNotPresent
     resources:
       limits:
@@ -85,7 +85,7 @@ spec:
         memory: 40Mi
   - name: livenessprobe
     repository: k8s.gcr.io/sig-storage/livenessprobe
-    tag: "v2.9.0"
+    tag: "v2.14.0"
     imagePullPolicy: IfNotPresent
     resources:
       limits:
