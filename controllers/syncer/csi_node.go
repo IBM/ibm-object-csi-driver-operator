@@ -366,7 +366,8 @@ func (s *csiNodeSyncer) ensureVolumes() []corev1.Volume {
 		ensureVolume("host-log", ensureHostPathVolumeSource("/var/log", "")),
 		ensureVolume("host-root", ensureHostPathVolumeSource("/", "")),
 		ensureVolume("usr-local", ensureHostPathVolumeSource("/usr/local", "")),
-		ensureVolume("ibmshare-socket", ensureHostPathVolumeSource("/var/lib/ibmshare.sock", "Socket")),
+		ensureVolume("coscsi-socket", ensureHostPathVolumeSource("/var/lib/coscsi.sock", "Socket")),
+		ensureVolume("mount-path", ensureHostPathVolumeSource("/host/var/lib/cos-csi", "DirectoryOrCreate")),
 	}
 }
 
