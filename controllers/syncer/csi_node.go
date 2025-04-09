@@ -328,7 +328,7 @@ func (s *csiNodeSyncer) getVolumeMountsFor(name string) []corev1.VolumeMount {
 			},
 			{
 				Name:      "mount-path",
-				MountPath: "/host/var/lib/cos-csi",
+				MountPath: "/var/lib/cos-csi",
 			},
 		}
 
@@ -367,7 +367,7 @@ func (s *csiNodeSyncer) ensureVolumes() []corev1.Volume {
 		ensureVolume("host-root", ensureHostPathVolumeSource("/", "")),
 		ensureVolume("usr-local", ensureHostPathVolumeSource("/usr/local", "")),
 		ensureVolume("coscsi-socket", ensureHostPathVolumeSource("/var/lib/coscsi.sock", "Socket")),
-		ensureVolume("mount-path", ensureHostPathVolumeSource("/host/var/lib/cos-csi", "DirectoryOrCreate")),
+		ensureVolume("mount-path", ensureHostPathVolumeSource("/var/lib/cos-csi", "DirectoryOrCreate")),
 	}
 }
 
