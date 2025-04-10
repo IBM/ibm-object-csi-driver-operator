@@ -11,7 +11,7 @@ metadata:
     release: v1.0.0
 spec:
   # controller is a deployment with ibm-object-csi-controller container
-  # and csi-provisioner, csi-attacher, csi-snapshotter and livenessprobe sidecars.
+  # and csi-provisioner and livenessprobe sidecars.
   controller:
     repository: icr.io/ibm/ibm-object-csi-driver
     tag: "v0.1.17"
