@@ -112,9 +112,9 @@ func (s *csiNodeSyncer) ensurePodSpec() corev1.PodSpec {
 		Tolerations:        s.driver.Spec.Node.Tolerations,
 		ServiceAccountName: constants.GetResourceName(constants.CSINodeServiceAccount),
 		PriorityClassName:  constants.CSINodePriorityClassName,
-		HostIPC:            true,
-		HostNetwork:        true,
-		HostPID:            true,
+		// HostIPC:            true,
+		// HostNetwork:        true,
+		// HostPID:            true,
 	}
 }
 
