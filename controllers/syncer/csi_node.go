@@ -112,9 +112,9 @@ func (s *csiNodeSyncer) ensurePodSpec() corev1.PodSpec {
 		Tolerations:        s.driver.Spec.Node.Tolerations,
 		ServiceAccountName: constants.GetResourceName(constants.CSINodeServiceAccount),
 		PriorityClassName:  constants.CSINodePriorityClassName,
-		HostIPC:            true,
-		HostNetwork:        true,
-		HostPID:            true,
+		// HostIPC:            true,
+		// HostNetwork:        true,
+		// HostPID:            true,
 	}
 }
 
@@ -125,7 +125,7 @@ func (s *csiNodeSyncer) ensureInitContainers() []corev1.Container {
 		[]string{
 			"/bin/sh",
 			"-c",
-			"/cos-installer/installS3fsDeps.sh;  /cos-installer/installS3fs.sh; /cos-installer/installRclone.sh;  sleep 3600",
+			"/cos-installer/installS3fsDeps.sh; /cos-installer/installS3fs.sh; /cos-installer/installRclone.sh;  sleep 360",
 		},
 	)
 
@@ -142,10 +142,10 @@ func (s *csiNodeSyncer) ensureInitContainers() []corev1.Container {
 
 	initContainer.TTY = *util.True()
 	initContainer.VolumeMounts = []corev1.VolumeMount{
-		{
-			Name:      "host-root",
-			MountPath: "/host",
-		},
+		// {
+		// 	Name:      "host-root",
+		// 	MountPath: "/host",
+		// },
 		{
 			Name:      "usr-local",
 			MountPath: "/host/local",
@@ -355,7 +355,7 @@ func (s *csiNodeSyncer) ensureVolumes() []corev1.Volume {
 		ensureVolume("fuse-device", ensureHostPathVolumeSource("/dev/fuse", "")),
 		ensureVolume("log-dev", ensureHostPathVolumeSource("/dev/log", "")),
 		ensureVolume("host-log", ensureHostPathVolumeSource("/var/log", "")),
-		ensureVolume("host-root", ensureHostPathVolumeSource("/", "")),
+		//ensureVolume("host-root", ensureHostPathVolumeSource("/", "")),
 		ensureVolume("usr-local", ensureHostPathVolumeSource("/usr/local", "")),
 	}
 }
