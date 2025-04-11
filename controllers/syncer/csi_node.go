@@ -125,7 +125,7 @@ func (s *csiNodeSyncer) ensureInitContainers() []corev1.Container {
 		[]string{
 			"/bin/sh",
 			"-c",
-			"/cos-installer/installS3fsDeps.sh;  /cos-installer/installS3fs.sh; /cos-installer/installRclone.sh;  sleep 300",
+			"/cos-installer/installS3fsDeps.sh; /cos-installer/installS3fs.sh; /cos-installer/installRclone.sh;  sleep 300",
 		},
 	)
 
@@ -142,10 +142,10 @@ func (s *csiNodeSyncer) ensureInitContainers() []corev1.Container {
 
 	initContainer.TTY = *util.True()
 	initContainer.VolumeMounts = []corev1.VolumeMount{
-		{
-			Name:      "host-root",
-			MountPath: "/host",
-		},
+		// {
+		// 	Name:      "host-root",
+		// 	MountPath: "/host",
+		// },
 		{
 			Name:      "usr-local",
 			MountPath: "/host/local",
@@ -364,7 +364,7 @@ func (s *csiNodeSyncer) ensureVolumes() []corev1.Volume {
 		ensureVolume("fuse-device", ensureHostPathVolumeSource("/dev/fuse", "")),
 		ensureVolume("log-dev", ensureHostPathVolumeSource("/dev/log", "")),
 		ensureVolume("host-log", ensureHostPathVolumeSource("/var/log", "")),
-		ensureVolume("host-root", ensureHostPathVolumeSource("/", "")),
+		//ensureVolume("host-root", ensureHostPathVolumeSource("/", "")),
 		ensureVolume("usr-local", ensureHostPathVolumeSource("/usr/local", "")),
 		ensureVolume("coscsi-socket", ensureHostPathVolumeSource("/var/lib/coscsi.sock", "Socket")),
 		ensureVolume("mount-path", ensureHostPathVolumeSource("/var/lib/cos-csi", "DirectoryOrCreate")),

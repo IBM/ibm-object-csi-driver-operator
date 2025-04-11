@@ -11,7 +11,7 @@ metadata:
     release: v1.0.0
 spec:
   # controller is a deployment with ibm-object-csi-controller container
-  # and csi-provisioner and livenessprobe sidecars.
+  # and csi-provisioner, csi-snapshotter and livenessprobe sidecars.
   controller:
     repository: bhagyak1/grpccos
     tag: "02"
