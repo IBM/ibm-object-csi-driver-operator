@@ -11,10 +11,10 @@ metadata:
     release: v1.0.0
 spec:
   # controller is a deployment with ibm-object-csi-controller container
-  # and csi-provisioner, csi-snapshotter and livenessprobe sidecars.
+  # and csi-provisioner and livenessprobe sidecars.
   controller:
-    repository: bhagyak1/grpccos
-    tag: "02"
+    repository: icr.io/ibm/ibm-object-csi-driver
+    tag: "v0.1.18"
     imagePullPolicy: IfNotPresent
     resources:
       limits:
@@ -56,8 +56,8 @@ spec:
   # node is a daemonSet with ibm-object-csi-node container
   # and csi-node-driver-registrar and livenessprobe sidecars.
   node:
-    repository: bhagyak1/grpccos
-    tag: "02"
+    repository: icr.io/ibm/ibm-object-csi-driver
+    tag: "v0.1.18"
     imagePullPolicy: Always
 
   sidecars:
