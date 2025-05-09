@@ -212,13 +212,22 @@ func envVarFromField(name, fieldPath string) corev1.EnvVar {
 func (s *csiNodeSyncer) getEnvFor(name string) []corev1.EnvVar {
 	switch name {
 	case constants.NodeContainerName:
-		return []corev1.EnvVar{
+		envVars := []corev1.EnvVar{
 			{
 				Name:  "CSI_ENDPOINT",
 				Value: constants.CSINodeEndpoint,
 			},
 			envVarFromField("KUBE_NODE_NAME", "spec.nodeName"),
 		}
+
+		if s.driver.Spec.Node.MaxVolumesPerNode != "" {
+			envVars = append(envVars, corev1.EnvVar{
+				Name:  "MAX_VOLUMES_PER_NODE",
+				Value: s.driver.Spec.Node.MaxVolumesPerNode,
+			})
+		}
+
+		return envVars
 
 	case constants.CSINodeDriverRegistrar:
 		return []corev1.EnvVar{
