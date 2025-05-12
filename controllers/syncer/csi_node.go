@@ -112,22 +112,25 @@ func (s *csiNodeSyncer) ensurePodSpec() corev1.PodSpec {
 		Tolerations:        s.driver.Spec.Node.Tolerations,
 		ServiceAccountName: constants.GetResourceName(constants.CSINodeServiceAccount),
 		PriorityClassName:  constants.CSINodePriorityClassName,
-		// HostIPC:            true,
-		// HostNetwork:        true,
-		// HostPID:            true,
 	}
 }
 
 func (s *csiNodeSyncer) ensureInitContainers() []corev1.Container {
 	// initContainer
-	initContainer := s.ensureContainer("cos-installer",
-		"bhagyak1/install-cos-driver:m14v01",
-		[]string{
-			"/bin/sh",
-			"-c",
-			"/cos-installer/installS3fsDeps.sh; /cos-installer/installS3fs.sh; /cos-installer/installRclone.sh;  sleep 360",
-		},
-	)
+	// initContainer := s.ensureContainer("cos-installer",
+	// 	"bhagyak1/install-cos-driver:m14v01",
+	// 	[]string{
+	// 		"/bin/sh",
+	// 		"-c",
+	// 		"/cos-installer/installS3fs.sh; /cos-installer/installRclone.sh;  sleep 360",
+	// 	},
+	// )
+	initContainer := corev1.Container{
+		Name:    "cos-installer",
+		Image:   s.driver.GetCSINodeImage(),
+		Command: []string{"/bin/sh", "-c"},
+		Args:    []string{"/home/cos-mounters/copy-cos-mounter-bins.sh; sleep 120"},
+	}
 
 	initContainer.ImagePullPolicy = s.driver.Spec.Node.ImagePullPolicy
 
@@ -142,13 +145,9 @@ func (s *csiNodeSyncer) ensureInitContainers() []corev1.Container {
 
 	initContainer.TTY = *util.True()
 	initContainer.VolumeMounts = []corev1.VolumeMount{
-		// {
-		// 	Name:      "host-root",
-		// 	MountPath: "/host",
-		// },
 		{
-			Name:      "usr-local",
-			MountPath: "/host/local",
+			Name:      "usr-local-bin",
+			MountPath: "/host/local/bin",
 		},
 	}
 
@@ -355,8 +354,7 @@ func (s *csiNodeSyncer) ensureVolumes() []corev1.Volume {
 		ensureVolume("fuse-device", ensureHostPathVolumeSource("/dev/fuse", "")),
 		ensureVolume("log-dev", ensureHostPathVolumeSource("/dev/log", "")),
 		ensureVolume("host-log", ensureHostPathVolumeSource("/var/log", "")),
-		//ensureVolume("host-root", ensureHostPathVolumeSource("/", "")),
-		ensureVolume("usr-local", ensureHostPathVolumeSource("/usr/local", "")),
+		ensureVolume("usr-local-bin", ensureHostPathVolumeSource("/usr/local/bin", "DirectoryOrCreate")),
 	}
 }
 
