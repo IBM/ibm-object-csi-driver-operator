@@ -271,7 +271,8 @@ func (ch *ControllerHelper) GetClusterInfo(inConfig rest.Config) error {
 	}
 
 	if k8sClient != nil {
-		list, err := k8sClient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+		var list *corev1.NodeList
+		list, err = k8sClient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 		if err == nil {
 			nodes = *list
 		}
