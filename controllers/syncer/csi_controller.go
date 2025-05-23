@@ -91,6 +91,7 @@ func (s *csiControllerSyncer) ensurePodSpec() corev1.PodSpec {
 		Affinity:           s.driver.Spec.Controller.Affinity,
 		Tolerations:        s.driver.Spec.Controller.Tolerations,
 		ServiceAccountName: constants.GetResourceName(constants.CSIControllerServiceAccount),
+		PriorityClassName:  constants.CSIControllerPriorityClassName,
 	}
 }
 

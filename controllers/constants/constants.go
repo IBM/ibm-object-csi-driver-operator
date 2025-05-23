@@ -73,6 +73,7 @@ const (
 	CSINodeSCCClusterRole                 = "node-scc-clusterrole"
 	CSINodeSCCClusterRoleBinding          = "node-scc-clusterrolebinding"
 	CSINodePriorityClassName              = "system-node-critical"
+	CSIControllerPriorityClassName        = "system-cluster-critical"
 
 	ResourceReqLimitsConfigMap = "cos-csi-driver-configmap"
 	ObjectCSIDriver            = "ibm-object-csi"
