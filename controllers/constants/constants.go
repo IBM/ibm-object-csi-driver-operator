@@ -14,6 +14,7 @@ const (
 	CSIOperatorNamespace = "ibm-object-csi-operator"
 	CSIDriverName        = "ibm-object-csi-driver"
 	DriverName           = "cos.s3.csi.ibm.io"
+	InitContainername    = "ibm-cos-installer"
 
 	RbacAuthorizationAPIGroup = "rbac.authorization.k8s.io"
 	SecurityOpenshiftAPIGroup = "security.openshift.io"

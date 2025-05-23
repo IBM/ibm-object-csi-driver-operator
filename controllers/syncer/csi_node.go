@@ -117,12 +117,13 @@ func (s *csiNodeSyncer) ensurePodSpec() corev1.PodSpec {
 
 func (s *csiNodeSyncer) ensureInitContainers() []corev1.Container {
 	// initContainer
-	initContainer := corev1.Container{
-		Name:    "cos-installer",
-		Image:   s.driver.GetCSINodeImage(),
-		Command: []string{"/bin/sh", "-c"},
-		Args:    []string{"/home/cos-mounters/copy-cos-mounter-bins.sh; sleep 120"},
-	}
+	initContainer := s.ensureContainer(
+		constants.InitContainername,
+		"bhagyak1/ibm-object-csi-driver-bins:dev-bha-m2002",
+		[]string{
+			"sleep 150",
+		},
+	)
 
 	initContainer.ImagePullPolicy = s.driver.Spec.Node.ImagePullPolicy
 
