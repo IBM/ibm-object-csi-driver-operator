@@ -67,18 +67,6 @@ func NewCSINodeSyncer(c client.Client, driver *crutils.IBMObjectCSI) syncer.Inte
 func (s *csiNodeSyncer) SyncFn() error {
 	out := s.obj.(*appsv1.DaemonSet)
 
-	// Fetch initContainers from NodeSpec in the CR
-	crInitContainers := s.driver.Spec.Node.InitContainers
-
-	// Update DaemonSet initContainers if necessary
-	if len(crInitContainers) > 0 {
-		// Set initContainers to the DaemonSet
-		out.Spec.Template.Spec.InitContainers = crInitContainers
-	} else {
-		// If no initContainers defined in NodeSpec, clear DaemonSet initContainers
-		out.Spec.Template.Spec.InitContainers = nil
-	}
-
 	out.Spec.Selector = metav1.SetAsLabelSelector(s.driver.GetCSINodeSelectorLabels())
 
 	nodeLabels := s.driver.GetCSINodePodLabels()
@@ -100,9 +88,8 @@ func (s *csiNodeSyncer) SyncFn() error {
 
 func (s *csiNodeSyncer) ensurePodSpec() corev1.PodSpec {
 	return corev1.PodSpec{
-		InitContainers: s.ensureInitContainers(),
-		Containers:     s.ensureContainersSpec(),
-		Volumes:        s.ensureVolumes(),
+		Containers: s.ensureContainersSpec(),
+		Volumes:    s.ensureVolumes(),
 		SecurityContext: &corev1.PodSecurityContext{
 			RunAsNonRoot: util.True(),
 			RunAsUser:    func(uid int64) *int64 { return &uid }(0),
@@ -113,38 +100,6 @@ func (s *csiNodeSyncer) ensurePodSpec() corev1.PodSpec {
 		ServiceAccountName: constants.GetResourceName(constants.CSINodeServiceAccount),
 		PriorityClassName:  constants.CSINodePriorityClassName,
 	}
-}
-
-func (s *csiNodeSyncer) ensureInitContainers() []corev1.Container {
-	// initContainer
-	initContainer := s.ensureContainer(
-		constants.InitContainername,
-		"bhagyak1/ibm-object-csi-driver-bins:dev-bha-m2002",
-		[]string{
-			"sleep 150",
-		},
-	)
-
-	initContainer.ImagePullPolicy = s.driver.Spec.Node.ImagePullPolicy
-
-	initContainer.SecurityContext = &corev1.SecurityContext{
-		RunAsNonRoot: util.False(),
-		Privileged:   util.True(),
-		RunAsUser:    func(uid int64) *int64 { return &uid }(0),
-	}
-	fillSecurityContextCapabilities(
-		initContainer.SecurityContext,
-	)
-
-	initContainer.TTY = *util.True()
-	initContainer.VolumeMounts = []corev1.VolumeMount{
-		{
-			Name:      "usr-local-bin",
-			MountPath: "/host/local/bin",
-		},
-	}
-
-	return []corev1.Container{initContainer}
 }
 
 func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
@@ -356,8 +311,6 @@ func (s *csiNodeSyncer) ensureVolumes() []corev1.Volume {
 		ensureVolume("fuse-device", ensureHostPathVolumeSource("/dev/fuse", "")),
 		ensureVolume("log-dev", ensureHostPathVolumeSource("/dev/log", "")),
 		ensureVolume("host-log", ensureHostPathVolumeSource("/var/log", "")),
-		//ensureVolume("host-root", ensureHostPathVolumeSource("/", "")),
-		ensureVolume("usr-local-bin", ensureHostPathVolumeSource("/usr/local/bin", "DirectoryOrCreate")),
 		ensureVolume("coscsi-socket", ensureHostPathVolumeSource("/var/lib/coscsi.sock", "Socket")),
 		ensureVolume("mount-path", ensureHostPathVolumeSource("/var/lib/cos-csi", "DirectoryOrCreate")),
 	}
