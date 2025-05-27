@@ -14,7 +14,6 @@ const (
 	CSIOperatorNamespace = "ibm-object-csi-operator"
 	CSIDriverName        = "ibm-object-csi-driver"
 	DriverName           = "cos.s3.csi.ibm.io"
-	InitContainername    = "ibm-cos-installer"
 
 	RbacAuthorizationAPIGroup = "rbac.authorization.k8s.io"
 	SecurityOpenshiftAPIGroup = "security.openshift.io"
@@ -73,7 +72,6 @@ const (
 	CSINodeSCCClusterRole                 = "node-scc-clusterrole"
 	CSINodeSCCClusterRoleBinding          = "node-scc-clusterrolebinding"
 	CSINodePriorityClassName              = "system-node-critical"
-	CSIControllerPriorityClassName        = "system-cluster-critical"
 
 	ResourceReqLimitsConfigMap = "cos-csi-driver-configmap"
 	ObjectCSIDriver            = "ibm-object-csi"
