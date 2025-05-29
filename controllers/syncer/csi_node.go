@@ -92,8 +92,8 @@ func (s *csiNodeSyncer) ensurePodSpec() corev1.PodSpec {
 		Volumes:    s.ensureVolumes(),
 		SecurityContext: &corev1.PodSecurityContext{
 			RunAsNonRoot: util.True(),
-			RunAsUser:    func(uid int64) *int64 { return &uid }(0),
-			RunAsGroup:   func(uid int64) *int64 { return &uid }(0),
+			RunAsUser:    func(uid int64) *int64 { return &uid }(2121),
+			RunAsGroup:   func(uid int64) *int64 { return &uid }(2121),
 		},
 		Affinity:           s.driver.Spec.Node.Affinity,
 		Tolerations:        s.driver.Spec.Node.Tolerations,
@@ -139,7 +139,7 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 
 	nodePlugin.SecurityContext = &corev1.SecurityContext{
 		RunAsNonRoot: util.False(),
-		Privileged:   util.True(),
+		Privileged:   util.True(), // Revisit if node server needs privileged permission
 		RunAsUser:    func(uid int64) *int64 { return &uid }(0),
 	}
 	fillSecurityContextCapabilities(
@@ -155,9 +155,10 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 			"--v=5",
 		},
 	)
-	registrar.SecurityContext = &corev1.SecurityContext{RunAsNonRoot: util.False(),
-		RunAsUser:  func(uid int64) *int64 { return &uid }(0),
-		Privileged: util.False(),
+	registrar.SecurityContext = &corev1.SecurityContext{
+		RunAsNonRoot: util.False(),
+		RunAsUser:    func(uid int64) *int64 { return &uid }(0),
+		Privileged:   util.False(),
 	}
 	fillSecurityContextCapabilities(registrar.SecurityContext)
 	registrar.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
@@ -172,10 +173,6 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 			healthPortArg,
 		},
 	)
-	livenessProbe.SecurityContext = &corev1.SecurityContext{RunAsNonRoot: util.False(),
-		RunAsUser:  func(uid int64) *int64 { return &uid }(0),
-		Privileged: util.False(),
-	}
 	fillSecurityContextCapabilities(livenessProbe.SecurityContext)
 	livenessProbe.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
 	livenessProbe.Resources = getSidecarResourceRequests(s.driver, constants.LivenessProbe)
@@ -274,7 +271,7 @@ func (s *csiNodeSyncer) getVolumeMountsFor(name string) []corev1.VolumeMount {
 				ReadOnly:  false,
 			},
 			{
-				Name:      "mount-path",
+				Name:      "coscsi-mounter-config",
 				MountPath: "/var/lib/cos-csi",
 			},
 		}
@@ -312,7 +309,7 @@ func (s *csiNodeSyncer) ensureVolumes() []corev1.Volume {
 		ensureVolume("log-dev", ensureHostPathVolumeSource("/dev/log", "")),
 		ensureVolume("host-log", ensureHostPathVolumeSource("/var/log", "")),
 		ensureVolume("coscsi-socket", ensureHostPathVolumeSource("/var/lib/coscsi.sock", "Socket")),
-		ensureVolume("mount-path", ensureHostPathVolumeSource("/var/lib/cos-csi", "DirectoryOrCreate")),
+		ensureVolume("coscsi-mounter-config", ensureHostPathVolumeSource("/var/lib/cos-csi", "DirectoryOrCreate")),
 	}
 }
 
