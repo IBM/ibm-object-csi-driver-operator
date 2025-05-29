@@ -14,7 +14,7 @@ spec:
   # and csi-provisioner and livenessprobe sidecars.
   controller:
     repository: icr.io/ibm/ibm-object-csi-driver
-    tag: "v0.1.17"
+    tag: "v0.1.18"
     imagePullPolicy: IfNotPresent
     resources:
       limits:
@@ -26,15 +26,6 @@ spec:
     affinity:
       podAntiAffinity:
         preferredDuringSchedulingIgnoredDuringExecution:
-        - podAffinityTerm:
-            labelSelector:
-              matchExpressions:
-              - key: app.kubernetes.io/component
-                operator: In
-                values:
-                - controller
-            topologyKey: topology.kubernetes.io/zone
-          weight: 100
         - podAffinityTerm:
             labelSelector:
               matchExpressions:
@@ -57,8 +48,15 @@ spec:
   # and csi-node-driver-registrar and livenessprobe sidecars.
   node:
     repository: icr.io/ibm/ibm-object-csi-driver
-    tag: "v0.1.17"
+    tag: "v0.1.18"
     imagePullPolicy: Always
+    resources:
+      limits:
+        cpu: 120m
+        memory: 300Mi
+      requests:
+        cpu: 30m
+        memory: 75Mi
 
   sidecars:
   - name: csi-node-driver-registrar
