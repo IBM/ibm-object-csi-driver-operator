@@ -222,10 +222,15 @@ func (r *IBMObjectCSIReconciler) handleConfigMapReconcile(ctx context.Context, r
 	CSINodeMemoryRequest := configMap.Data["CSINodeMemoryRequest"]
 	CSINodeCPULimit := configMap.Data["CSINodeCPULimit"]
 	CSINodeMemoryLimit := configMap.Data["CSINodeMemoryLimit"]
+	CSINodeMaxVolumesPerNode := configMap.Data["CSINodeMaxVolumesPerNode"]
 
-	reqLogger.Info("The resource requests and limits fetched from configmap",
-		"CSINodeCPURequest", CSINodeCPURequest, "CSINodeMemoryRequest", CSINodeMemoryRequest,
-		"CSINodeCPULimit", CSINodeCPULimit, "CSINodeMemoryLimit", CSINodeMemoryLimit)
+	reqLogger.Info("Configruration fetched from configmap",
+		"CSINodeCPURequest", CSINodeCPURequest,
+		"CSINodeMemoryRequest", CSINodeMemoryRequest,
+		"CSINodeCPULimit", CSINodeCPULimit,
+		"CSINodeMemoryLimit", CSINodeMemoryLimit,
+		"CSINodeMaxVolumesPerNode", CSINodeMaxVolumesPerNode,
+	)
 
 	// Fetch the IBMObjectCSI instance
 	instance := &objectdriverv1alpha1.IBMObjectCSI{}
@@ -245,9 +250,10 @@ func (r *IBMObjectCSIReconciler) handleConfigMapReconcile(ctx context.Context, r
 	instance.Spec.Node.Resources.Requests.Memory = CSINodeMemoryRequest
 	instance.Spec.Node.Resources.Limits.CPU = CSINodeCPULimit
 	instance.Spec.Node.Resources.Limits.Memory = CSINodeMemoryLimit
+	instance.Spec.Node.MaxVolumesPerNode = CSINodeMaxVolumesPerNode
 
 	// Update the instance in the Kubernetes API server
-	reqLogger.Info("Updating IBMObjectCSI CR with resource requests and limits for Node pods")
+	reqLogger.Info("Updating IBMObjectCSI CR with ConfigMap values")
 	err = r.Update(ctx, instance)
 	if err != nil {
 		reqLogger.Error(err, "Failed to update IBMObjectCSI instance with ConfigMap values")
