@@ -173,6 +173,7 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 			healthPortArg,
 		},
 	)
+	// livenessprobe sidecar container inherits securityContext defined at NodeServer pod level
 	if livenessProbe.SecurityContext == nil {
 		livenessProbe.SecurityContext = &corev1.SecurityContext{}
 	}
