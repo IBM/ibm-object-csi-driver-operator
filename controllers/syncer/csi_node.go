@@ -173,10 +173,7 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 			healthPortArg,
 		},
 	)
-	// livenessprobe sidecar container inherits securityContext defined at NodeServer pod level
-	if livenessProbe.SecurityContext == nil {
-		livenessProbe.SecurityContext = &corev1.SecurityContext{}
-	}
+
 	fillSecurityContextCapabilities(livenessProbe.SecurityContext)
 	livenessProbe.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
 	livenessProbe.Resources = getSidecarResourceRequests(s.driver, constants.LivenessProbe)
@@ -218,6 +215,10 @@ func (s *csiNodeSyncer) getEnvFor(name string) []corev1.EnvVar {
 			{
 				Name:  "CSI_ENDPOINT",
 				Value: constants.CSINodeEndpoint,
+			},
+			{
+				Name:  "COS_CSI_MOUNTER_SOCKET",
+				Value: constants.COSCSIMounterSocketPath,
 			},
 			envVarFromField("KUBE_NODE_NAME", "spec.nodeName"),
 		}
@@ -356,6 +357,9 @@ func ensureHostPathVolumeSource(path, pathType string) corev1.VolumeSource {
 }
 
 func fillSecurityContextCapabilities(sc *corev1.SecurityContext, add ...string) {
+	if sc == nil {
+		sc = &corev1.SecurityContext{}
+	}
 	sc.Capabilities = &corev1.Capabilities{
 		Drop: []corev1.Capability{"ALL"},
 	}
