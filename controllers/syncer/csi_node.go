@@ -173,10 +173,7 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 			healthPortArg,
 		},
 	)
-	// livenessprobe sidecar container inherits securityContext defined at NodeServer pod level
-	if livenessProbe.SecurityContext == nil {
-		livenessProbe.SecurityContext = &corev1.SecurityContext{}
-	}
+
 	fillSecurityContextCapabilities(livenessProbe.SecurityContext)
 	livenessProbe.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
 	livenessProbe.Resources = getSidecarResourceRequests(s.driver, constants.LivenessProbe)
@@ -218,6 +215,10 @@ func (s *csiNodeSyncer) getEnvFor(name string) []corev1.EnvVar {
 			{
 				Name:  "CSI_ENDPOINT",
 				Value: constants.CSINodeEndpoint,
+			},
+			{
+				Name:  "COS_CSI_MOUNTER_SOCKET",
+				Value: constants.COSCSIMounterSocketPath,
 			},
 			envVarFromField("KUBE_NODE_NAME", "spec.nodeName"),
 		}
@@ -270,13 +271,12 @@ func (s *csiNodeSyncer) getVolumeMountsFor(name string) []corev1.VolumeMount {
 				MountPath: "/host/var/log",
 			},
 			{
-				Name:      "coscsi-socket",
-				MountPath: "/var/lib/coscsi.sock",
-				ReadOnly:  false,
+				Name:      "coscsi-socket-path",
+				MountPath: "/var/lib/coscsi-sock",
 			},
 			{
-				Name:      "coscsi-mounter-config",
-				MountPath: "/var/lib/cos-csi",
+				Name:      "coscsi-mounter-config-path",
+				MountPath: "/var/lib/coscsi-config",
 			},
 		}
 
@@ -312,8 +312,8 @@ func (s *csiNodeSyncer) ensureVolumes() []corev1.Volume {
 		ensureVolume("fuse-device", ensureHostPathVolumeSource("/dev/fuse", "")),
 		ensureVolume("log-dev", ensureHostPathVolumeSource("/dev/log", "")),
 		ensureVolume("host-log", ensureHostPathVolumeSource("/var/log", "")),
-		ensureVolume("coscsi-socket", ensureHostPathVolumeSource("/var/lib/coscsi.sock", "Socket")),
-		ensureVolume("coscsi-mounter-config", ensureHostPathVolumeSource("/var/lib/cos-csi", "DirectoryOrCreate")),
+		ensureVolume("coscsi-socket-path", ensureHostPathVolumeSource("/var/lib/coscsi-sock", "Directory")),
+		ensureVolume("coscsi-mounter-config-path", ensureHostPathVolumeSource("/var/lib/coscsi-config", "DirectoryOrCreate")),
 	}
 }
 
@@ -357,6 +357,9 @@ func ensureHostPathVolumeSource(path, pathType string) corev1.VolumeSource {
 }
 
 func fillSecurityContextCapabilities(sc *corev1.SecurityContext, add ...string) {
+	if sc == nil {
+		sc = &corev1.SecurityContext{}
+	}
 	sc.Capabilities = &corev1.Capabilities{
 		Drop: []corev1.Capability{"ALL"},
 	}

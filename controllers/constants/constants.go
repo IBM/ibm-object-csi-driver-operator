@@ -47,6 +47,7 @@ const (
 	ControllerSocketPath                                  = "/var/lib/csi/sockets/pluginproxy/csi.sock"
 	NodeSocketPath                                        = "/csi/csi.sock"
 	NodeRegistrarSocketPath                               = "/var/lib/kubelet/plugins/cos.s3.csi.ibm.io/csi.sock"
+	COSCSIMounterSocketPath                               = "/var/lib/coscsi-sock/coscsi.sock"
 	CSIEndpoint                                           = "unix:///var/lib/csi/sockets/pluginproxy/csi.sock"
 	CSINodeEndpoint                                       = "unix:///csi/csi.sock"
 	RegistrationVolumeMountPath                           = "/registration"
