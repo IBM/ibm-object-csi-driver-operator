@@ -88,13 +88,8 @@ func (s *csiNodeSyncer) SyncFn() error {
 
 func (s *csiNodeSyncer) ensurePodSpec() corev1.PodSpec {
 	return corev1.PodSpec{
-		Containers: s.ensureContainersSpec(),
-		Volumes:    s.ensureVolumes(),
-		SecurityContext: &corev1.PodSecurityContext{
-			RunAsNonRoot: util.True(),
-			RunAsUser:    func(uid int64) *int64 { return &uid }(2121),
-			RunAsGroup:   func(uid int64) *int64 { return &uid }(2121),
-		},
+		Containers:         s.ensureContainersSpec(),
+		Volumes:            s.ensureVolumes(),
 		Affinity:           s.driver.Spec.Node.Affinity,
 		Tolerations:        s.driver.Spec.Node.Tolerations,
 		ServiceAccountName: constants.GetResourceName(constants.CSINodeServiceAccount),
@@ -174,6 +169,11 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 		},
 	)
 
+	livenessProbe.SecurityContext = &corev1.SecurityContext{
+		RunAsNonRoot: util.False(),
+		RunAsUser:    func(uid int64) *int64 { return &uid }(0), //TODO: Fix it when non-root user gets read & write permission for /csi/csi.sock socket
+		Privileged:   util.False(),
+	}
 	fillSecurityContextCapabilities(livenessProbe.SecurityContext)
 	livenessProbe.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
 	livenessProbe.Resources = getSidecarResourceRequests(s.driver, constants.LivenessProbe)
@@ -357,9 +357,6 @@ func ensureHostPathVolumeSource(path, pathType string) corev1.VolumeSource {
 }
 
 func fillSecurityContextCapabilities(sc *corev1.SecurityContext, add ...string) {
-	if sc == nil {
-		sc = &corev1.SecurityContext{}
-	}
 	sc.Capabilities = &corev1.Capabilities{
 		Drop: []corev1.Capability{"ALL"},
 	}
