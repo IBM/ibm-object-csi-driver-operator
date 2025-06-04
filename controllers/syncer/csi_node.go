@@ -141,6 +141,7 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 		RunAsNonRoot: util.False(),
 		Privileged:   util.True(), // Revisit if node server needs privileged permission
 		RunAsUser:    func(uid int64) *int64 { return &uid }(0),
+		RunAsGroup:   func(uid int64) *int64 { return &uid }(0),
 	}
 	fillSecurityContextCapabilities(
 		nodePlugin.SecurityContext,
@@ -158,6 +159,7 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 	registrar.SecurityContext = &corev1.SecurityContext{
 		RunAsNonRoot: util.False(),
 		RunAsUser:    func(uid int64) *int64 { return &uid }(0),
+		RunAsGroup:   func(uid int64) *int64 { return &uid }(0),
 		Privileged:   util.False(),
 	}
 	fillSecurityContextCapabilities(registrar.SecurityContext)
@@ -173,6 +175,18 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 			healthPortArg,
 		},
 	)
+
+	livenessProbe.SecurityContext = &corev1.SecurityContext{
+		RunAsNonRoot: util.True(),
+		RunAsUser:    func(uid int64) *int64 { return &uid }(2121),
+		RunAsGroup:   func(uid int64) *int64 { return &uid }(2121),
+		Privileged:   util.False(),
+		// This is intended to help the container access privileged host paths like csi socket
+		SELinuxOptions: &corev1.SELinuxOptions{
+			Type:  "spc_t", // "Super Privileged Container" type.
+			Level: "s0",    // security level.
+		},
+	}
 
 	fillSecurityContextCapabilities(livenessProbe.SecurityContext)
 	livenessProbe.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
@@ -221,6 +235,14 @@ func (s *csiNodeSyncer) getEnvFor(name string) []corev1.EnvVar {
 				Value: constants.COSCSIMounterSocketPath,
 			},
 			envVarFromField("KUBE_NODE_NAME", "spec.nodeName"),
+			{
+				Name:  "IS_NODE_SERVER",
+				Value: "true",
+			},
+			{
+				Name:  "SIDECAR_GROUP_ID",
+				Value: "2121",
+			},
 		}
 
 	case constants.CSINodeDriverRegistrar:
