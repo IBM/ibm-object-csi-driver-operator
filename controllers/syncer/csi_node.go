@@ -285,14 +285,6 @@ func (s *csiNodeSyncer) getVolumeMountsFor(name string) []corev1.VolumeMount {
 				MountPath: "/dev/fuse",
 			},
 			{
-				Name:      "log-dev",
-				MountPath: "/dev/log",
-			},
-			{
-				Name:      "host-log",
-				MountPath: "/host/var/log",
-			},
-			{
 				Name:      "coscsi-socket-path",
 				MountPath: "/var/lib/coscsi-sock",
 			},
@@ -332,8 +324,6 @@ func (s *csiNodeSyncer) ensureVolumes() []corev1.Volume {
 		ensureVolume("registration-dir", ensureHostPathVolumeSource("/var/lib/kubelet/plugins_registry", "Directory")),
 		ensureVolume("kubelet-dir-ibm", ensureHostPathVolumeSource("/var/data/kubelet", "DirectoryOrCreate")),
 		ensureVolume("fuse-device", ensureHostPathVolumeSource("/dev/fuse", "")),
-		ensureVolume("log-dev", ensureHostPathVolumeSource("/dev/log", "")),
-		ensureVolume("host-log", ensureHostPathVolumeSource("/var/log", "")),
 		ensureVolume("coscsi-socket-path", ensureHostPathVolumeSource("/var/lib/coscsi-sock", "Directory")),
 		ensureVolume("coscsi-mounter-config-path", ensureHostPathVolumeSource("/var/lib/coscsi-config", "DirectoryOrCreate")),
 	}
