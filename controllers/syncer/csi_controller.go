@@ -87,10 +87,12 @@ func (s *csiControllerSyncer) ensurePodSpec() corev1.PodSpec {
 		SecurityContext: &corev1.PodSecurityContext{
 			RunAsNonRoot: util.True(),
 			RunAsUser:    func(uid int64) *int64 { return &uid }(2121),
+			RunAsGroup:   func(uid int64) *int64 { return &uid }(2121),
 		},
 		Affinity:           s.driver.Spec.Controller.Affinity,
 		Tolerations:        s.driver.Spec.Controller.Tolerations,
 		ServiceAccountName: constants.GetResourceName(constants.CSIControllerServiceAccount),
+		PriorityClassName:  constants.CSIControllerPriorityClassName,
 	}
 }
 

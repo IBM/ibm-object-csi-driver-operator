@@ -3,6 +3,7 @@ package common
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -14,7 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8sErr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -48,7 +49,7 @@ func (ch *ControllerHelper) DeleteClusterRoleBindings(clusterRoleBindings []*rba
 	logger := ch.Log.WithName("DeleteClusterRoleBindings")
 	for _, crb := range clusterRoleBindings {
 		found, err := ch.getClusterRoleBinding(crb)
-		if err != nil && errors.IsNotFound(err) {
+		if err != nil && k8sErr.IsNotFound(err) {
 			continue
 		} else if err != nil {
 			logger.Error(err, "failed to get ClusterRoleBinding", "Name", crb.GetName())
@@ -69,7 +70,7 @@ func (ch *ControllerHelper) DeleteStorageClasses(storageClasses []*storagev1.Sto
 	logger := ch.Log.WithName("DeleteStorageClasses")
 	for _, sc := range storageClasses {
 		found, err := ch.getStorageClass(sc)
-		if err != nil && errors.IsNotFound(err) {
+		if err != nil && k8sErr.IsNotFound(err) {
 			continue
 		} else if err != nil {
 			logger.Error(err, "failed to get StorageClasses", "Name", sc.GetName())
@@ -89,7 +90,7 @@ func (ch *ControllerHelper) ReconcileClusterRoleBinding(clusterRoleBindings []*r
 	logger := ch.Log.WithValues("Resource Type", "ClusterRoleBinding")
 	for _, crb := range clusterRoleBindings {
 		_, err := ch.getClusterRoleBinding(crb)
-		if err != nil && errors.IsNotFound(err) {
+		if err != nil && k8sErr.IsNotFound(err) {
 			logger.Info("Creating a new ClusterRoleBinding", "Name", crb.GetName())
 			err = ch.Create(context.TODO(), crb)
 			if err != nil {
@@ -109,7 +110,7 @@ func (ch *ControllerHelper) ReconcileStorageClasses(storageclasses []*storagev1.
 	logger := ch.Log.WithValues("Resource Type", "StorageClasses")
 	for _, sc := range storageclasses {
 		_, err := ch.getStorageClass(sc)
-		if err != nil && errors.IsNotFound(err) {
+		if err != nil && k8sErr.IsNotFound(err) {
 			logger.Info("Creating a new StorageClass", "Name", sc.GetName())
 			err = ch.Create(context.TODO(), sc)
 			if err != nil {
@@ -147,7 +148,7 @@ func (ch *ControllerHelper) DeleteClusterRoles(clusterRoles []*rbacv1.ClusterRol
 	logger := ch.Log.WithName("DeleteClusterRoles")
 	for _, cr := range clusterRoles {
 		found, err := ch.getClusterRole(cr)
-		if err != nil && errors.IsNotFound(err) {
+		if err != nil && k8sErr.IsNotFound(err) {
 			continue
 		} else if err != nil {
 			logger.Error(err, "failed to get ClusterRole", "Name", cr.GetName())
@@ -167,7 +168,7 @@ func (ch *ControllerHelper) ReconcileClusterRole(clusterRoles []*rbacv1.ClusterR
 	logger := ch.Log.WithValues("Resource Type", "ClusterRole")
 	for _, cr := range clusterRoles {
 		_, err := ch.getClusterRole(cr)
-		if err != nil && errors.IsNotFound(err) {
+		if err != nil && k8sErr.IsNotFound(err) {
 			logger.Info("Creating a new ClusterRole", "Name", cr.GetName())
 			err = ch.Create(context.TODO(), cr)
 			if err != nil {
@@ -271,7 +272,8 @@ func (ch *ControllerHelper) GetClusterInfo(inConfig rest.Config) error {
 	}
 
 	if k8sClient != nil {
-		list, err := k8sClient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+		var list *corev1.NodeList
+		list, err = k8sClient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 		if err == nil {
 			nodes = *list
 		}
@@ -280,6 +282,12 @@ func (ch *ControllerHelper) GetClusterInfo(inConfig rest.Config) error {
 	}
 	if err != nil {
 		logger.Error(err, "Get Cluster Info")
+		return err
+	}
+
+	if len(nodes.Items) == 0 {
+		err := errors.New("cluster nodes not found")
+		logger.Error(err, "failed to fetch cluster nodes list")
 		return err
 	}
 

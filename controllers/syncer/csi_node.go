@@ -93,6 +93,7 @@ func (s *csiNodeSyncer) ensurePodSpec() corev1.PodSpec {
 		SecurityContext: &corev1.PodSecurityContext{
 			RunAsNonRoot: util.True(),
 			RunAsUser:    func(uid int64) *int64 { return &uid }(2121),
+			RunAsGroup:   func(uid int64) *int64 { return &uid }(2121),
 		},
 		Affinity:           s.driver.Spec.Node.Affinity,
 		Tolerations:        s.driver.Spec.Node.Tolerations,
@@ -138,8 +139,9 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 
 	nodePlugin.SecurityContext = &corev1.SecurityContext{
 		RunAsNonRoot: util.False(),
-		Privileged:   util.True(),
+		Privileged:   util.True(), // Revisit if node server needs privileged permission
 		RunAsUser:    func(uid int64) *int64 { return &uid }(0),
+		RunAsGroup:   func(uid int64) *int64 { return &uid }(0),
 	}
 	fillSecurityContextCapabilities(
 		nodePlugin.SecurityContext,
@@ -154,9 +156,11 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 			"--v=5",
 		},
 	)
-	registrar.SecurityContext = &corev1.SecurityContext{RunAsNonRoot: util.False(),
-		RunAsUser:  func(uid int64) *int64 { return &uid }(0),
-		Privileged: util.False(),
+	registrar.SecurityContext = &corev1.SecurityContext{
+		RunAsNonRoot: util.False(),
+		RunAsUser:    func(uid int64) *int64 { return &uid }(0),
+		RunAsGroup:   func(uid int64) *int64 { return &uid }(0),
+		Privileged:   util.False(),
 	}
 	fillSecurityContextCapabilities(registrar.SecurityContext)
 	registrar.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
@@ -171,10 +175,19 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 			healthPortArg,
 		},
 	)
-	livenessProbe.SecurityContext = &corev1.SecurityContext{RunAsNonRoot: util.False(),
-		RunAsUser:  func(uid int64) *int64 { return &uid }(0),
-		Privileged: util.False(),
+
+	livenessProbe.SecurityContext = &corev1.SecurityContext{
+		RunAsNonRoot: util.True(),
+		RunAsUser:    func(uid int64) *int64 { return &uid }(2121),
+		RunAsGroup:   func(uid int64) *int64 { return &uid }(2121),
+		Privileged:   util.False(),
+		// This is intended to help the container access privileged host paths like csi socket
+		SELinuxOptions: &corev1.SELinuxOptions{
+			Type:  "spc_t", // "Super Privileged Container" type.
+			Level: "s0",    // security level.
+		},
 	}
+
 	fillSecurityContextCapabilities(livenessProbe.SecurityContext)
 	livenessProbe.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
 	livenessProbe.Resources = getSidecarResourceRequests(s.driver, constants.LivenessProbe)
@@ -217,7 +230,19 @@ func (s *csiNodeSyncer) getEnvFor(name string) []corev1.EnvVar {
 				Name:  "CSI_ENDPOINT",
 				Value: constants.CSINodeEndpoint,
 			},
+			{
+				Name:  "COS_CSI_MOUNTER_SOCKET",
+				Value: constants.COSCSIMounterSocketPath,
+			},
 			envVarFromField("KUBE_NODE_NAME", "spec.nodeName"),
+			{
+				Name:  "IS_NODE_SERVER",
+				Value: "true",
+			},
+			{
+				Name:  "SIDECAR_GROUP_ID",
+				Value: "2121",
+			},
 		}
 
 	case constants.CSINodeDriverRegistrar:
@@ -260,12 +285,12 @@ func (s *csiNodeSyncer) getVolumeMountsFor(name string) []corev1.VolumeMount {
 				MountPath: "/dev/fuse",
 			},
 			{
-				Name:      "log-dev",
-				MountPath: "/dev/log",
+				Name:      "coscsi-socket-path",
+				MountPath: "/var/lib/coscsi-sock",
 			},
 			{
-				Name:      "host-log",
-				MountPath: "/host/var/log",
+				Name:      "coscsi-mounter-config-path",
+				MountPath: "/var/lib/coscsi-config",
 			},
 		}
 
@@ -299,8 +324,8 @@ func (s *csiNodeSyncer) ensureVolumes() []corev1.Volume {
 		ensureVolume("registration-dir", ensureHostPathVolumeSource("/var/lib/kubelet/plugins_registry", "Directory")),
 		ensureVolume("kubelet-dir-ibm", ensureHostPathVolumeSource("/var/data/kubelet", "DirectoryOrCreate")),
 		ensureVolume("fuse-device", ensureHostPathVolumeSource("/dev/fuse", "")),
-		ensureVolume("log-dev", ensureHostPathVolumeSource("/dev/log", "")),
-		ensureVolume("host-log", ensureHostPathVolumeSource("/var/log", "")),
+		ensureVolume("coscsi-socket-path", ensureHostPathVolumeSource("/var/lib/coscsi-sock", "Directory")),
+		ensureVolume("coscsi-mounter-config-path", ensureHostPathVolumeSource("/var/lib/coscsi-config", "DirectoryOrCreate")),
 	}
 }
 
@@ -344,6 +369,9 @@ func ensureHostPathVolumeSource(path, pathType string) corev1.VolumeSource {
 }
 
 func fillSecurityContextCapabilities(sc *corev1.SecurityContext, add ...string) {
+	if sc == nil {
+		sc = &corev1.SecurityContext{}
+	}
 	sc.Capabilities = &corev1.Capabilities{
 		Drop: []corev1.Capability{"ALL"},
 	}
