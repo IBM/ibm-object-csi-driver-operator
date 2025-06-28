@@ -168,10 +168,10 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	err = r.Get(ctx, types.NamespacedName{Name: constants.ParamsConfigMap, Namespace: constants.CSIOperatorNamespace}, configMap)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			reqLogger.Info("ConfigMap not found. Retry after 5 seconds...", "name", req.Name, "namespace", req.Namespace)
+			reqLogger.Info("ConfigMap not found. Retry after 5 seconds...", "name", constants.ParamsConfigMap, "namespace", constants.CSIOperatorNamespace)
 			return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 		}
-		reqLogger.Error(err, "Failed to get ConfigMap", req.Name)
+		reqLogger.Error(err, "Failed to get ConfigMap", constants.ParamsConfigMap)
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}

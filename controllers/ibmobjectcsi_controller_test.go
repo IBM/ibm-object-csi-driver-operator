@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
@@ -359,6 +360,16 @@ var (
 		},
 	}
 
+	addonConfigMap = &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.ParamsConfigMap,
+			Namespace: constants.CSIOperatorNamespace,
+		},
+		Data: map[string]string{
+			"maxVolumesPerNode": "10",
+		},
+	}
+
 	rCloneSC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   fmt.Sprintf("%s-standard-rclone", constants.StorageClassPrefix),
@@ -478,6 +489,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Positive: Successful",
 			objects: []runtime.Object{
 				ibmObjectCSICR,
+				addonConfigMap,
 				csiNode,
 				controllerDeployment,
 				controllerPod,
@@ -502,6 +514,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Positive: Sync controller deployment & pod containers and update status in IBMObjectCSI CR",
 			objects: []runtime.Object{
 				ibmObjectCSICRWithAWSProvider,
+				addonConfigMap,
 				csiNode,
 				&appsv1.Deployment{
 					ObjectMeta: controllerDeployment.ObjectMeta,
@@ -530,6 +543,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Positive: Successfully updated status in IBMObjectCSI CR after validating if pod images are in sync",
 			objects: []runtime.Object{
 				ibmObjectCSICR,
+				addonConfigMap,
 				controllerSA,
 				nodeSA,
 				&appsv1.Deployment{
@@ -599,9 +613,33 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			expectedErr:  errors.New(UpdateError),
 		},
 		{
+			testCaseName: "Negative: Failed to get configmap",
+			objects: []runtime.Object{
+				ibmObjectCSICR,
+				addonConfigMap,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fakeget.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(GetError),
+		},
+		{
+			testCaseName: "Negative: configmap not found",
+			objects: []runtime.Object{
+				ibmObjectCSICR,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			expectedResp: reconcile.Result{RequeueAfter: 5 * time.Second},
+			expectedErr:  nil,
+		},
+		{
 			testCaseName: "Negative: Failed to create CSI driver while reconciling",
 			objects: []runtime.Object{
 				ibmObjectCSICR,
+				addonConfigMap,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fakecreate.NewClientBuilder().WithRuntimeObjects(objs...).Build()
@@ -613,6 +651,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Negative: Failed to get CSI driver while reconciling",
 			objects: []runtime.Object{
 				ibmObjectCSICR,
+				addonConfigMap,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fakegetcsidriver.NewClientBuilder().WithRuntimeObjects(objs...).Build()
@@ -624,6 +663,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Negative: Failed to create service account while reconciling",
 			objects: []runtime.Object{
 				ibmObjectCSICR,
+				addonConfigMap,
 				csiDriver,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
@@ -636,6 +676,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Failed to get node daemon set while reconciling",
 			objects: []runtime.Object{
 				ibmObjectCSICR,
+				addonConfigMap,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
@@ -647,6 +688,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Failed to get controller deployment while reconciling",
 			objects: []runtime.Object{
 				ibmObjectCSICR,
+				addonConfigMap,
 				csiNode,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
@@ -659,6 +701,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Negative: Failed to restart node while reconciling",
 			objects: []runtime.Object{
 				ibmObjectCSICRWithFinaliser,
+				addonConfigMap,
 				csiNode,
 				controllerDeployment,
 				controllerPod,
@@ -673,6 +716,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Failed to get service account while reconciling",
 			objects: []runtime.Object{
 				ibmObjectCSICR,
+				addonConfigMap,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fakegetsa.NewClientBuilder().WithRuntimeObjects(objs...).Build()
@@ -684,6 +728,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Negative: Failed to get controller pod while reconciling",
 			objects: []runtime.Object{
 				ibmObjectCSICRWithFinaliser,
+				addonConfigMap,
 				csiNode,
 				controllerDeployment,
 			},
@@ -697,6 +742,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Negative: Controller pod not found while reconciling",
 			objects: []runtime.Object{
 				ibmObjectCSICRWithFinaliser,
+				addonConfigMap,
 				csiNode,
 				controllerDeployment,
 			},
@@ -710,6 +756,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Negative: Failed to sync CSI Controller",
 			objects: []runtime.Object{
 				ibmObjectCSICRWithFinaliser,
+				addonConfigMap,
 				controllerSA,
 				nodeSA,
 				&appsv1.Deployment{
@@ -731,6 +778,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Negative: Failed to sync CSI Node",
 			objects: []runtime.Object{
 				ibmObjectCSICRWithFinaliser,
+				addonConfigMap,
 				controllerSA,
 				nodeSA,
 				csiNode,
@@ -745,6 +793,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Negative: Failed to create storage class while reconciling",
 			objects: []runtime.Object{
 				ibmObjectCSICRWithAWSProvider,
+				addonConfigMap,
 				csiNode,
 				controllerDeployment,
 				controllerPod,
@@ -759,6 +808,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Negative: Failed to update status in IBMObjectCSI CR",
 			objects: []runtime.Object{
 				ibmObjectCSICRWithFinaliser,
+				addonConfigMap,
 				controllerSA,
 				nodeSA,
 				&appsv1.Deployment{
