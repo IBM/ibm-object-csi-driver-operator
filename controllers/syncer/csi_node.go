@@ -27,12 +27,16 @@ type csiNodeSyncer struct {
 }
 
 // NewCSINodeSyncer returns a syncer for CSI node
-func NewCSINodeSyncer(c client.Client, driver *crutils.IBMObjectCSI) syncer.Interface {
+func NewCSINodeSyncer(c client.Client, driver *crutils.IBMObjectCSI, cmKeyHash string) syncer.Interface {
+	annotationsMap := make(map[string]string)
+	if cmKeyHash != "" {
+		annotationsMap["config-hash"] = cmKeyHash
+	}
 	obj := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        constants.GetResourceName(constants.CSINode),
 			Namespace:   driver.Namespace,
-			Annotations: driver.GetAnnotations(),
+			Annotations: driver.GetAnnotations(annotationsMap),
 			Labels:      driver.GetLabels(),
 		},
 		Spec: appsv1.DaemonSetSpec{
@@ -40,7 +44,7 @@ func NewCSINodeSyncer(c client.Client, driver *crutils.IBMObjectCSI) syncer.Inte
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      driver.GetCSINodePodLabels(),
-					Annotations: driver.GetAnnotations(),
+					Annotations: driver.GetAnnotations(annotationsMap),
 				},
 				Spec: corev1.PodSpec{},
 			},
@@ -73,9 +77,9 @@ func (s *csiNodeSyncer) SyncFn() error {
 
 	// ensure template
 	out.Spec.Template.ObjectMeta.Labels = nodeLabels
-	nodeAnnotations := s.driver.GetAnnotations()
-
 	out.ObjectMeta.Labels = nodeLabels
+	nodeAnnotations := s.driver.GetAnnotations(nil)
+
 	ensureAnnotations(&out.Spec.Template.ObjectMeta, &out.ObjectMeta, nodeAnnotations)
 
 	err := mergo.Merge(&out.Spec.Template.Spec, s.ensurePodSpec(), mergo.WithTransformers(transformers.PodSpec))
@@ -243,6 +247,17 @@ func (s *csiNodeSyncer) getEnvFor(name string) []corev1.EnvVar {
 				Name:  "SIDECAR_GROUP_ID",
 				Value: "2121",
 			},
+			{
+				Name: constants.MaxVolumesPerNodeEnv,
+				ValueFrom: &corev1.EnvVarSource{
+					ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: constants.ParamsConfigMap,
+						},
+						Key: constants.MaxVolumesPerNodeCMKey, // Key to pull from the ConfigMap
+					},
+				},
+			},
 		}
 
 	case constants.CSINodeDriverRegistrar:
@@ -323,7 +338,6 @@ func (s *csiNodeSyncer) ensureVolumes() []corev1.Volume {
 		ensureVolume("plugin-dir", ensureHostPathVolumeSource("/var/lib/kubelet/plugins/cos.s3.csi.ibm.io", "DirectoryOrCreate")),
 		ensureVolume("registration-dir", ensureHostPathVolumeSource("/var/lib/kubelet/plugins_registry", "Directory")),
 		ensureVolume("kubelet-dir-ibm", ensureHostPathVolumeSource("/var/data/kubelet", "DirectoryOrCreate")),
-		ensureVolume("fuse-device", ensureHostPathVolumeSource("/dev/fuse", "")),
 		ensureVolume("coscsi-socket-path", ensureHostPathVolumeSource("/var/lib/coscsi-sock", "Directory")),
 		ensureVolume("coscsi-mounter-config-path", ensureHostPathVolumeSource("/var/lib/coscsi-config", "DirectoryOrCreate")),
 	}

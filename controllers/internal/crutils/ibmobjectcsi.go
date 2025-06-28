@@ -52,7 +52,7 @@ func (c *IBMObjectCSI) GetLabels() labels.Set {
 }
 
 // GetAnnotations returns all the annotations to be set on all resources
-func (c *IBMObjectCSI) GetAnnotations() labels.Set {
+func (c *IBMObjectCSI) GetAnnotations(annotations map[string]string) labels.Set {
 	labels := labels.Set{
 		"productID":      constants.CSIDriverName,
 		"productName":    constants.CSIDriverName,
@@ -65,6 +65,9 @@ func (c *IBMObjectCSI) GetAnnotations() labels.Set {
 				labels[k] = v
 			}
 		}
+	}
+	for k, v := range annotations {
+		labels[k] = v
 	}
 
 	return labels
