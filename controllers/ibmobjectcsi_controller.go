@@ -170,11 +170,10 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		if errors.IsNotFound(err) {
 			reqLogger.Info("ConfigMap not found. Retry after 5 seconds...", "name", req.Name, "namespace", req.Namespace)
 			return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
-		} else {
-			reqLogger.Error(err, "Failed to get ConfigMap", req.Name)
-			// Error reading the object - requeue the request.
-			return reconcile.Result{}, err
 		}
+		reqLogger.Error(err, "Failed to get ConfigMap", req.Name)
+		// Error reading the object - requeue the request.
+		return reconcile.Result{}, err
 	}
 
 	// create the resources if not exist
@@ -229,11 +228,10 @@ func (r *IBMObjectCSIReconciler) handleConfigMapReconcile(ctx context.Context, r
 		if errors.IsNotFound(err) {
 			reqLogger.Info("ConfigMap not found. Ignoring configmap event...", "name", req.Name, "namespace", req.Namespace)
 			return reconcile.Result{}, nil
-		} else {
-			reqLogger.Error(err, "Failed to get ConfigMap", req.Name)
-			// Error reading the object - requeue the request.
-			return reconcile.Result{}, err
 		}
+		reqLogger.Error(err, "Failed to get ConfigMap", req.Name)
+		// Error reading the object - requeue the request.
+		return reconcile.Result{}, err
 	}
 
 	// Fetch the IBMObjectCSI instance
