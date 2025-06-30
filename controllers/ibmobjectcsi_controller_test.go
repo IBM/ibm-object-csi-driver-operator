@@ -371,6 +371,20 @@ var (
 		},
 	}
 
+	addonConfigMapWithUpdatedData = &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.ParamsConfigMap,
+			Namespace: constants.CSIOperatorNamespace,
+		},
+		Data: map[string]string{
+			"maxVolumesPerNode":    "10",
+			"CSINodeCPURequest":    "5m",
+			"CSINodeMemoryRequest": "5Mi",
+			"CSINodeCPULimit":      "50m",
+			"CSINodeMemoryLimit":   "50Mi",
+		},
+	}
+
 	rCloneSC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   fmt.Sprintf("%s-standard-rclone", constants.StorageClassPrefix),
@@ -634,6 +648,30 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 			},
 			expectedResp: reconcile.Result{RequeueAfter: 5 * time.Second},
+			expectedErr:  nil,
+		},
+		{
+			testCaseName: "Negative: Failed to update IBMObjectCSI CR as per updated configmap data",
+			objects: []runtime.Object{
+				ibmObjectCSICR,
+				addonConfigMapWithUpdatedData,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fakeupdate.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(UpdateError),
+		},
+		{
+			testCaseName: "Positive: IBMObjectCSI CR updated as per updated configmap data",
+			objects: []runtime.Object{
+				ibmObjectCSICR,
+				addonConfigMapWithUpdatedData,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			expectedResp: reconcile.Result{},
 			expectedErr:  nil,
 		},
 		{
