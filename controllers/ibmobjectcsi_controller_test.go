@@ -98,7 +98,8 @@ var (
 						Operator: corev1.TolerationOpExists,
 					},
 				},
-				Resources: resources,
+				Resources:         resources,
+				MaxVolumesPerNode: "0",
 			},
 			Sidecars: []v1alpha1.CSISidecar{
 				{
@@ -366,7 +367,7 @@ var (
 			Namespace: constants.CSIOperatorNamespace,
 		},
 		Data: map[string]string{
-			"maxVolumesPerNode": "10",
+			"maxVolumesPerNode": "0",
 		},
 	}
 
