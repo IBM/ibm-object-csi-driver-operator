@@ -176,6 +176,18 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return reconcile.Result{}, err
 	}
 
+	if crUpdateRequired := checkIfupdateCRFromConfigMapRequired(instance.Unwrap(), configMap); crUpdateRequired {
+		// Update the instance in the Kubernetes API server
+		reqLogger.Info("IBMObjectCSI spec is not in sync with configmap data. Updating IBMObjectCSI CR...")
+		err = r.Update(ctx, instance.Unwrap())
+		if err != nil {
+			reqLogger.Error(err, "Failed to update IBMObjectCSI instance as per configMap data")
+			return reconcile.Result{}, err
+		}
+		reqLogger.Info("IBMObjectCSI CR is updated as per configmap data")
+		return reconcile.Result{}, nil
+	}
+
 	// create the resources if not exist
 	for _, rec := range []reconciler{
 		r.reconcileCSIDriver,
@@ -194,12 +206,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return reconcile.Result{}, err
 	}
 
-	// Add annotation (with hash of ) in node server daemonset t
-	maxVolumesPerNode, ok := configMap.Data[constants.MaxVolumesPerNodeCMKey]
-	if !ok {
-		maxVolumesPerNode = "0"
-	}
-	csiNodeSyncer := clustersyncer.NewCSINodeSyncer(r.Client, instance, common.GenerateHash(maxVolumesPerNode))
+	csiNodeSyncer := clustersyncer.NewCSINodeSyncer(r.Client, instance)
 	if err := syncer.Sync(ctx, csiNodeSyncer, r.Recorder); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -247,55 +254,18 @@ func (r *IBMObjectCSIReconciler) handleConfigMapReconcile(ctx context.Context, r
 	}
 	reqLogger.Info("IBMObjectCSI CR fetched successfully")
 
-	resourceKeysUpdated := false
-	//get values from configMap and update the IBMObjectCSI instance with new values from ConfigMap
-	if val, ok := configMap.Data["CSINodeCPURequest"]; ok {
-		if instance.Spec.Node.Resources.Requests.CPU != val {
-			instance.Spec.Node.Resources.Requests.CPU = val
-			resourceKeysUpdated = true
-		}
-	}
-	if val, ok := configMap.Data["CSINodeMemoryRequest"]; ok {
-		if instance.Spec.Node.Resources.Requests.Memory != val {
-			instance.Spec.Node.Resources.Requests.Memory = val
-			resourceKeysUpdated = true
-		}
-	}
-	if val, ok := configMap.Data["CSINodeCPULimit"]; ok {
-		if instance.Spec.Node.Resources.Limits.CPU != val {
-			instance.Spec.Node.Resources.Limits.CPU = val
-			resourceKeysUpdated = true
-		}
-	}
-	if val, ok := configMap.Data["CSINodeMemoryLimit"]; ok {
-		if instance.Spec.Node.Resources.Limits.Memory != val {
-			instance.Spec.Node.Resources.Limits.Memory = val
-			resourceKeysUpdated = true
-		}
-	}
-
-	if resourceKeysUpdated {
+	if crUpdateRequired := checkIfupdateCRFromConfigMapRequired(instance, configMap); crUpdateRequired {
 		// Update the instance in the Kubernetes API server
-		reqLogger.Info("Updating IBMObjectCSI CR with resource requests and limits for Node pods")
+		reqLogger.Info("IBMObjectCSI spec is not in sync with configmap data. Updating IBMObjectCSI CR...")
 		err = r.Update(ctx, instance)
 		if err != nil {
-			reqLogger.Error(err, "Failed to update IBMObjectCSI instance with ConfigMap values for resource requests and limits for Node pods")
+			reqLogger.Error(err, "Failed to update IBMObjectCSI instance as per configMap data")
 			return reconcile.Result{}, err
 		}
-		reqLogger.Info("IBMObjectCSI CR is updated. NodeServer deamonset will be updated to reflect new resource requests and limits")
-	} else {
-		reqLogger.Info("Updating CSI NodeServer daemonset to read updated value of 'maxVolumesPerNode' from configmap")
-		maxVolumesPerNode, ok := configMap.Data[constants.MaxVolumesPerNodeCMKey]
-		if !ok {
-			maxVolumesPerNode = "0"
-		}
-		csiNodeSyncer := clustersyncer.NewCSINodeSyncer(r.Client, crutils.New(instance), common.GenerateHash(maxVolumesPerNode))
-		if err := syncer.Sync(ctx, csiNodeSyncer, r.Recorder); err != nil {
-			return reconcile.Result{}, err
-		}
-		reqLogger.Info("CSI NodeServer daemonset update completed.")
+		reqLogger.Info("IBMObjectCSI CR is updated as per configmap data")
+		return reconcile.Result{}, nil
 	}
-
+	reqLogger.Info("IBMObjectCSI spec is already in sync with configmap data. IBMObjectCSI CR update is not needed")
 	return reconcile.Result{}, nil
 }
 
@@ -642,6 +612,43 @@ func (r *IBMObjectCSIReconciler) getClusterRoles(instance *crutils.IBMObjectCSI)
 		controllerSCC,
 		nodeSCC,
 	}
+}
+
+func checkIfupdateCRFromConfigMapRequired(instance *objectdriverv1alpha1.IBMObjectCSI, cm *corev1.ConfigMap) bool {
+	crUpdateRequired := false
+
+	if val, ok := cm.Data[constants.NodeServerCPURequestCMKey]; ok {
+		if instance.Spec.Node.Resources.Requests.CPU != val {
+			instance.Spec.Node.Resources.Requests.CPU = val
+			crUpdateRequired = true
+		}
+	}
+	if val, ok := cm.Data[constants.NodeServerMemoryRequestCMKey]; ok {
+		if instance.Spec.Node.Resources.Requests.Memory != val {
+			instance.Spec.Node.Resources.Requests.Memory = val
+			crUpdateRequired = true
+		}
+	}
+	if val, ok := cm.Data[constants.NodeServerCPULimitCMKey]; ok {
+		if instance.Spec.Node.Resources.Limits.CPU != val {
+			instance.Spec.Node.Resources.Limits.CPU = val
+			crUpdateRequired = true
+		}
+	}
+	if val, ok := cm.Data[constants.NodeServerMemoryLimitCMKey]; ok {
+		if instance.Spec.Node.Resources.Limits.Memory != val {
+			instance.Spec.Node.Resources.Limits.Memory = val
+			crUpdateRequired = true
+		}
+	}
+
+	if val, ok := cm.Data[constants.MaxVolumesPerNodeCMKey]; ok {
+		if instance.Spec.Node.MaxVolumesPerNode != val {
+			instance.Spec.Node.MaxVolumesPerNode = val
+			crUpdateRequired = true
+		}
+	}
+	return crUpdateRequired
 }
 
 // SetupWithManager sets up the controller with the Manager.

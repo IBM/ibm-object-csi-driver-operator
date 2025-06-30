@@ -32,7 +32,7 @@ func NewCSIControllerSyncer(c client.Client, driver *crutils.IBMObjectCSI) synce
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        constants.GetResourceName(constants.CSIController),
 			Namespace:   driver.Namespace,
-			Annotations: driver.GetAnnotations(nil),
+			Annotations: driver.GetAnnotations(),
 			Labels:      driver.GetLabels(),
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -40,7 +40,7 @@ func NewCSIControllerSyncer(c client.Client, driver *crutils.IBMObjectCSI) synce
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      driver.GetCSIControllerPodLabels(),
-					Annotations: driver.GetAnnotations(nil),
+					Annotations: driver.GetAnnotations(),
 				},
 				Spec: corev1.PodSpec{},
 			},
@@ -64,7 +64,7 @@ func (s *csiControllerSyncer) SyncFn() error {
 	out.Spec.Selector = metav1.SetAsLabelSelector(s.driver.GetCSIControllerSelectorLabels())
 
 	controllerLabels := s.driver.GetCSIControllerPodLabels()
-	controllerAnnotations := s.driver.GetAnnotations(nil)
+	controllerAnnotations := s.driver.GetAnnotations()
 
 	// ensure template
 	out.Spec.Template.ObjectMeta.Labels = controllerLabels

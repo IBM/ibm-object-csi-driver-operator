@@ -3,8 +3,6 @@ package common
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -414,9 +412,4 @@ func (ch *ControllerHelper) SetS3ProviderEP() {
 	if ch.S3Provider == constants.S3ProviderWasabi {
 		ch.CosEP = fmt.Sprintf(constants.WasabiEP, ch.S3ProviderRegion)
 	}
-}
-
-func GenerateHash(key string) string {
-	keyHash := sha256.Sum256([]byte(key))
-	return hex.EncodeToString(keyHash[:])
 }

@@ -105,8 +105,13 @@ const (
 	InfraProviderPlatformIBM = "IBMCloud"
 	InfraProviderType        = "VPC"
 
-	MaxVolumesPerNodeEnv   = "MAX_VOLUMES_PER_NODE"
-	MaxVolumesPerNodeCMKey = "maxVolumesPerNode"
+	MaxVolumesPerNodeEnv = "MAX_VOLUMES_PER_NODE"
+	//ConfigMap keys
+	MaxVolumesPerNodeCMKey       = "maxVolumesPerNode"
+	NodeServerCPURequestCMKey    = "CSINodeCPURequest"
+	NodeServerMemoryRequestCMKey = "CSINodeMemoryRequest"
+	NodeServerCPULimitCMKey      = "CSINodeCPULimit"
+	NodeServerMemoryLimitCMKey   = "CSINodeMemoryLimit"
 )
 
 var CommonCSIResourceLabels = map[string]string{

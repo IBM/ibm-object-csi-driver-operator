@@ -27,16 +27,12 @@ type csiNodeSyncer struct {
 }
 
 // NewCSINodeSyncer returns a syncer for CSI node
-func NewCSINodeSyncer(c client.Client, driver *crutils.IBMObjectCSI, cmKeyHash string) syncer.Interface {
-	annotationsMap := make(map[string]string)
-	if cmKeyHash != "" {
-		annotationsMap["config-hash"] = cmKeyHash
-	}
+func NewCSINodeSyncer(c client.Client, driver *crutils.IBMObjectCSI) syncer.Interface {
 	obj := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        constants.GetResourceName(constants.CSINode),
 			Namespace:   driver.Namespace,
-			Annotations: driver.GetAnnotations(annotationsMap),
+			Annotations: driver.GetAnnotations(),
 			Labels:      driver.GetLabels(),
 		},
 		Spec: appsv1.DaemonSetSpec{
@@ -44,7 +40,7 @@ func NewCSINodeSyncer(c client.Client, driver *crutils.IBMObjectCSI, cmKeyHash s
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      driver.GetCSINodePodLabels(),
-					Annotations: driver.GetAnnotations(annotationsMap),
+					Annotations: driver.GetAnnotations(),
 				},
 				Spec: corev1.PodSpec{},
 			},
@@ -78,7 +74,7 @@ func (s *csiNodeSyncer) SyncFn() error {
 	// ensure template
 	out.Spec.Template.ObjectMeta.Labels = nodeLabels
 	out.ObjectMeta.Labels = nodeLabels
-	nodeAnnotations := s.driver.GetAnnotations(nil)
+	nodeAnnotations := s.driver.GetAnnotations()
 
 	ensureAnnotations(&out.Spec.Template.ObjectMeta, &out.ObjectMeta, nodeAnnotations)
 
@@ -229,7 +225,7 @@ func envVarFromField(name, fieldPath string) corev1.EnvVar {
 func (s *csiNodeSyncer) getEnvFor(name string) []corev1.EnvVar {
 	switch name {
 	case constants.NodeContainerName:
-		return []corev1.EnvVar{
+		envVars := []corev1.EnvVar{
 			{
 				Name:  "CSI_ENDPOINT",
 				Value: constants.CSINodeEndpoint,
@@ -247,18 +243,14 @@ func (s *csiNodeSyncer) getEnvFor(name string) []corev1.EnvVar {
 				Name:  "SIDECAR_GROUP_ID",
 				Value: "2121",
 			},
-			{
-				Name: constants.MaxVolumesPerNodeEnv,
-				ValueFrom: &corev1.EnvVarSource{
-					ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: constants.ParamsConfigMap,
-						},
-						Key: constants.MaxVolumesPerNodeCMKey, // Key to pull from the ConfigMap
-					},
-				},
-			},
 		}
+		if s.driver.Spec.Node.MaxVolumesPerNode != "" {
+			envVars = append(envVars, corev1.EnvVar{
+				Name:  constants.MaxVolumesPerNodeEnv,
+				Value: s.driver.Spec.Node.MaxVolumesPerNode,
+			})
+		}
+		return envVars
 
 	case constants.CSINodeDriverRegistrar:
 		return []corev1.EnvVar{
@@ -294,10 +286,6 @@ func (s *csiNodeSyncer) getVolumeMountsFor(name string) []corev1.VolumeMount {
 				Name:             "kubelet-dir-ibm",
 				MountPath:        "/var/data/kubelet",
 				MountPropagation: &mountPropagationB,
-			},
-			{
-				Name:      "fuse-device",
-				MountPath: "/dev/fuse",
 			},
 			{
 				Name:      "coscsi-socket-path",

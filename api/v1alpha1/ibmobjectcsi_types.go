@@ -69,6 +69,9 @@ type IBMObjectCSINodeSpec struct {
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 
 	Resources ResourcesSpec `json:"resources,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	MaxVolumesPerNode string `json:"maxVolumesPerNode,omitempty"`
 }
 
 // IBMObjectCSIControllerSpec defines the desired state of IBMObjectCSIController
