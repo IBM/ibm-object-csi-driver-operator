@@ -75,8 +75,8 @@ const (
 	CSINodePriorityClassName              = "system-node-critical"
 	CSIControllerPriorityClassName        = "system-cluster-critical"
 
-	ResourceReqLimitsConfigMap = "cos-csi-driver-configmap"
-	ObjectCSIDriver            = "ibm-object-csi"
+	ParamsConfigMap = "managed-addon-ibm-object-csi-driver"
+	ObjectCSIDriver = "ibm-object-csi"
 
 	RetainPolicyTag = "retain"
 
@@ -104,6 +104,14 @@ const (
 
 	InfraProviderPlatformIBM = "IBMCloud"
 	InfraProviderType        = "VPC"
+
+	MaxVolumesPerNodeEnv = "MAX_VOLUMES_PER_NODE"
+	//ConfigMap keys
+	MaxVolumesPerNodeCMKey       = "maxVolumesPerNode"
+	NodeServerCPURequestCMKey    = "CSINodeCPURequest"
+	NodeServerMemoryRequestCMKey = "CSINodeMemoryRequest"
+	NodeServerCPULimitCMKey      = "CSINodeCPULimit"
+	NodeServerMemoryLimitCMKey   = "CSINodeMemoryLimit"
 )
 
 var CommonCSIResourceLabels = map[string]string{
