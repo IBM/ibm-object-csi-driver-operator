@@ -676,8 +676,8 @@ func configMapPredicate() predicate.Predicate {
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			configmap := e.ObjectNew.(*corev1.ConfigMap)
 			if configmap.Namespace == constants.CSIOperatorNamespace && configmap.Name == constants.ParamsConfigMap {
-				logger.Info("Update event on the configmap", "configmap", configmap.Name, "old generation", e.ObjectOld.GetGeneration(), "new generation", e.ObjectNew.GetGeneration())
-				return e.ObjectOld.GetGeneration() != e.ObjectNew.GetGeneration()
+				logger.Info("Update event on the configmap", "configmap", configmap.Name)
+				return true
 			}
 			return false
 		},
