@@ -119,6 +119,10 @@ var CommonCSIResourceLabels = map[string]string{
 	"app.kubernetes.io/managed-by": CSIOperatorName,
 }
 
+var CommonCSIResourceLabelForCaching = map[string]string{
+	"app.kubernetes.io/part-of": CSIDriverName,
+}
+
 // GetResourceName returns the name of a resource for a CSI driver
 func GetResourceName(name string) string {
 	return fmt.Sprintf("%s-%s", ObjectCSIDriver, name)

@@ -80,17 +80,7 @@ func main() {
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "af88e983.csi.ibm.com",
 		Cache: cache.Options{
-			DefaultLabelSelector: labels.SelectorFromSet(constants.CommonCSIResourceLabels),
-			/*DefaultNamespaces: map[string]cache.Config{
-				constants.CSIOperatorNamespace: {}, // For namespace scoped resources
-			},
-			ByObject: map[client.Object]cache.ByObject{
-				// Explicitly include required cluster-scoped resources
-				&storagev1.CSIDriver{}:       {},
-				&storagev1.StorageClass{}:    {},
-				&rbacv1.ClusterRole{}:        {},
-				&rbacv1.ClusterRoleBinding{}: {},
-			},*/
+			DefaultLabelSelector: labels.SelectorFromSet(constants.CommonCSIResourceLabelForCaching),
 		},
 
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
