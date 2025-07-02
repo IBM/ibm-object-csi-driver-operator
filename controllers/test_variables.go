@@ -35,7 +35,7 @@ var (
 	currentTime = metav1.Now()
 
 	ibmObjectCSICRName    = "test-csi-cr"
-	ibmObjectCSIfinalizer = "ibmobjectcsi.objectdriver.csi.ibm.com"
+	ibmObjectCSIfinalizer = "ibmobjectcsi.objectdriver.csi.ibm.com/finalizer"
 
 	recoverStaleVolCRName   = "test-vol-cr"
 	testDeploymentName      = "test-deployment"
