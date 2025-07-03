@@ -75,8 +75,9 @@ const (
 	CSINodePriorityClassName              = "system-node-critical"
 	CSIControllerPriorityClassName        = "system-cluster-critical"
 
-	ParamsConfigMap = "managed-addon-ibm-object-csi-driver"
-	ObjectCSIDriver = "ibm-object-csi"
+	ParamsConfigMap          = "managed-addon-ibm-object-csi-driver"
+	ParamsConfigMapNamespace = "kube-system"
+	ObjectCSIDriver          = "ibm-object-csi"
 
 	RetainPolicyTag = "retain"
 

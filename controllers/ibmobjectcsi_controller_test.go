@@ -364,7 +364,7 @@ var (
 	addonConfigMap = &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.ParamsConfigMap,
-			Namespace: constants.CSIOperatorNamespace,
+			Namespace: constants.ParamsConfigMapNamespace,
 		},
 		Data: map[string]string{
 			"maxVolumesPerNode": "0",
@@ -374,7 +374,7 @@ var (
 	addonConfigMapWithUpdatedData = &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.ParamsConfigMap,
-			Namespace: constants.CSIOperatorNamespace,
+			Namespace: constants.ParamsConfigMapNamespace,
 		},
 		Data: map[string]string{
 			"maxVolumesPerNode":    "10",

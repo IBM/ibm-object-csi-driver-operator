@@ -104,7 +104,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	r.ControllerHelper.Log = csiLog
 
 	// Check if the reconcile was triggered by the ConfigMap events
-	if req.Namespace == constants.CSIOperatorNamespace && req.Name == constants.ParamsConfigMap {
+	if req.Namespace == constants.ParamsConfigMapNamespace && req.Name == constants.ParamsConfigMap {
 		reqLogger.Info("Reconcile triggered by create/update event on ConfigMap")
 		// Handle the update of IBMObjectCSI
 		return r.handleConfigMapReconcile(ctx, req)
@@ -165,10 +165,10 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	// Fetch the ConfigMap instance
 	configMap := &corev1.ConfigMap{}
-	err = r.Get(ctx, types.NamespacedName{Name: constants.ParamsConfigMap, Namespace: constants.CSIOperatorNamespace}, configMap)
+	err = r.Get(ctx, types.NamespacedName{Name: constants.ParamsConfigMap, Namespace: constants.ParamsConfigMapNamespace}, configMap)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			reqLogger.Info("ConfigMap not found. Retry after 5 seconds...", "name", constants.ParamsConfigMap, "namespace", constants.CSIOperatorNamespace)
+			reqLogger.Info("ConfigMap not found. Retry after 5 seconds...", "name", constants.ParamsConfigMap, "namespace", constants.ParamsConfigMapNamespace)
 			return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 		}
 		reqLogger.Error(err, "Failed to get ConfigMap", constants.ParamsConfigMap)
@@ -671,16 +671,16 @@ func configMapPredicate() predicate.Predicate {
 	triggerReconcile := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
 			configmap := e.Object.(*corev1.ConfigMap)
-			if configmap.Namespace == constants.CSIOperatorNamespace && configmap.Name == constants.ParamsConfigMap {
-				logger.Info("Configmap created", "configmap", configmap.Name)
+			if configmap.Namespace == constants.ParamsConfigMapNamespace && configmap.Name == constants.ParamsConfigMap {
+				logger.Info("Configmap created", "name", configmap.Name, "namespace", configmap.Namespace)
 				return true
 			}
 			return false
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			configmap := e.ObjectNew.(*corev1.ConfigMap)
-			if configmap.Namespace == constants.CSIOperatorNamespace && configmap.Name == constants.ParamsConfigMap {
-				logger.Info("Update event on the configmap", "configmap", configmap.Name)
+			if configmap.Namespace == constants.ParamsConfigMapNamespace && configmap.Name == constants.ParamsConfigMap {
+				logger.Info("Update event on the configmap", configmap.Name, "namespace", configmap.Namespace)
 				return true
 			}
 			return false
