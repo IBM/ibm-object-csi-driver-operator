@@ -101,15 +101,15 @@ type IBMObjectCSIReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.1/pkg/reconcile
 func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcile.Result, error) {
 	reqLogger := csiLog.WithValues("Request.Namespace", req.Namespace, "Request.Name", req.Name)
-	reqLogger.Info("Reconciling IBMObjectCSI")
 	r.ControllerHelper.Log = csiLog
 
 	// Check if the reconcile was triggered by the ConfigMap events
-	if req.Name == constants.ResourceReqLimitsConfigMap {
-		reqLogger.Info("Reconcile triggered by ConfigMap event")
+	if req.Namespace == constants.ParamsConfigMapNamespace && req.Name == constants.ParamsConfigMap {
+		reqLogger.Info("Reconcile triggered by create/update event on ConfigMap")
 		// Handle the update of IBMObjectCSI
 		return r.handleConfigMapReconcile(ctx, req)
 	}
+	reqLogger.Info("Reconciling IBMObjectCSI")
 
 	// Fetch the CSIDriver instance
 	instance := crutils.New(&objectdriverv1alpha1.IBMObjectCSI{})
@@ -163,6 +163,31 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 	originalStatus := *instance.Status.DeepCopy()
 
+	// Fetch the ConfigMap instance
+	configMap := &corev1.ConfigMap{}
+	err = r.Get(ctx, types.NamespacedName{Name: constants.ParamsConfigMap, Namespace: constants.ParamsConfigMapNamespace}, configMap)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			reqLogger.Info("ConfigMap not found. Retry after 5 seconds...", "name", constants.ParamsConfigMap, "namespace", constants.ParamsConfigMapNamespace)
+			return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
+		}
+		reqLogger.Error(err, "Failed to get ConfigMap", constants.ParamsConfigMap)
+		// Error reading the object - requeue the request.
+		return reconcile.Result{}, err
+	}
+
+	if crUpdateRequired := checkIfupdateCRFromConfigMapRequired(instance.Unwrap(), configMap); crUpdateRequired {
+		// Update the instance in the Kubernetes API server
+		reqLogger.Info("IBMObjectCSI spec is not in sync with configmap data. Updating IBMObjectCSI CR...")
+		err = r.Update(ctx, instance.Unwrap())
+		if err != nil {
+			reqLogger.Error(err, "Failed to update IBMObjectCSI instance as per configMap data")
+			return reconcile.Result{}, err
+		}
+		reqLogger.Info("IBMObjectCSI CR is updated as per configmap data")
+		return reconcile.Result{}, nil
+	}
+
 	// create the resources if not exist
 	for _, rec := range []reconciler{
 		r.reconcileCSIDriver,
@@ -208,24 +233,13 @@ func (r *IBMObjectCSIReconciler) handleConfigMapReconcile(ctx context.Context, r
 	err := r.Get(ctx, req.NamespacedName, configMap)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			reqLogger.Info("ConfigMap", req.Name, "not found in namespace", req.Namespace)
-			// what action should be taken when cm is not found?
-		} else {
-			reqLogger.Error(err, "Failed to get ConfigMap", req.Name)
-			// Error reading the object - requeue the request.
-			return reconcile.Result{}, err
+			reqLogger.Info("ConfigMap not found. Ignoring configmap event...", "name", req.Name, "namespace", req.Namespace)
+			return reconcile.Result{}, nil
 		}
+		reqLogger.Error(err, "Failed to get ConfigMap", req.Name)
+		// Error reading the object - requeue the request.
+		return reconcile.Result{}, err
 	}
-
-	//get values from configMap
-	CSINodeCPURequest := configMap.Data["CSINodeCPURequest"]
-	CSINodeMemoryRequest := configMap.Data["CSINodeMemoryRequest"]
-	CSINodeCPULimit := configMap.Data["CSINodeCPULimit"]
-	CSINodeMemoryLimit := configMap.Data["CSINodeMemoryLimit"]
-
-	reqLogger.Info("The resource requests and limits fetched from configmap",
-		"CSINodeCPURequest", CSINodeCPURequest, "CSINodeMemoryRequest", CSINodeMemoryRequest,
-		"CSINodeCPULimit", CSINodeCPULimit, "CSINodeMemoryLimit", CSINodeMemoryLimit)
 
 	// Fetch the IBMObjectCSI instance
 	instance := &objectdriverv1alpha1.IBMObjectCSI{}
@@ -240,21 +254,18 @@ func (r *IBMObjectCSIReconciler) handleConfigMapReconcile(ctx context.Context, r
 	}
 	reqLogger.Info("IBMObjectCSI CR fetched successfully")
 
-	// Update the IBMObjectCSI instance with values from ConfigMap
-	instance.Spec.Node.Resources.Requests.CPU = CSINodeCPURequest
-	instance.Spec.Node.Resources.Requests.Memory = CSINodeMemoryRequest
-	instance.Spec.Node.Resources.Limits.CPU = CSINodeCPULimit
-	instance.Spec.Node.Resources.Limits.Memory = CSINodeMemoryLimit
-
-	// Update the instance in the Kubernetes API server
-	reqLogger.Info("Updating IBMObjectCSI CR with resource requests and limits for Node pods")
-	err = r.Update(ctx, instance)
-	if err != nil {
-		reqLogger.Error(err, "Failed to update IBMObjectCSI instance with ConfigMap values")
-		return reconcile.Result{}, err
+	if crUpdateRequired := checkIfupdateCRFromConfigMapRequired(instance, configMap); crUpdateRequired {
+		// Update the instance in the Kubernetes API server
+		reqLogger.Info("IBMObjectCSI spec is not in sync with configmap data. Updating IBMObjectCSI CR...")
+		err = r.Update(ctx, instance)
+		if err != nil {
+			reqLogger.Error(err, "Failed to update IBMObjectCSI instance as per configMap data")
+			return reconcile.Result{}, err
+		}
+		reqLogger.Info("IBMObjectCSI CR is updated as per configmap data")
+		return reconcile.Result{}, nil
 	}
-	reqLogger.Info("IBMObjectCSI CR is getting updated. Node pods will get restarted to reflect updated resource requests and limits")
-
+	reqLogger.Info("IBMObjectCSI spec is already in sync with configmap data. IBMObjectCSI CR update is not needed")
 	return reconcile.Result{}, nil
 }
 
@@ -383,7 +394,11 @@ func (r *IBMObjectCSIReconciler) reconcileClusterRoleBinding(instance *crutils.I
 }
 
 func (r *IBMObjectCSIReconciler) reconcileStorageClasses(instance *crutils.IBMObjectCSI) error {
+	logger := csiLog.WithValues("reconcileStorageClasses")
+	logger.Info("Entry")
+	defer logger.Info("Exit")
 	storageClasses := r.getStorageClasses(instance)
+	logger.Info("Number of storageclasses to be reonciled", len(storageClasses))
 	return r.ControllerHelper.ReconcileStorageClasses(storageClasses)
 }
 
@@ -603,6 +618,43 @@ func (r *IBMObjectCSIReconciler) getClusterRoles(instance *crutils.IBMObjectCSI)
 	}
 }
 
+func checkIfupdateCRFromConfigMapRequired(instance *objectdriverv1alpha1.IBMObjectCSI, cm *corev1.ConfigMap) bool {
+	crUpdateRequired := false
+
+	if val, ok := cm.Data[constants.NodeServerCPURequestCMKey]; ok {
+		if instance.Spec.Node.Resources.Requests.CPU != val {
+			instance.Spec.Node.Resources.Requests.CPU = val
+			crUpdateRequired = true
+		}
+	}
+	if val, ok := cm.Data[constants.NodeServerMemoryRequestCMKey]; ok {
+		if instance.Spec.Node.Resources.Requests.Memory != val {
+			instance.Spec.Node.Resources.Requests.Memory = val
+			crUpdateRequired = true
+		}
+	}
+	if val, ok := cm.Data[constants.NodeServerCPULimitCMKey]; ok {
+		if instance.Spec.Node.Resources.Limits.CPU != val {
+			instance.Spec.Node.Resources.Limits.CPU = val
+			crUpdateRequired = true
+		}
+	}
+	if val, ok := cm.Data[constants.NodeServerMemoryLimitCMKey]; ok {
+		if instance.Spec.Node.Resources.Limits.Memory != val {
+			instance.Spec.Node.Resources.Limits.Memory = val
+			crUpdateRequired = true
+		}
+	}
+
+	if val, ok := cm.Data[constants.MaxVolumesPerNodeCMKey]; ok {
+		if instance.Spec.Node.MaxVolumesPerNode != val {
+			instance.Spec.Node.MaxVolumesPerNode = val
+			crUpdateRequired = true
+		}
+	}
+	return crUpdateRequired
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *IBMObjectCSIReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
@@ -619,16 +671,16 @@ func configMapPredicate() predicate.Predicate {
 	triggerReconcile := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
 			configmap := e.Object.(*corev1.ConfigMap)
-			if configmap.Name == constants.ResourceReqLimitsConfigMap {
-				logger.Info("Create detected on the configmap", "configmap", configmap.Name)
+			if configmap.Namespace == constants.ParamsConfigMapNamespace && configmap.Name == constants.ParamsConfigMap {
+				logger.Info("Configmap created", "name", configmap.Name, "namespace", configmap.Namespace)
 				return true
 			}
 			return false
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			configmap := e.ObjectNew.(*corev1.ConfigMap)
-			if configmap.Name == constants.ResourceReqLimitsConfigMap {
-				logger.Info("Update detected on the configmap", "configmap", configmap.Name)
+			if configmap.Namespace == constants.ParamsConfigMapNamespace && configmap.Name == constants.ParamsConfigMap {
+				logger.Info("Update event on the configmap", configmap.Name, "namespace", configmap.Namespace)
 				return true
 			}
 			return false

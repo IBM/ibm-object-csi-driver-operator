@@ -73,9 +73,9 @@ func (s *csiNodeSyncer) SyncFn() error {
 
 	// ensure template
 	out.Spec.Template.ObjectMeta.Labels = nodeLabels
+	out.ObjectMeta.Labels = nodeLabels
 	nodeAnnotations := s.driver.GetAnnotations()
 
-	out.ObjectMeta.Labels = nodeLabels
 	ensureAnnotations(&out.Spec.Template.ObjectMeta, &out.ObjectMeta, nodeAnnotations)
 
 	err := mergo.Merge(&out.Spec.Template.Spec, s.ensurePodSpec(), mergo.WithTransformers(transformers.PodSpec))
@@ -225,7 +225,7 @@ func envVarFromField(name, fieldPath string) corev1.EnvVar {
 func (s *csiNodeSyncer) getEnvFor(name string) []corev1.EnvVar {
 	switch name {
 	case constants.NodeContainerName:
-		return []corev1.EnvVar{
+		envVars := []corev1.EnvVar{
 			{
 				Name:  "CSI_ENDPOINT",
 				Value: constants.CSINodeEndpoint,
@@ -244,6 +244,13 @@ func (s *csiNodeSyncer) getEnvFor(name string) []corev1.EnvVar {
 				Value: "2121",
 			},
 		}
+		if s.driver.Spec.Node.MaxVolumesPerNode != "" {
+			envVars = append(envVars, corev1.EnvVar{
+				Name:  constants.MaxVolumesPerNodeEnv,
+				Value: s.driver.Spec.Node.MaxVolumesPerNode,
+			})
+		}
+		return envVars
 
 	case constants.CSINodeDriverRegistrar:
 		return []corev1.EnvVar{
@@ -279,10 +286,6 @@ func (s *csiNodeSyncer) getVolumeMountsFor(name string) []corev1.VolumeMount {
 				Name:             "kubelet-dir-ibm",
 				MountPath:        "/var/data/kubelet",
 				MountPropagation: &mountPropagationB,
-			},
-			{
-				Name:      "fuse-device",
-				MountPath: "/dev/fuse",
 			},
 			{
 				Name:      "coscsi-socket-path",
@@ -323,7 +326,6 @@ func (s *csiNodeSyncer) ensureVolumes() []corev1.Volume {
 		ensureVolume("plugin-dir", ensureHostPathVolumeSource("/var/lib/kubelet/plugins/cos.s3.csi.ibm.io", "DirectoryOrCreate")),
 		ensureVolume("registration-dir", ensureHostPathVolumeSource("/var/lib/kubelet/plugins_registry", "Directory")),
 		ensureVolume("kubelet-dir-ibm", ensureHostPathVolumeSource("/var/data/kubelet", "DirectoryOrCreate")),
-		ensureVolume("fuse-device", ensureHostPathVolumeSource("/dev/fuse", "")),
 		ensureVolume("coscsi-socket-path", ensureHostPathVolumeSource("/var/lib/coscsi-sock", "Directory")),
 		ensureVolume("coscsi-mounter-config-path", ensureHostPathVolumeSource("/var/lib/coscsi-config", "DirectoryOrCreate")),
 	}

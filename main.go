@@ -20,9 +20,11 @@ package main
 import (
 	"flag"
 	"os"
+	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -79,7 +81,7 @@ func main() {
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "af88e983.csi.ibm.com",
 		Cache: cache.Options{
-			DefaultLabelSelector: labels.SelectorFromSet(constants.CommonCSIResourceLabels),
+			DefaultLabelSelector: labels.SelectorFromSet(constants.CommonCSIResourceLabelForCaching),
 		},
 
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
@@ -103,12 +105,22 @@ func main() {
 	// TODO: TIER Based SC Get cluster info
 	inConfig, err := rest.InClusterConfig()
 	if err != nil {
-		setupLog.Info("Get Cluster Info: Unable to load config")
-	} else {
+		setupLog.Error(err, "GetClusterInfo: Unable to load config")
+		os.Exit(1)
+	}
+	for retry := 1; retry <= 10; retry++ {
+		time.Sleep(5 * time.Second)
 		err = controllerHelper.GetClusterInfo(*inConfig)
 		if err != nil {
-			setupLog.Info("Get Cluster Info", "warning", err)
+			setupLog.Error(err, "GetClusterInfo: failed to get cluster details. Retry after 5 seconds...")
+		} else {
+			setupLog.Info("GetClusterInfo: cluster details fetched successfully")
+			break
 		}
+	}
+	if err != nil {
+		setupLog.Error(err, "GetClusterInfo: failed to get cluster details after 10 attempts...")
+		os.Exit(1)
 	}
 
 	if err = (&controllers.IBMObjectCSIReconciler{

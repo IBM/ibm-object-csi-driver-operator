@@ -245,7 +245,7 @@ func (ch *ControllerHelper) getAccessorAndFinalizerName(instance crutils.Instanc
 		logger.Error(err, "failed to get group version kink information of instance")
 		return nil, "", err
 	}
-	finalizerName := fmt.Sprintf("%s.%s", strings.ToLower(gvk.Kind), constants.APIGroup)
+	finalizerName := fmt.Sprintf("%s.%s/finalizer", strings.ToLower(gvk.Kind), constants.APIGroup)
 
 	accessor, err := meta.Accessor(instance)
 	if err != nil {

@@ -66,7 +66,6 @@ func (c *IBMObjectCSI) GetAnnotations() labels.Set {
 			}
 		}
 	}
-
 	return labels
 }
 
