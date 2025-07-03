@@ -394,7 +394,11 @@ func (r *IBMObjectCSIReconciler) reconcileClusterRoleBinding(instance *crutils.I
 }
 
 func (r *IBMObjectCSIReconciler) reconcileStorageClasses(instance *crutils.IBMObjectCSI) error {
+	logger := csiLog.WithValues("reconcileStorageClasses")
+	logger.Info("Entry")
+	defer logger.Info("Exit")
 	storageClasses := r.getStorageClasses(instance)
+	logger.Info("Number of storageclasses to be reonciled", len(storageClasses))
 	return r.ControllerHelper.ReconcileStorageClasses(storageClasses)
 }
 
