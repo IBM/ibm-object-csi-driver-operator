@@ -8,7 +8,7 @@ require (
 	github.com/imdario/mergo v0.3.16
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
-	github.com/openshift/client-go v0.0.0-20250513150353-9ea84fa6431b
+	github.com/openshift/client-go v0.0.0-20250701093119-6d8e53714277
 	github.com/presslabs/controller-util v0.15.0
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/exp v0.0.0-20250506013437-ce4c2cf36ca6
