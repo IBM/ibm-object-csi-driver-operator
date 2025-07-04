@@ -71,7 +71,7 @@ func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRole() *rbacv1.ClusterR
 			{
 				APIGroups: []string{""},
 				Resources: []string{constants.PersistentVolumesResource},
-				Verbs:     []string{constants.VerbGet, constants.VerbList, constants.VerbWatch, constants.VerbCreate, constants.VerbDelete},
+				Verbs:     []string{constants.VerbGet, constants.VerbList, constants.VerbWatch, constants.VerbPatch, constants.VerbCreate, constants.VerbDelete},
 			},
 			{
 				APIGroups: []string{""},
