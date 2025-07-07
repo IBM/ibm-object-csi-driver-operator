@@ -236,14 +236,14 @@ func (ch *ControllerHelper) RemoveFinalizer(instance crutils.Instance,
 		return err
 	}
 
-	err = ch.updateControllerFinalizer(context.TODO(), constants.RemoveFinalizer, finalizerName)
-	if err != nil {
-		return err
-	}
-
 	accessor.SetFinalizers(util.Remove(accessor.GetFinalizers(), finalizerName))
 	if err := ch.Update(context.TODO(), unwrappedInstance); err != nil {
 		logger.Error(err, "failed to remove", "finalizer", finalizerName, "from", accessor.GetName())
+		return err
+	}
+
+	err = ch.updateControllerFinalizer(context.TODO(), constants.RemoveFinalizer, finalizerName)
+	if err != nil {
 		return err
 	}
 	return nil
