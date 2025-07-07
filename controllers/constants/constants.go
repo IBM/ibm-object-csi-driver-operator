@@ -14,6 +14,7 @@ const (
 	CSIOperatorNamespace = "ibm-object-csi-operator"
 	CSIDriverName        = "ibm-object-csi-driver"
 	DriverName           = "cos.s3.csi.ibm.io"
+	DeploymentName       = "ibm-object-csi-operator-controller-manager"
 
 	RbacAuthorizationAPIGroup = "rbac.authorization.k8s.io"
 	SecurityOpenshiftAPIGroup = "security.openshift.io"
@@ -113,6 +114,13 @@ const (
 	NodeServerMemoryRequestCMKey = "CSINodeMemoryRequest"
 	NodeServerCPULimitCMKey      = "CSINodeCPULimit"
 	NodeServerMemoryLimitCMKey   = "CSINodeMemoryLimit"
+)
+
+type FinalizerOps int
+
+const (
+	AddFinalizer FinalizerOps = iota + 1
+	RemoveFinalizer
 )
 
 var CommonCSIResourceLabels = map[string]string{
