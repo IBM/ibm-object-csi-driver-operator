@@ -680,7 +680,7 @@ func configMapPredicate() predicate.Predicate {
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			configmap := e.ObjectNew.(*corev1.ConfigMap)
 			if configmap.Namespace == constants.ParamsConfigMapNamespace && configmap.Name == constants.ParamsConfigMap {
-				logger.Info("Update event on the configmap", configmap.Name, "namespace", configmap.Namespace)
+				logger.Info("Update event on the configmap", "name", configmap.Name, "namespace", configmap.Namespace)
 				return true
 			}
 			return false
