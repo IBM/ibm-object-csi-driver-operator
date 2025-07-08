@@ -469,7 +469,7 @@ func (ch *ControllerHelper) updateControllerFinalizer(ctx context.Context, op co
 			controllerutil.RemoveFinalizer(ctrlDep, finalizerName)
 			err = ch.Update(ctx, ctrlDep)
 			if err != nil {
-				ch.Log.Error(err, "updateControllerFinalizer(): Failed to remove finalizer. retrying...")
+				ch.Log.Error(err, "updateControllerFinalizer(): Failed to remove finalizer")
 				return err
 			}
 		} else {
