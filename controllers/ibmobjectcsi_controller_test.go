@@ -39,6 +39,13 @@ var (
 	reclaimPolicyDelete  = corev1.PersistentVolumeReclaimDelete
 	secrets              = crutils.GetImagePullSecrets(ibmObjectCSICR.Spec.ImagePullSecrets)
 
+	operatorDeploymnet = &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.DeploymentName,
+			Namespace: constants.CSIOperatorNamespace,
+		},
+	}
+
 	ibmObjectCSIReconcileRequest = reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      ibmObjectCSICRName,
@@ -503,6 +510,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Positive: Successful",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICR,
 				addonConfigMap,
 				csiNode,
@@ -528,6 +536,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Positive: Sync controller deployment & pod containers and update status in IBMObjectCSI CR",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICRWithAWSProvider,
 				addonConfigMap,
 				csiNode,
@@ -557,6 +566,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Positive: Successfully updated status in IBMObjectCSI CR after validating if pod images are in sync",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICR,
 				addonConfigMap,
 				controllerSA,
@@ -599,6 +609,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Positive: Successfully removed finaliser from IBMObjectCSI CR",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICRWithDeletionTS,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
@@ -619,6 +630,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: Failed to Add Finalizer in IBMObjectCSI CR",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICR,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
@@ -642,6 +654,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: configmap not found",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICR,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
@@ -653,6 +666,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: Failed to update IBMObjectCSI CR as per updated configmap data",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICR,
 				addonConfigMapWithUpdatedData,
 			},
@@ -665,6 +679,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Positive: IBMObjectCSI CR updated as per updated configmap data",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICR,
 				addonConfigMapWithUpdatedData,
 			},
@@ -677,6 +692,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: Failed to create CSI driver while reconciling",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICR,
 				addonConfigMap,
 			},
@@ -689,6 +705,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: Failed to get CSI driver while reconciling",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICR,
 				addonConfigMap,
 			},
@@ -701,6 +718,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: Failed to create service account while reconciling",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICR,
 				addonConfigMap,
 				csiDriver,
@@ -739,6 +757,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: Failed to restart node while reconciling",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICRWithFinaliser,
 				addonConfigMap,
 				csiNode,
@@ -754,6 +773,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Failed to get service account while reconciling",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICR,
 				addonConfigMap,
 			},
@@ -766,6 +786,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: Failed to get controller pod while reconciling",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICRWithFinaliser,
 				addonConfigMap,
 				csiNode,
@@ -794,6 +815,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: Failed to sync CSI Controller",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICRWithFinaliser,
 				addonConfigMap,
 				controllerSA,
@@ -816,6 +838,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: Failed to sync CSI Node",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICRWithFinaliser,
 				addonConfigMap,
 				controllerSA,
@@ -831,6 +854,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: Failed to create storage class while reconciling",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICRWithAWSProvider,
 				addonConfigMap,
 				csiNode,
@@ -846,6 +870,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: Failed to update status in IBMObjectCSI CR",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICRWithFinaliser,
 				addonConfigMap,
 				controllerSA,
@@ -885,6 +910,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: IBMObjectCSI CR is deleted and failed to delete cluster role binding",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICRWithDeletionTS,
 				externalProvisionerCRB,
 				controllerSCCCRB,
@@ -899,6 +925,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: IBMObjectCSI CR is deleted and failed to delete cluster role",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICRWithDeletionTS,
 				externalProvisionerCR,
 				controllerSCCCR,
@@ -913,6 +940,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: IBMObjectCSI CR is deleted and failed to delete storage class",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICRWithDeletionTS,
 				rCloneSC,
 				rCloneRetainSC,
@@ -928,6 +956,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: IBMObjectCSI CR is deleted and failed to delete CSI driver",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				ibmObjectCSICRWithDeletionTS,
 				csiDriver,
 			},
@@ -940,6 +969,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: Failed to get CSI driver while deleting",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				&v1alpha1.IBMObjectCSI{
 					ObjectMeta: ibmObjectCSICRWithDeletionTS.ObjectMeta,
 					Spec:       ibmObjectCSICR.Spec,
@@ -954,6 +984,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		{
 			testCaseName: "Negative: Failed to remove finaliser from IBMObjectCSI CR",
 			objects: []runtime.Object{
+				operatorDeploymnet,
 				&v1alpha1.IBMObjectCSI{
 					ObjectMeta: ibmObjectCSICRWithDeletionTS.ObjectMeta,
 					Spec:       ibmObjectCSICR.Spec,
