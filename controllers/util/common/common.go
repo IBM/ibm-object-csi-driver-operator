@@ -12,6 +12,7 @@ import (
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util"
 	"github.com/go-logr/logr"
 	openshiftclient "github.com/openshift/client-go/config/clientset/versioned"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -23,6 +24,7 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // ControllerHelper ...
@@ -207,6 +209,11 @@ func (ch *ControllerHelper) AddFinalizerIfNotPresent(instance crutils.Instance,
 		return err
 	}
 
+	err = ch.updateControllerFinalizer(context.TODO(), constants.AddFinalizer, finalizerName)
+	if err != nil {
+		return err
+	}
+
 	if !util.Contains(accessor.GetFinalizers(), finalizerName) {
 		logger.Info("adding", "finalizer", finalizerName, "on", accessor.GetName())
 		accessor.SetFinalizers(append(accessor.GetFinalizers(), finalizerName))
@@ -215,6 +222,9 @@ func (ch *ControllerHelper) AddFinalizerIfNotPresent(instance crutils.Instance,
 			logger.Error(err, "failed to add", "finalizer", finalizerName, "on", accessor.GetName())
 			return err
 		}
+		logger.Info("AddFinalizerIfNotPresent: finalizer added on ", accessor.GetName())
+	} else {
+		logger.Info("AddFinalizerIfNotPresent: finalizer already present on ", accessor.GetName())
 	}
 	return nil
 }
@@ -229,9 +239,19 @@ func (ch *ControllerHelper) RemoveFinalizer(instance crutils.Instance,
 		return err
 	}
 
-	accessor.SetFinalizers(util.Remove(accessor.GetFinalizers(), finalizerName))
-	if err := ch.Update(context.TODO(), unwrappedInstance); err != nil {
-		logger.Error(err, "failed to remove", "finalizer", finalizerName, "from", accessor.GetName())
+	if !util.Contains(accessor.GetFinalizers(), finalizerName) {
+		logger.Info("RemoveFinalizer: finalizer already removed from ", accessor.GetName())
+	} else {
+		accessor.SetFinalizers(util.Remove(accessor.GetFinalizers(), finalizerName))
+		if err := ch.Update(context.TODO(), unwrappedInstance); err != nil {
+			logger.Error(err, "failed to remove", "finalizer", finalizerName, "from", accessor.GetName())
+			return err
+		}
+		logger.Info("RemoveFinalizer: finalizer removed from ", accessor.GetName())
+	}
+
+	err = ch.updateControllerFinalizer(context.TODO(), constants.RemoveFinalizer, finalizerName)
+	if err != nil {
 		return err
 	}
 	return nil
@@ -412,4 +432,52 @@ func (ch *ControllerHelper) SetS3ProviderEP() {
 	if ch.S3Provider == constants.S3ProviderWasabi {
 		ch.CosEP = fmt.Sprintf(constants.WasabiEP, ch.S3ProviderRegion)
 	}
+}
+
+// Update finalizer to Controller Deployment under NS "ibm-object-csi-operator"
+// op = 1  Add finalizer    op = 2  Remove finalizer
+func (ch *ControllerHelper) updateControllerFinalizer(ctx context.Context, op constants.FinalizerOps, finalizerName string) error {
+	ch.Log.Info("updateControllerFinalizer(): Entry")
+	defer ch.Log.Info("updateControllerFinalizer(): Exit")
+
+	ctrlDep := &appsv1.Deployment{}
+	err := ch.Get(ctx, client.ObjectKey{Namespace: constants.CSIOperatorNamespace, Name: constants.DeploymentName}, ctrlDep)
+	if err != nil {
+		ch.Log.Error(err, "updateControllerFinalizer(): controller deployment not found. retrying...")
+		return err
+	}
+
+	if op == constants.AddFinalizer { // Add finalizer
+		ch.Log.Info("updateControllerFinalizer(): add finalizer to controller deployment")
+		chk := controllerutil.ContainsFinalizer(ctrlDep, finalizerName)
+		if !chk {
+			controllerutil.AddFinalizer(ctrlDep, finalizerName)
+			err = ch.Update(ctx, ctrlDep)
+			if err != nil {
+				ch.Log.Error(err, "updateControllerFinalizer(): failed to add the finalizer")
+				return err
+			}
+			ch.Log.Info("updateControllerFinalizer(): finalizer has been added in controller deployment")
+		} else {
+			ch.Log.Info("updateControllerFinalizer(): finalizer already present in controller deployment")
+		}
+	}
+
+	if op == constants.RemoveFinalizer { // Remove finalizer
+		ch.Log.Info("updateControllerFinalizer(): remove finalizer from controller deployment")
+		chk := controllerutil.ContainsFinalizer(ctrlDep, finalizerName)
+		if chk {
+			controllerutil.RemoveFinalizer(ctrlDep, finalizerName)
+			err = ch.Update(ctx, ctrlDep)
+			if err != nil {
+				ch.Log.Error(err, "updateControllerFinalizer(): Failed to remove finalizer")
+				return err
+			}
+			ch.Log.Info("updateControllerFinalizer(): finalizer has been removed from controller deployment")
+		} else {
+			ch.Log.Info("updateControllerFinalizer(): finalizer not present in controller deployment")
+		}
+	}
+
+	return nil
 }
