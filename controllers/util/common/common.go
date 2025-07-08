@@ -222,6 +222,7 @@ func (ch *ControllerHelper) AddFinalizerIfNotPresent(instance crutils.Instance,
 			logger.Error(err, "failed to add", "finalizer", finalizerName, "on", accessor.GetName())
 			return err
 		}
+		logger.Info("AddFinalizerIfNotPresent: finalizer added on ", accessor.GetName())
 	}
 	return nil
 }
@@ -241,6 +242,7 @@ func (ch *ControllerHelper) RemoveFinalizer(instance crutils.Instance,
 		logger.Error(err, "failed to remove", "finalizer", finalizerName, "from", accessor.GetName())
 		return err
 	}
+	logger.Info("RemoveFinalizer: finalizer removed from ", accessor.GetName())
 
 	err = ch.updateControllerFinalizer(context.TODO(), constants.RemoveFinalizer, finalizerName)
 	if err != nil {
