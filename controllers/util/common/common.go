@@ -443,37 +443,37 @@ func (ch *ControllerHelper) updateControllerFinalizer(ctx context.Context, op co
 	ctrlDep := &appsv1.Deployment{}
 	err := ch.Get(ctx, client.ObjectKey{Namespace: constants.CSIOperatorNamespace, Name: constants.DeploymentName}, ctrlDep)
 	if err != nil {
-		ch.Log.Error(err, "updateControllerFinalizer(): Controller Deployment not found")
+		ch.Log.Error(err, "updateControllerFinalizer(): controller deployment not found. retrying...")
 		return err
 	}
 
 	if op == constants.AddFinalizer { // Add finalizer
-		ch.Log.Info("updateControllerFinalizer(): Add finalizer to Controller deployment")
+		ch.Log.Info("updateControllerFinalizer(): add finalizer to controller deployment")
 		chk := controllerutil.ContainsFinalizer(ctrlDep, finalizerName)
 		if !chk {
 			controllerutil.AddFinalizer(ctrlDep, finalizerName)
 			err = ch.Update(ctx, ctrlDep)
 			if err != nil {
-				ch.Log.Error(err, "updateControllerFinalizer(): Finalizer add failed")
+				ch.Log.Error(err, "updateControllerFinalizer(): failed to add the finalizer")
 				return err
 			}
 		} else {
-			ch.Log.Info("updateControllerFinalizer(): Finalizer already applied to Controller deployment")
+			ch.Log.Info("updateControllerFinalizer(): finalizer already present in controller deployment")
 		}
 	}
 
 	if op == constants.RemoveFinalizer { // Remove finalizer
-		ch.Log.Info("updateControllerFinalizer(): Remove finalizer from Controller deployment")
+		ch.Log.Info("updateControllerFinalizer(): remove finalizer from controller deployment")
 		chk := controllerutil.ContainsFinalizer(ctrlDep, finalizerName)
 		if chk {
 			controllerutil.RemoveFinalizer(ctrlDep, finalizerName)
 			err = ch.Update(ctx, ctrlDep)
 			if err != nil {
-				ch.Log.Error(err, "updateControllerFinalizer(): Finalizer remove failed")
+				ch.Log.Error(err, "updateControllerFinalizer(): Failed to remove finalizer. retrying...")
 				return err
 			}
 		} else {
-			ch.Log.Info("updateControllerFinalizer(): Finalizer already removed from Controller deployment")
+			ch.Log.Info("updateControllerFinalizer(): finalizer not present in controller deployment")
 		}
 	}
 
