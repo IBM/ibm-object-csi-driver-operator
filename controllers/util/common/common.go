@@ -457,6 +457,7 @@ func (ch *ControllerHelper) updateControllerFinalizer(ctx context.Context, op co
 				ch.Log.Error(err, "updateControllerFinalizer(): failed to add the finalizer")
 				return err
 			}
+			ch.Log.Info("updateControllerFinalizer(): finalizer has been added in controller deployment")
 		} else {
 			ch.Log.Info("updateControllerFinalizer(): finalizer already present in controller deployment")
 		}
@@ -472,6 +473,7 @@ func (ch *ControllerHelper) updateControllerFinalizer(ctx context.Context, op co
 				ch.Log.Error(err, "updateControllerFinalizer(): Failed to remove finalizer")
 				return err
 			}
+			ch.Log.Info("updateControllerFinalizer(): finalizer has been removed from controller deployment")
 		} else {
 			ch.Log.Info("updateControllerFinalizer(): finalizer not present in controller deployment")
 		}
