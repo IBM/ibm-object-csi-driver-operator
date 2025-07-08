@@ -223,6 +223,8 @@ func (ch *ControllerHelper) AddFinalizerIfNotPresent(instance crutils.Instance,
 			return err
 		}
 		logger.Info("AddFinalizerIfNotPresent: finalizer added on ", accessor.GetName())
+	} else {
+		logger.Info("AddFinalizerIfNotPresent: finalizer already present on ", accessor.GetName())
 	}
 	return nil
 }
@@ -237,12 +239,16 @@ func (ch *ControllerHelper) RemoveFinalizer(instance crutils.Instance,
 		return err
 	}
 
-	accessor.SetFinalizers(util.Remove(accessor.GetFinalizers(), finalizerName))
-	if err := ch.Update(context.TODO(), unwrappedInstance); err != nil {
-		logger.Error(err, "failed to remove", "finalizer", finalizerName, "from", accessor.GetName())
-		return err
+	if !util.Contains(accessor.GetFinalizers(), finalizerName) {
+		logger.Info("RemoveFinalizer: finalizer already removed from ", accessor.GetName())
+	} else {
+		accessor.SetFinalizers(util.Remove(accessor.GetFinalizers(), finalizerName))
+		if err := ch.Update(context.TODO(), unwrappedInstance); err != nil {
+			logger.Error(err, "failed to remove", "finalizer", finalizerName, "from", accessor.GetName())
+			return err
+		}
+		logger.Info("RemoveFinalizer: finalizer removed from ", accessor.GetName())
 	}
-	logger.Info("RemoveFinalizer: finalizer removed from ", accessor.GetName())
 
 	err = ch.updateControllerFinalizer(context.TODO(), constants.RemoveFinalizer, finalizerName)
 	if err != nil {
@@ -447,6 +453,10 @@ func (ch *ControllerHelper) updateControllerFinalizer(ctx context.Context, op co
 		if !chk {
 			controllerutil.AddFinalizer(ctrlDep, finalizerName)
 			err = ch.Update(ctx, ctrlDep)
+			if err != nil {
+				ch.Log.Error(err, "updateControllerFinalizer(): Finalizer add failed")
+				return err
+			}
 		} else {
 			ch.Log.Info("updateControllerFinalizer(): Finalizer already applied to Controller deployment")
 		}
@@ -458,13 +468,14 @@ func (ch *ControllerHelper) updateControllerFinalizer(ctx context.Context, op co
 		if chk {
 			controllerutil.RemoveFinalizer(ctrlDep, finalizerName)
 			err = ch.Update(ctx, ctrlDep)
+			if err != nil {
+				ch.Log.Error(err, "updateControllerFinalizer(): Finalizer remove failed")
+				return err
+			}
 		} else {
 			ch.Log.Info("updateControllerFinalizer(): Finalizer already removed from Controller deployment")
 		}
 	}
-	if err != nil {
-		ch.Log.Error(err, "updateControllerFinalizer(): Finalizer add/remove failed")
-		return err
-	}
+
 	return nil
 }
