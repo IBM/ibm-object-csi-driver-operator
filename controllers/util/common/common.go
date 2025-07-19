@@ -215,16 +215,16 @@ func (ch *ControllerHelper) AddFinalizerIfNotPresent(instance crutils.Instance,
 	}
 
 	if !util.Contains(accessor.GetFinalizers(), finalizerName) {
-		logger.Info("adding", "finalizer", finalizerName, "on", accessor.GetName())
+		logger.Info("adding finalizer to CR", "CR name", accessor.GetName(), "finalizer", finalizerName)
 		accessor.SetFinalizers(append(accessor.GetFinalizers(), finalizerName))
 
 		if err := ch.Update(context.TODO(), unwrappedInstance); err != nil {
-			logger.Error(err, "failed to add", "finalizer", finalizerName, "on", accessor.GetName())
+			logger.Error(err, "failed to add finalizer to CR", "CR name", accessor.GetName(), "finalizer", finalizerName)
 			return err
 		}
-		logger.Info("AddFinalizerIfNotPresent: finalizer added on ", accessor.GetName())
+		logger.Info("finalizer added to CR", "CR name", accessor.GetName(), "finalizer", finalizerName)
 	} else {
-		logger.Info("AddFinalizerIfNotPresent: finalizer already present on ", accessor.GetName())
+		logger.Info("finalizer already present on CR. Ignoring...", "CR name", accessor.GetName(), "finalizer", finalizerName)
 	}
 	return nil
 }
@@ -240,14 +240,20 @@ func (ch *ControllerHelper) RemoveFinalizer(instance crutils.Instance,
 	}
 
 	if !util.Contains(accessor.GetFinalizers(), finalizerName) {
-		logger.Info("RemoveFinalizer: finalizer already removed from ", accessor.GetName())
+		logger.Info("finalizer already removed from CR. Ignoring...", "CR name", accessor.GetName(), "finalizer", finalizerName)
 	} else {
+		logger.Info("removing finalizer from CR", "CR name", accessor.GetName(), "finalizer", finalizerName)
 		accessor.SetFinalizers(util.Remove(accessor.GetFinalizers(), finalizerName))
+
+		// Remove old finalizer for backward compatibility, if present
+		oldFinalizer := "ibmobjectcsi.objectdriver.csi.ibm.com"
+		accessor.SetFinalizers(util.Remove(accessor.GetFinalizers(), oldFinalizer))
+
 		if err := ch.Update(context.TODO(), unwrappedInstance); err != nil {
-			logger.Error(err, "failed to remove", "finalizer", finalizerName, "from", accessor.GetName())
+			logger.Error(err, "failed to remove finalizer from CR", "CR name", accessor.GetName(), "finalizer", finalizerName)
 			return err
 		}
-		logger.Info("RemoveFinalizer: finalizer removed from ", accessor.GetName())
+		logger.Info("finalizer removed from CR", "CR name", accessor.GetName(), "finalizer", finalizerName)
 	}
 
 	err = ch.updateControllerFinalizer(context.TODO(), constants.RemoveFinalizer, finalizerName)
@@ -280,7 +286,6 @@ func (ch *ControllerHelper) getAccessorAndFinalizerName(instance crutils.Instanc
 func (ch *ControllerHelper) GetClusterInfo(inConfig rest.Config) error {
 	logger := ch.Log.WithName("getClusterInfo")
 	logger.Info("Checking cluster platform...")
-
 	var listOptions = &client.ListOptions{}
 	var err error
 	nodes := corev1.NodeList{}
@@ -437,45 +442,44 @@ func (ch *ControllerHelper) SetS3ProviderEP() {
 // Update finalizer to Controller Deployment under NS "ibm-object-csi-operator"
 // op = 1  Add finalizer    op = 2  Remove finalizer
 func (ch *ControllerHelper) updateControllerFinalizer(ctx context.Context, op constants.FinalizerOps, finalizerName string) error {
-	ch.Log.Info("updateControllerFinalizer(): Entry")
-	defer ch.Log.Info("updateControllerFinalizer(): Exit")
+	logger := ch.Log.WithValues("name", constants.DeploymentName, "namespace", constants.CSIOperatorNamespace, "finalizer", finalizerName)
+	logger.Info("updateControllerFinalizer: Entry")
+	defer logger.Info("updateControllerFinalizer: Exit")
 
 	ctrlDep := &appsv1.Deployment{}
 	err := ch.Get(ctx, client.ObjectKey{Namespace: constants.CSIOperatorNamespace, Name: constants.DeploymentName}, ctrlDep)
 	if err != nil {
-		ch.Log.Error(err, "updateControllerFinalizer(): controller deployment not found. retrying...")
+		logger.Error(err, "updateControllerFinalizer: controller deployment not found. Retrying...")
 		return err
 	}
 
 	if op == constants.AddFinalizer { // Add finalizer
-		ch.Log.Info("updateControllerFinalizer(): add finalizer to controller deployment")
-		chk := controllerutil.ContainsFinalizer(ctrlDep, finalizerName)
-		if !chk {
+		logger.Info("updateControllerFinalizer: adding finalizer to controller deployment")
+		if exists := controllerutil.ContainsFinalizer(ctrlDep, finalizerName); !exists {
 			controllerutil.AddFinalizer(ctrlDep, finalizerName)
 			err = ch.Update(ctx, ctrlDep)
 			if err != nil {
-				ch.Log.Error(err, "updateControllerFinalizer(): failed to add the finalizer")
+				logger.Error(err, "updateControllerFinalizer: failed to add finalizer to controller deployment")
 				return err
 			}
-			ch.Log.Info("updateControllerFinalizer(): finalizer has been added in controller deployment")
+			logger.Info("updateControllerFinalizer: finalizer has been added to controller deployment")
 		} else {
-			ch.Log.Info("updateControllerFinalizer(): finalizer already present in controller deployment")
+			logger.Info("updateControllerFinalizer: finalizer already present in controller deployment. Ignoring...")
 		}
 	}
 
 	if op == constants.RemoveFinalizer { // Remove finalizer
-		ch.Log.Info("updateControllerFinalizer(): remove finalizer from controller deployment")
-		chk := controllerutil.ContainsFinalizer(ctrlDep, finalizerName)
-		if chk {
+		logger.Info("updateControllerFinalizer: removing finalizer from controller deployment")
+		if exists := controllerutil.ContainsFinalizer(ctrlDep, finalizerName); exists {
 			controllerutil.RemoveFinalizer(ctrlDep, finalizerName)
 			err = ch.Update(ctx, ctrlDep)
 			if err != nil {
-				ch.Log.Error(err, "updateControllerFinalizer(): Failed to remove finalizer")
+				logger.Error(err, "updateControllerFinalizer: failed to remove finalizer from controller deployment")
 				return err
 			}
-			ch.Log.Info("updateControllerFinalizer(): finalizer has been removed from controller deployment")
+			logger.Info("updateControllerFinalizer: finalizer has been removed from controller deployment")
 		} else {
-			ch.Log.Info("updateControllerFinalizer(): finalizer not present in controller deployment")
+			logger.Info("updateControllerFinalizer: finalizer not found in controller deployment. Ignoring...")
 		}
 	}
 
