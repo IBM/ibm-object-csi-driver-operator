@@ -288,8 +288,9 @@ func (s *csiNodeSyncer) getVolumeMountsFor(name string) []corev1.VolumeMount {
 				MountPropagation: &mountPropagationB,
 			},
 			{
-				Name:      "coscsi-socket-path",
-				MountPath: "/var/lib/coscsi-sock",
+				Name:             "coscsi-socket-path",
+				MountPath:        "/var/lib/coscsi-sock",
+				MountPropagation: &mountPropagationB,
 			},
 			{
 				Name:      "coscsi-mounter-config-path",
