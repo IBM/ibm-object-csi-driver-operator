@@ -128,13 +128,7 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 
 	nodePlugin.ImagePullPolicy = s.driver.Spec.Node.ImagePullPolicy
 
-	// nodeContainerHealthPort := intstr.FromInt(int(healthPort))
 	nodePlugin.LivenessProbe = ensureProbe(10, 3, 10, corev1.ProbeHandler{
-		// HTTPGet: &corev1.HTTPGetAction{
-		// 	Path:   "/healthz",
-		// 	Port:   nodeContainerHealthPort,
-		// 	Scheme: corev1.URISchemeHTTP,
-		// },
 		HTTPGet: &corev1.HTTPGetAction{
 			Path:   "/socket-health",
 			Port:   intstr.FromInt(int(9809)),
@@ -192,6 +186,15 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 			Level: "s0",    // security level.
 		},
 	}
+
+	livenessProbeContainerHealthPort := intstr.FromInt(int(healthPort))
+	livenessProbe.LivenessProbe = ensureProbe(10, 3, 10, corev1.ProbeHandler{
+		HTTPGet: &corev1.HTTPGetAction{
+			Path:   "/healthz",
+			Port:   livenessProbeContainerHealthPort,
+			Scheme: corev1.URISchemeHTTP,
+		},
+	})
 
 	fillSecurityContextCapabilities(livenessProbe.SecurityContext)
 	livenessProbe.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
