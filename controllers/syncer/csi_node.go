@@ -136,8 +136,9 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 		// 	Scheme: corev1.URISchemeHTTP,
 		// },
 		HTTPGet: &corev1.HTTPGetAction{
-			Path: "/socket-health",
-			Port: intstr.FromInt(int(8080)),
+			Path:   "/socket-health",
+			Port:   intstr.FromInt(int(9809)),
+			Scheme: corev1.URISchemeHTTP,
 		},
 	})
 
