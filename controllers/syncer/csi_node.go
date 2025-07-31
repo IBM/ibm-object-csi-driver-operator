@@ -117,13 +117,9 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 
 	nodePlugin.Resources = getCSINodeResourceRequests(s.driver)
 
-	healthPort := s.driver.Spec.HealthPort
-	if healthPort == 0 {
-		healthPort = constants.HealthPortNumber
-	}
 	nodePlugin.Ports = ensurePorts(corev1.ContainerPort{
-		Name:          constants.HealthPortName,
-		ContainerPort: int32(healthPort),
+		Name:          "socket-health",
+		ContainerPort: int32(9080),
 	})
 
 	nodePlugin.ImagePullPolicy = s.driver.Spec.Node.ImagePullPolicy
@@ -165,6 +161,11 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 	registrar.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
 	registrar.Resources = getSidecarResourceRequests(s.driver, constants.CSINodeDriverRegistrar)
 
+	healthPort := s.driver.Spec.HealthPort
+	if healthPort == 0 {
+		healthPort = constants.HealthPortNumber
+	}
+
 	// liveness probe sidecar
 	healthPortArg := fmt.Sprintf("--health-port=%v", healthPort)
 	livenessProbe := s.ensureContainer(constants.LivenessProbe,
@@ -186,6 +187,11 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 			Level: "s0",    // security level.
 		},
 	}
+
+	livenessProbe.Ports = ensurePorts(corev1.ContainerPort{
+		Name:          constants.HealthPortName,
+		ContainerPort: int32(healthPort),
+	})
 
 	livenessProbeContainerHealthPort := intstr.FromInt(int(healthPort))
 	livenessProbe.LivenessProbe = ensureProbe(10, 3, 10, corev1.ProbeHandler{
