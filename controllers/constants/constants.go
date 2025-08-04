@@ -60,8 +60,10 @@ const (
 	PluginVolumeName       = "plugin-dir"
 	SocketVolumeName       = "socket-dir"
 
-	HealthPortName   = "healthz"
-	HealthPortNumber = 9808
+	HealthPortName                = "healthz"
+	HealthPortNumber              = 9808
+	CosCsiMounterHealthPortName   = "cos-csi-mounter-socket-health"
+	CosCsiMounterHealthPortNumber = 9080
 
 	CSIController                         = "controller"
 	CSINode                               = "node"
@@ -110,10 +112,10 @@ const (
 	MaxVolumesPerNodeEnv = "MAX_VOLUMES_PER_NODE"
 	//ConfigMap keys
 	MaxVolumesPerNodeCMKey       = "maxVolumesPerNode"
-	NodeServerCPURequestCMKey    = "CSINodeCPURequest"
-	NodeServerMemoryRequestCMKey = "CSINodeMemoryRequest"
-	NodeServerCPULimitCMKey      = "CSINodeCPULimit"
-	NodeServerMemoryLimitCMKey   = "CSINodeMemoryLimit"
+	NodeServerCPURequestCMKey    = "nodeServerCPURequest"
+	NodeServerMemoryRequestCMKey = "nodeServerMemoryRequest"
+	NodeServerCPULimitCMKey      = "nodeServerCPULimit"
+	NodeServerMemoryLimitCMKey   = "nodeServerMemoryLimit"
 )
 
 type FinalizerOps int

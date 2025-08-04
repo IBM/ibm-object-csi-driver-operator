@@ -117,22 +117,17 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 
 	nodePlugin.Resources = getCSINodeResourceRequests(s.driver)
 
-	healthPort := s.driver.Spec.HealthPort
-	if healthPort == 0 {
-		healthPort = constants.HealthPortNumber
-	}
 	nodePlugin.Ports = ensurePorts(corev1.ContainerPort{
-		Name:          constants.HealthPortName,
-		ContainerPort: int32(healthPort),
+		Name:          constants.CosCsiMounterHealthPortName,
+		ContainerPort: int32(constants.CosCsiMounterHealthPortNumber),
 	})
 
 	nodePlugin.ImagePullPolicy = s.driver.Spec.Node.ImagePullPolicy
 
-	nodeContainerHealthPort := intstr.FromInt(int(healthPort))
 	nodePlugin.LivenessProbe = ensureProbe(10, 3, 10, corev1.ProbeHandler{
 		HTTPGet: &corev1.HTTPGetAction{
-			Path:   "/healthz",
-			Port:   nodeContainerHealthPort,
+			Path:   "/cos-csi-mounter/socket-health",
+			Port:   intstr.FromInt(int(constants.CosCsiMounterHealthPortNumber)),
 			Scheme: corev1.URISchemeHTTP,
 		},
 	})
@@ -166,6 +161,11 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 	registrar.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
 	registrar.Resources = getSidecarResourceRequests(s.driver, constants.CSINodeDriverRegistrar)
 
+	healthPort := s.driver.Spec.HealthPort
+	if healthPort == 0 {
+		healthPort = constants.HealthPortNumber
+	}
+
 	// liveness probe sidecar
 	healthPortArg := fmt.Sprintf("--health-port=%v", healthPort)
 	livenessProbe := s.ensureContainer(constants.LivenessProbe,
@@ -187,6 +187,19 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 			Level: "s0",    // security level.
 		},
 	}
+
+	livenessProbe.Ports = ensurePorts(corev1.ContainerPort{
+		Name:          constants.HealthPortName,
+		ContainerPort: int32(healthPort),
+	})
+
+	livenessProbe.LivenessProbe = ensureProbe(10, 3, 10, corev1.ProbeHandler{
+		HTTPGet: &corev1.HTTPGetAction{
+			Path:   "/healthz",
+			Port:   intstr.FromInt(int(healthPort)),
+			Scheme: corev1.URISchemeHTTP,
+		},
+	})
 
 	fillSecurityContextCapabilities(livenessProbe.SecurityContext)
 	livenessProbe.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
