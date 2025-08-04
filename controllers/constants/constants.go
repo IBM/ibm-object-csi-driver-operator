@@ -60,8 +60,10 @@ const (
 	PluginVolumeName       = "plugin-dir"
 	SocketVolumeName       = "socket-dir"
 
-	HealthPortName   = "healthz"
-	HealthPortNumber = 9808
+	HealthPortName                = "healthz"
+	HealthPortNumber              = 9808
+	CosCsiMounterHealthPortName   = "cos-csi-mounter-socket-health"
+	CosCsiMounterHealthPortNumber = 9080
 
 	CSIController                         = "controller"
 	CSINode                               = "node"

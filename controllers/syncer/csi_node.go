@@ -118,8 +118,8 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 	nodePlugin.Resources = getCSINodeResourceRequests(s.driver)
 
 	nodePlugin.Ports = ensurePorts(corev1.ContainerPort{
-		Name:          "socket-health",
-		ContainerPort: int32(9080),
+		Name:          constants.CosCsiMounterHealthPortName,
+		ContainerPort: int32(constants.CosCsiMounterHealthPortNumber),
 	})
 
 	nodePlugin.ImagePullPolicy = s.driver.Spec.Node.ImagePullPolicy
@@ -127,7 +127,7 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 	nodePlugin.LivenessProbe = ensureProbe(10, 3, 10, corev1.ProbeHandler{
 		HTTPGet: &corev1.HTTPGetAction{
 			Path:   "/cos-csi-mounter/socket-health",
-			Port:   intstr.FromInt(int(9080)),
+			Port:   intstr.FromInt(int(constants.CosCsiMounterHealthPortNumber)),
 			Scheme: corev1.URISchemeHTTP,
 		},
 	})
@@ -193,11 +193,10 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 		ContainerPort: int32(healthPort),
 	})
 
-	livenessProbeContainerHealthPort := intstr.FromInt(int(healthPort))
 	livenessProbe.LivenessProbe = ensureProbe(10, 3, 10, corev1.ProbeHandler{
 		HTTPGet: &corev1.HTTPGetAction{
 			Path:   "/healthz",
-			Port:   livenessProbeContainerHealthPort,
+			Port:   intstr.FromInt(int(healthPort)),
 			Scheme: corev1.URISchemeHTTP,
 		},
 	})
