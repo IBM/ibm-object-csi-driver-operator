@@ -126,7 +126,7 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 
 	nodePlugin.LivenessProbe = ensureProbe(10, 3, 10, corev1.ProbeHandler{
 		HTTPGet: &corev1.HTTPGetAction{
-			Path:   "/socket-health",
+			Path:   "/cos-csi-mounter/socket-health",
 			Port:   intstr.FromInt(int(9080)),
 			Scheme: corev1.URISchemeHTTP,
 		},
