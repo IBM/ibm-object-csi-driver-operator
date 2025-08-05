@@ -3,7 +3,7 @@ package version
 
 var (
 	// Version ...
-	Version = "1.0.8"
+	Version = "1.0.9"
 	// DriverVersion ...
-	DriverVersion = "1.0.8"
+	DriverVersion = "1.0.9"
 )
