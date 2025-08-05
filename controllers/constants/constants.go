@@ -62,7 +62,7 @@ const (
 
 	HealthPortName                = "healthz"
 	HealthPortNumber              = 9808
-	CosCsiMounterHealthPortName   = "cos-csi-mounter-socket-health"
+	CosCsiMounterHealthPortName   = "socket-health"
 	CosCsiMounterHealthPortNumber = 9080
 
 	CSIController                         = "controller"
