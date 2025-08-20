@@ -98,6 +98,11 @@ func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRole() *rbacv1.ClusterR
 				Resources: []string{constants.NodesResource},
 				Verbs:     []string{constants.VerbGet, constants.VerbList, constants.VerbWatch},
 			},
+			{
+				APIGroups: []string{},
+				Resources: []string{constants.ConfigMapResource},
+				Verbs:     []string{constants.VerbGet, constants.VerbList},
+			},
 		},
 	}
 }
