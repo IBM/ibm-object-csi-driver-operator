@@ -6,7 +6,7 @@ require (
 	github.com/evanphx/json-patch/v5 v5.9.11
 	github.com/go-logr/logr v1.4.3
 	github.com/imdario/mergo v0.3.16
-	github.com/onsi/ginkgo/v2 v2.24.0
+	github.com/onsi/ginkgo/v2 v2.25.1
 	github.com/onsi/gomega v1.38.0
 	github.com/openshift/client-go v0.0.0-20250811163556-6193816ae379
 	github.com/presslabs/controller-util v0.16.0
