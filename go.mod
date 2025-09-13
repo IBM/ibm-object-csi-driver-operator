@@ -8,7 +8,7 @@ require (
 	github.com/imdario/mergo v0.3.16
 	github.com/onsi/ginkgo/v2 v2.24.0
 	github.com/onsi/gomega v1.38.0
-	github.com/openshift/client-go v0.0.0-20250811163556-6193816ae379
+	github.com/openshift/client-go v0.0.0-20250911202206-1bc0cb0da03b
 	github.com/presslabs/controller-util v0.16.0
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b
@@ -46,7 +46,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/openshift/api v0.0.0-20250811150514-cc869c87a7f0 // indirect
+	github.com/openshift/api v0.0.0-20250911131931-2acafd4d1ed2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.22.0 // indirect
