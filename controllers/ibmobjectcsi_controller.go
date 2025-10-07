@@ -296,7 +296,9 @@ func (r *IBMObjectCSIReconciler) updateStatus(instance *crutils.IBMObjectCSI, or
 			}
 
 			if !r.areAllPodImagesSynced(controllerDeployment, controllerPod) {
-				_ = r.restartControllerPodfromDeployment(logger, controllerDeployment, controllerPod)
+				if err := r.restartControllerPodfromDeployment(logger, controllerDeployment, controllerPod); err != nil {
+					logger.Error(err, "failed to restart controller pod from deployment")
+				}
 			}
 		}
 		phase = objectdriverv1alpha1.DriverPhaseCreating
