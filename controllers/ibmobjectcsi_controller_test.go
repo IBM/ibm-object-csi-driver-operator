@@ -1031,6 +1031,8 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 func TestIBMObjectCSISetupWithManager(t *testing.T) {
 	t.Run("Positive: Successful", func(t *testing.T) {
 		ibmObjectCSIReconciler := &IBMObjectCSIReconciler{}
-		_ = ibmObjectCSIReconciler.SetupWithManager(nil)
+		if err := ibmObjectCSIReconciler.SetupWithManager(nil); err != nil {
+			TestLog.Error(err, "failed to setup controller with nanager")
+		}
 	})
 }

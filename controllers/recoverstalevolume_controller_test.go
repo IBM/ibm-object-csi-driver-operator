@@ -435,7 +435,9 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 func TestRecoverStaleVolumeSetupWithManager(t *testing.T) {
 	t.Run("Positive: Successful", func(t *testing.T) {
 		recoverStaleVolumeReconciler := &RecoverStaleVolumeReconciler{}
-		_ = recoverStaleVolumeReconciler.SetupWithManager(nil)
+		if err := recoverStaleVolumeReconciler.SetupWithManager(nil); err != nil {
+			TestLog.Error(err, "failed to setup controller with nanager")
+		}
 	})
 }
 
