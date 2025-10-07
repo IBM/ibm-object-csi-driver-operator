@@ -284,7 +284,7 @@ func (r *IBMObjectCSIReconciler) updateStatus(instance *crutils.IBMObjectCSI, or
 
 	instance.Status.ControllerReady = r.isControllerReady(controllerDeployment)
 	instance.Status.NodeReady = r.isNodeReady(nodeDaemonSet)
-	phase := objectdriverv1alpha1.DriverPhaseNone
+	var phase objectdriverv1alpha1.DriverPhase
 	if instance.Status.ControllerReady && instance.Status.NodeReady {
 		phase = objectdriverv1alpha1.DriverPhaseRunning
 	} else {
@@ -296,7 +296,7 @@ func (r *IBMObjectCSIReconciler) updateStatus(instance *crutils.IBMObjectCSI, or
 			}
 
 			if !r.areAllPodImagesSynced(controllerDeployment, controllerPod) {
-				r.restartControllerPodfromDeployment(logger, controllerDeployment, controllerPod) // #nosec G104 Skip error
+				_ = r.restartControllerPodfromDeployment(logger, controllerDeployment, controllerPod)
 			}
 		}
 		phase = objectdriverv1alpha1.DriverPhaseCreating
