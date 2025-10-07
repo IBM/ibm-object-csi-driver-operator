@@ -1031,6 +1031,6 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 func TestIBMObjectCSISetupWithManager(t *testing.T) {
 	t.Run("Positive: Successful", func(t *testing.T) {
 		ibmObjectCSIReconciler := &IBMObjectCSIReconciler{}
-		ibmObjectCSIReconciler.SetupWithManager(nil) // #nosec G104 Skip error
+		_ = ibmObjectCSIReconciler.SetupWithManager(nil)
 	})
 }

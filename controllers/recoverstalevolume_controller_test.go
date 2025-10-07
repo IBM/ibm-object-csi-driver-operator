@@ -435,7 +435,7 @@ func TestRecoverStaleVolumeReconcile(t *testing.T) {
 func TestRecoverStaleVolumeSetupWithManager(t *testing.T) {
 	t.Run("Positive: Successful", func(t *testing.T) {
 		recoverStaleVolumeReconciler := &RecoverStaleVolumeReconciler{}
-		recoverStaleVolumeReconciler.SetupWithManager(nil) // #nosec G104 Skip error
+		_ = recoverStaleVolumeReconciler.SetupWithManager(nil)
 	})
 }
 
