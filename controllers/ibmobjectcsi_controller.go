@@ -593,11 +593,24 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
 
 	for _, sc := range cosSCs {
 		for _, rp := range reclaimPolicys {
-			k8sSc := instance.GenerateRcloneSC(rp, s3Provider, requiredRegion, cosEP, sc)
-			k8sSCs = append(k8sSCs, k8sSc)
+			rcloneK8sSc := instance.GenerateRcloneSC(crutils.SCInputParams{
+				ReclaimPolicy:   rp,
+				S3Provider:      s3Provider,
+				Region:          requiredRegion,
+				COSEndpoint:     cosEP,
+				COSStorageClass: sc,
+			})
+			k8sSCs = append(k8sSCs, rcloneK8sSc)
 
-			k8sSc = instance.GenerateS3fsSC(rp, s3Provider, requiredRegion, cosEP, sc)
-			k8sSCs = append(k8sSCs, k8sSc)
+			s3fsK8sSc := instance.GenerateS3fsSC(crutils.SCInputParams{
+				ReclaimPolicy:   rp,
+				S3Provider:      s3Provider,
+				Region:          requiredRegion,
+				COSEndpoint:     cosEP,
+				COSStorageClass: sc,
+				AddPerfSC:       true,
+			})
+			k8sSCs = append(k8sSCs, s3fsK8sSc...)
 		}
 	}
 	return k8sSCs

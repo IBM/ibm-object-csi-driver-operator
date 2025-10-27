@@ -23,3 +23,12 @@ func GetImagePullSecrets(imagePullSecrets []string) []corev1.LocalObjectReferenc
 	}
 	return secrets
 }
+
+type SCInputParams struct {
+	ReclaimPolicy   corev1.PersistentVolumeReclaimPolicy
+	S3Provider      string
+	Region          string
+	COSEndpoint     string
+	COSStorageClass string
+	AddPerfSC       bool
+}
