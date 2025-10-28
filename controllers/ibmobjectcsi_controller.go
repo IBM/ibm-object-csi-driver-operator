@@ -677,6 +677,7 @@ func (r *IBMObjectCSIReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&appsv1.Deployment{}).
 		Owns(&appsv1.DaemonSet{}).
 		Owns(&corev1.ServiceAccount{}).
+		Owns(&storagev1.StorageClass{}).
 		Watches(&corev1.ConfigMap{}, &handler.EnqueueRequestForObject{}, builder.WithPredicates(configMapPredicate())).
 		Complete(r)
 }

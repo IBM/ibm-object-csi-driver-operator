@@ -335,10 +335,11 @@ func (c *IBMObjectCSI) GenerateRcloneSC(scInputParams SCInputParams) *storagev1.
 		MountOptions: []string{
 			"acl=private",
 			"bucket_acl=private",
-			"upload_cutoff=256Mi",
-			"chunk_size=64Mi",
-			"max_upload_parts=64",
-			"upload_concurrency=20",
+			"upload_cutoff=100Mi",
+			"chunk_size=16Mi",
+			"max_upload_parts=1000",
+			"upload_concurrency=8",
+			"multi_thread_streams=8",
 			"disable_checksum=true",
 		},
 		Parameters: map[string]string{

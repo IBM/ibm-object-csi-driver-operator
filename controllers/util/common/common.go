@@ -122,11 +122,17 @@ func (ch *ControllerHelper) ReconcileStorageClasses(storageclasses []*storagev1.
 			logger.Error(err, "Failed to get StorageClass", "Name", sc.GetName())
 			return err
 		} else {
-			err = ch.Update(context.TODO(), k8sSC)
+			patch := client.MergeFrom(k8sSC.DeepCopy())
+			k8sSC.Provisioner = sc.Provisioner
+			k8sSC.Parameters = sc.Parameters
+			k8sSC.ReclaimPolicy = sc.ReclaimPolicy
+			k8sSC.MountOptions = sc.MountOptions
+			err = ch.Patch(context.TODO(), k8sSC, patch)
 			if err != nil {
-				logger.Error(err, "Failed to update StorageClass", "Name", k8sSC.GetName())
+				logger.Error(err, "Failed to patch StorageClass", "Name", k8sSC.GetName())
 				return err
 			}
+			logger.Info("Reconciled StorageClass", "Name", sc.GetName())
 		}
 	}
 	return nil
@@ -185,9 +191,11 @@ func (ch *ControllerHelper) ReconcileClusterRole(clusterRoles []*rbacv1.ClusterR
 			logger.Error(err, "Failed to get ClusterRole", "Name", cr.GetName())
 			return err
 		} else {
-			err = ch.Update(context.TODO(), k8sCR)
+			patch := client.MergeFrom(k8sCR.DeepCopy())
+			k8sCR.Rules = cr.Rules
+			err = ch.Patch(context.TODO(), k8sCR, patch)
 			if err != nil {
-				logger.Error(err, "Failed to update ClusterRole", "Name", k8sCR.GetName())
+				logger.Error(err, "Failed to patch ClusterRole", "Name", k8sCR.GetName())
 				return err
 			}
 		}
