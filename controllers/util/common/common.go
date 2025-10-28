@@ -111,7 +111,7 @@ func (ch *ControllerHelper) ReconcileClusterRoleBinding(clusterRoleBindings []*r
 func (ch *ControllerHelper) ReconcileStorageClasses(storageclasses []*storagev1.StorageClass) error {
 	logger := ch.Log.WithValues("Resource Type", "StorageClasses")
 	for _, sc := range storageclasses {
-		_, err := ch.getStorageClass(sc)
+		k8sSC, err := ch.getStorageClass(sc)
 		if err != nil && k8sErr.IsNotFound(err) {
 			logger.Info("Creating a new StorageClass", "Name", sc.GetName())
 			err = ch.Create(context.TODO(), sc)
@@ -121,8 +121,13 @@ func (ch *ControllerHelper) ReconcileStorageClasses(storageclasses []*storagev1.
 		} else if err != nil {
 			logger.Error(err, "Failed to get StorageClass", "Name", sc.GetName())
 			return err
+		} else {
+			err = ch.Update(context.TODO(), k8sSC)
+			if err != nil {
+				logger.Error(err, "Failed to update StorageClass", "Name", k8sSC.GetName())
+				return err
+			}
 		}
-		ch.Log.Info("Skip reconcile: StorageClass already exists", "Name", sc.GetName())
 	}
 	return nil
 }
@@ -169,7 +174,7 @@ func (ch *ControllerHelper) DeleteClusterRoles(clusterRoles []*rbacv1.ClusterRol
 func (ch *ControllerHelper) ReconcileClusterRole(clusterRoles []*rbacv1.ClusterRole) error {
 	logger := ch.Log.WithValues("Resource Type", "ClusterRole")
 	for _, cr := range clusterRoles {
-		_, err := ch.getClusterRole(cr)
+		k8sCR, err := ch.getClusterRole(cr)
 		if err != nil && k8sErr.IsNotFound(err) {
 			logger.Info("Creating a new ClusterRole", "Name", cr.GetName())
 			err = ch.Create(context.TODO(), cr)
@@ -180,9 +185,9 @@ func (ch *ControllerHelper) ReconcileClusterRole(clusterRoles []*rbacv1.ClusterR
 			logger.Error(err, "Failed to get ClusterRole", "Name", cr.GetName())
 			return err
 		} else {
-			err = ch.Update(context.TODO(), cr)
+			err = ch.Update(context.TODO(), k8sCR)
 			if err != nil {
-				logger.Error(err, "Failed to update ClusterRole", "Name", cr.GetName())
+				logger.Error(err, "Failed to update ClusterRole", "Name", k8sCR.GetName())
 				return err
 			}
 		}
