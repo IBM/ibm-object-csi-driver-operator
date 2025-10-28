@@ -79,7 +79,7 @@ type IBMObjectCSIReconciler struct {
 //+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
 //+kubebuilder:rbac:groups=apps,resources=deployments;daemonsets;statefulsets,verbs=get;list;watch;update;create;delete
 //+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=create;delete;get;watch;list
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings,verbs=create;delete;get;watch;list;update
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings,verbs=create;delete;get;watch;list;update;patch
 //+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch
 //+kubebuilder:rbac:groups=apps,resourceNames=ibm-object-csi-operator,resources=deployments/finalizers,verbs=update
 //+kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers,verbs=create;delete;get;watch;list
@@ -87,7 +87,7 @@ type IBMObjectCSIReconciler struct {
 //+kubebuilder:rbac:groups=security.openshift.io,resourceNames=anyuid;privileged,resources=securitycontextconstraints,verbs=use
 //+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=create;list;watch;delete
 //+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=*,verbs=*
-//+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=create;get;list;watch;delete;update
+//+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=create;get;list;watch;delete;update;patch
 //+kubebuilder:rbac:groups=config.openshift.io,resources=infrastructures,verbs=get;list
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
