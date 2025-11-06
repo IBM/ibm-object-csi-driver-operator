@@ -30,5 +30,5 @@ type SCInputParams struct {
 	Region          string
 	COSEndpoint     string
 	COSStorageClass string
-	AddPerfSC       bool
+	IsCrossRegional bool
 }

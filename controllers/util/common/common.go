@@ -30,12 +30,29 @@ import (
 // ControllerHelper ...
 type ControllerHelper struct {
 	client.Client
-	Log              logr.Logger
-	Region           string
-	CosEP            string
-	IaaSProvider     string
-	S3Provider       string // IBM COS / AWS S3 / Wasabi
-	S3ProviderRegion string
+	Log                logr.Logger
+	Region             string
+	CosEP              string // Regional COS Endpoint
+	CosEPCrossRegional string
+	IaaSProvider       string
+	S3Provider         string // IBM COS / AWS S3 / Wasabi
+	S3ProviderRegion   string
+}
+
+// Set Cross-regional endpoint
+var IBMRegionalToCosGeoMap = map[string]string{
+	"us-south": "us",
+	"us-east":  "us",
+	"ca-tor":   "us",
+	"br-sao":   "us",
+	"ca-mon":   "us",
+	"eu-gb":    "eu",
+	"eu-de":    "eu",
+	"eu-es":    "eu",
+	"au-syd":   "ap",
+	"jp-tok":   "ap",
+	"jp-osa":   "ap",
+	"in-che":   "ap",
 }
 
 // NewControllerHelper ...
@@ -112,20 +129,20 @@ func (ch *ControllerHelper) ReconcileStorageClasses(storageclasses []*storagev1.
 	logger := ch.Log.WithValues("Resource Type", "StorageClasses")
 	for _, sc := range storageclasses {
 		k8sSC, err := ch.getStorageClass(sc)
-		if err != nil && k8sErr.IsNotFound(err) {
-			logger.Info("Creating a new StorageClass", "Name", sc.GetName())
-			err = ch.Create(context.TODO(), sc)
-			if err != nil {
+		if err != nil {
+			if k8sErr.IsNotFound(err) {
+				logger.Info("Creating a new StorageClass", "Name", sc.GetName())
+				err = ch.Create(context.TODO(), sc)
+				if err != nil {
+					return err
+				}
+			} else {
+				logger.Error(err, "Failed to get StorageClass", "Name", sc.GetName())
 				return err
 			}
-		} else if err != nil {
-			logger.Error(err, "Failed to get StorageClass", "Name", sc.GetName())
-			return err
 		} else {
 			patch := client.MergeFrom(k8sSC.DeepCopy())
-			k8sSC.Provisioner = sc.Provisioner
-			k8sSC.Parameters = sc.Parameters
-			k8sSC.ReclaimPolicy = sc.ReclaimPolicy
+			//Apply SC MountOptions related changes only to existing storageclasses, if applicable
 			k8sSC.MountOptions = sc.MountOptions
 			err = ch.Patch(context.TODO(), k8sSC, patch)
 			if err != nil {
@@ -413,8 +430,8 @@ func (ch *ControllerHelper) GetRegion() string {
 	return ch.Region
 }
 
-func (ch *ControllerHelper) GetCosEP() string {
-	return ch.CosEP
+func (ch *ControllerHelper) GetCosEPs() (string, string) {
+	return ch.CosEP, ch.CosEPCrossRegional
 }
 
 func (ch *ControllerHelper) GetIBMCosSC() []string {
@@ -425,9 +442,10 @@ func (ch *ControllerHelper) GetIBMCosSC() []string {
 	return cosSC
 }
 
-func (ch *ControllerHelper) SetIBMCosEP() {
+func (ch *ControllerHelper) SetIBMCosEPs() {
 	if len(ch.IaaSProvider) == 0 || len(ch.Region) == 0 {
 		ch.CosEP = ""
+		ch.CosEPCrossRegional = ""
 	}
 	if ch.IaaSProvider == constants.IaasIBMVPC || ch.IaaSProvider == constants.IaasIBMClassic {
 		epType := "private"
@@ -435,6 +453,10 @@ func (ch *ControllerHelper) SetIBMCosEP() {
 			epType = "direct"
 		}
 		ch.CosEP = fmt.Sprintf(constants.IBMEP, epType, ch.Region)
+
+		if val, ok := IBMRegionalToCosGeoMap[ch.Region]; ok {
+			ch.CosEPCrossRegional = fmt.Sprintf(constants.IBMEP, epType, val)
+		}
 	}
 }
 
