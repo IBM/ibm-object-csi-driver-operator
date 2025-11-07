@@ -581,7 +581,7 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
 		corev1.PersistentVolumeReclaimDelete}
 
 	if len(s3Provider) == 0 || s3Provider == constants.S3ProviderIBM {
-		r.ControllerHelper.SetIBMCosEPs()
+		r.ControllerHelper.SetIBMCosEP()
 		cosSCs = r.ControllerHelper.GetIBMCosSC()
 		requiredRegion = r.ControllerHelper.GetRegion()
 	} else {
@@ -589,7 +589,7 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
 		cosSCs = append(cosSCs, "standard")
 		requiredRegion = r.ControllerHelper.S3ProviderRegion
 	}
-	cosEP, cosEPCrossRegional := r.ControllerHelper.GetCosEPs()
+	cosEP := r.ControllerHelper.GetCosEP()
 
 	for _, sc := range cosSCs {
 		for _, rp := range reclaimPolicys {
@@ -611,33 +611,6 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
 			})
 			k8sSCs = append(k8sSCs, s3fsK8sSc)
 		}
-	}
-
-	// Add Cross regional storageclass
-	if cosEPCrossRegional != "" {
-		var requiredCrossRegional string
-		if val, ok := common.IBMRegionalToCosGeoMap[requiredRegion]; ok {
-			requiredCrossRegional = val
-		}
-		rcloneK8sSc := instance.GenerateRcloneSC(crutils.SCInputParams{
-			ReclaimPolicy:   corev1.PersistentVolumeReclaimRetain,
-			S3Provider:      s3Provider,
-			Region:          requiredCrossRegional,
-			COSEndpoint:     cosEPCrossRegional,
-			COSStorageClass: "standard",
-			IsCrossRegional: true,
-		})
-		k8sSCs = append(k8sSCs, rcloneK8sSc)
-
-		s3fsK8sSc := instance.GenerateS3fsSC(crutils.SCInputParams{
-			ReclaimPolicy:   corev1.PersistentVolumeReclaimRetain,
-			S3Provider:      s3Provider,
-			Region:          requiredCrossRegional,
-			COSEndpoint:     cosEPCrossRegional,
-			COSStorageClass: "standard",
-			IsCrossRegional: true,
-		})
-		k8sSCs = append(k8sSCs, s3fsK8sSc)
 	}
 	return k8sSCs
 }

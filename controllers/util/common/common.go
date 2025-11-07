@@ -30,29 +30,12 @@ import (
 // ControllerHelper ...
 type ControllerHelper struct {
 	client.Client
-	Log                logr.Logger
-	Region             string
-	CosEP              string // Regional COS Endpoint
-	CosEPCrossRegional string
-	IaaSProvider       string
-	S3Provider         string // IBM COS / AWS S3 / Wasabi
-	S3ProviderRegion   string
-}
-
-// Set Cross-regional endpoint
-var IBMRegionalToCosGeoMap = map[string]string{
-	"us-south": "us",
-	"us-east":  "us",
-	"ca-tor":   "us",
-	"br-sao":   "us",
-	"ca-mon":   "us",
-	"eu-gb":    "eu",
-	"eu-de":    "eu",
-	"eu-es":    "eu",
-	"au-syd":   "ap",
-	"jp-tok":   "ap",
-	"jp-osa":   "ap",
-	"in-che":   "ap",
+	Log              logr.Logger
+	Region           string
+	CosEP            string // Regional COS Endpoint
+	IaaSProvider     string
+	S3Provider       string // IBM COS / AWS S3 / Wasabi
+	S3ProviderRegion string
 }
 
 // NewControllerHelper ...
@@ -430,8 +413,8 @@ func (ch *ControllerHelper) GetRegion() string {
 	return ch.Region
 }
 
-func (ch *ControllerHelper) GetCosEPs() (string, string) {
-	return ch.CosEP, ch.CosEPCrossRegional
+func (ch *ControllerHelper) GetCosEP() string {
+	return ch.CosEP
 }
 
 func (ch *ControllerHelper) GetIBMCosSC() []string {
@@ -442,10 +425,9 @@ func (ch *ControllerHelper) GetIBMCosSC() []string {
 	return cosSC
 }
 
-func (ch *ControllerHelper) SetIBMCosEPs() {
+func (ch *ControllerHelper) SetIBMCosEP() {
 	if len(ch.IaaSProvider) == 0 || len(ch.Region) == 0 {
 		ch.CosEP = ""
-		ch.CosEPCrossRegional = ""
 	}
 	if ch.IaaSProvider == constants.IaasIBMVPC || ch.IaaSProvider == constants.IaasIBMClassic {
 		epType := "private"
@@ -453,10 +435,6 @@ func (ch *ControllerHelper) SetIBMCosEPs() {
 			epType = "direct"
 		}
 		ch.CosEP = fmt.Sprintf(constants.IBMEP, epType, ch.Region)
-
-		if val, ok := IBMRegionalToCosGeoMap[ch.Region]; ok {
-			ch.CosEPCrossRegional = fmt.Sprintf(constants.IBMEP, epType, val)
-		}
 	}
 }
 

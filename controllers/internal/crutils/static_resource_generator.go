@@ -235,9 +235,6 @@ func (c *IBMObjectCSI) GenerateS3fsSC(scInputParams SCInputParams) *storagev1.St
 
 	// "ibm-object-storage-standard-s3fs"
 	storageClassName = fmt.Sprintf("%s-%s-s3fs", constants.StorageClassPrefix, scInputParams.COSStorageClass)
-	if scInputParams.IsCrossRegional {
-		storageClassName = storageClassName + "-cross-region" // "ibm-object-storage-standard-s3fs-cross-region"
-	}
 	if scInputParams.ReclaimPolicy == corev1.PersistentVolumeReclaimRetain {
 		storageClassName = fmt.Sprintf("%s-%s", storageClassName, constants.RetainPolicyTag) // "ibm-object-storage-standard-s3fs-retain"
 	}
@@ -277,9 +274,6 @@ func (c *IBMObjectCSI) GenerateRcloneSC(scInputParams SCInputParams) *storagev1.
 
 	// "ibm-object-storage-standard-rclone"
 	storageClassName = fmt.Sprintf("%s-%s-rclone", constants.StorageClassPrefix, scInputParams.COSStorageClass)
-	if scInputParams.IsCrossRegional {
-		storageClassName = storageClassName + "-cross-region" // "ibm-object-storage-standard-rclone-cross-region"
-	}
 	if scInputParams.ReclaimPolicy == corev1.PersistentVolumeReclaimRetain {
 		storageClassName = fmt.Sprintf("%s-%s", storageClassName, constants.RetainPolicyTag) // "ibm-object-storage-standard-rclone-retain"
 	}
