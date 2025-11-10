@@ -32,7 +32,7 @@ type ControllerHelper struct {
 	client.Client
 	Log              logr.Logger
 	Region           string
-	CosEP            string
+	CosEP            string // Regional COS Endpoint
 	IaaSProvider     string
 	S3Provider       string // IBM COS / AWS S3 / Wasabi
 	S3ProviderRegion string
@@ -111,18 +111,29 @@ func (ch *ControllerHelper) ReconcileClusterRoleBinding(clusterRoleBindings []*r
 func (ch *ControllerHelper) ReconcileStorageClasses(storageclasses []*storagev1.StorageClass) error {
 	logger := ch.Log.WithValues("Resource Type", "StorageClasses")
 	for _, sc := range storageclasses {
-		_, err := ch.getStorageClass(sc)
-		if err != nil && k8sErr.IsNotFound(err) {
-			logger.Info("Creating a new StorageClass", "Name", sc.GetName())
-			err = ch.Create(context.TODO(), sc)
-			if err != nil {
+		k8sSC, err := ch.getStorageClass(sc)
+		if err != nil {
+			if k8sErr.IsNotFound(err) {
+				logger.Info("Creating a new StorageClass", "Name", sc.GetName())
+				err = ch.Create(context.TODO(), sc)
+				if err != nil {
+					return err
+				}
+			} else {
+				logger.Error(err, "Failed to get StorageClass", "Name", sc.GetName())
 				return err
 			}
-		} else if err != nil {
-			logger.Error(err, "Failed to get StorageClass", "Name", sc.GetName())
-			return err
+		} else {
+			patch := client.MergeFrom(k8sSC.DeepCopy())
+			//Apply SC MountOptions related changes only to existing storageclasses, if applicable
+			k8sSC.MountOptions = sc.MountOptions
+			err = ch.Patch(context.TODO(), k8sSC, patch)
+			if err != nil {
+				logger.Error(err, "Failed to patch StorageClass", "Name", k8sSC.GetName())
+				return err
+			}
+			logger.Info("Reconciled StorageClass", "Name", sc.GetName())
 		}
-		ch.Log.Info("Skip reconcile: StorageClass already exists", "Name", sc.GetName())
 	}
 	return nil
 }
@@ -169,7 +180,7 @@ func (ch *ControllerHelper) DeleteClusterRoles(clusterRoles []*rbacv1.ClusterRol
 func (ch *ControllerHelper) ReconcileClusterRole(clusterRoles []*rbacv1.ClusterRole) error {
 	logger := ch.Log.WithValues("Resource Type", "ClusterRole")
 	for _, cr := range clusterRoles {
-		_, err := ch.getClusterRole(cr)
+		k8sCR, err := ch.getClusterRole(cr)
 		if err != nil && k8sErr.IsNotFound(err) {
 			logger.Info("Creating a new ClusterRole", "Name", cr.GetName())
 			err = ch.Create(context.TODO(), cr)
@@ -180,9 +191,11 @@ func (ch *ControllerHelper) ReconcileClusterRole(clusterRoles []*rbacv1.ClusterR
 			logger.Error(err, "Failed to get ClusterRole", "Name", cr.GetName())
 			return err
 		} else {
-			err = ch.Update(context.TODO(), cr)
+			patch := client.MergeFrom(k8sCR.DeepCopy())
+			k8sCR.Rules = cr.Rules
+			err = ch.Patch(context.TODO(), k8sCR, patch)
 			if err != nil {
-				logger.Error(err, "Failed to update ClusterRole", "Name", cr.GetName())
+				logger.Error(err, "Failed to patch ClusterRole", "Name", k8sCR.GetName())
 				return err
 			}
 		}

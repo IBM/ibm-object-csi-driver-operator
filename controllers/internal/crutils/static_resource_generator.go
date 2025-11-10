@@ -225,22 +225,28 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRoleBinding() *rbacv1.ClusterRol
 }
 
 // Generates3fsSC ...
-func (c *IBMObjectCSI) GenerateS3fsSC(reclaimPolicy corev1.PersistentVolumeReclaimPolicy, s3Provider string,
-	region string, cosEndpoint string, cosStorageClass string) *storagev1.StorageClass {
+func (c *IBMObjectCSI) GenerateS3fsSC(scInputParams SCInputParams) *storagev1.StorageClass {
 	var storageClassName, locationConstraint string
-
-	if reclaimPolicy == corev1.PersistentVolumeReclaimRetain {
-		// "ibm-object-storage-standard-s3fs-retain"
-		storageClassName = fmt.Sprintf("%s-%s-s3fs-%s", constants.StorageClassPrefix, cosStorageClass, constants.RetainPolicyTag)
+	if scInputParams.S3Provider == constants.S3ProviderIBM {
+		locationConstraint = fmt.Sprintf("%s-%s", scInputParams.Region, scInputParams.COSStorageClass)
 	} else {
-		// "ibm-object-storage-standard-s3fs"
-		storageClassName = fmt.Sprintf("%s-%s-s3fs", constants.StorageClassPrefix, cosStorageClass)
+		locationConstraint = scInputParams.Region
 	}
 
-	if s3Provider == constants.S3ProviderIBM {
-		locationConstraint = fmt.Sprintf("%s-%s", region, cosStorageClass)
-	} else {
-		locationConstraint = region
+	// "ibm-object-storage-standard-s3fs"
+	storageClassName = fmt.Sprintf("%s-%s-s3fs", constants.StorageClassPrefix, scInputParams.COSStorageClass)
+	if scInputParams.ReclaimPolicy == corev1.PersistentVolumeReclaimRetain {
+		storageClassName = fmt.Sprintf("%s-%s", storageClassName, constants.RetainPolicyTag) // "ibm-object-storage-standard-s3fs-retain"
+	}
+
+	mountOptions := []string{
+		"multipart_size=52",
+		"multireq_max=20",
+		"max_dirty_data=5120",
+		"parallel_count=20",
+		"max_stat_cache_size=100000",
+		"retries=5",
+		"kernel_cache",
 	}
 
 	return &storagev1.StorageClass{
@@ -249,19 +255,12 @@ func (c *IBMObjectCSI) GenerateS3fsSC(reclaimPolicy corev1.PersistentVolumeRecla
 			Labels: constants.CommonCSIResourceLabels,
 		},
 		Provisioner:   constants.DriverName,
-		ReclaimPolicy: &reclaimPolicy,
-		MountOptions: []string{
-			"multipart_size=62",
-			"max_dirty_data=51200",
-			"parallel_count=8",
-			"max_stat_cache_size=100000",
-			"retries=5",
-			"kernel_cache",
-		},
+		ReclaimPolicy: &scInputParams.ReclaimPolicy,
+		MountOptions:  mountOptions,
 		Parameters: map[string]string{
 			"mounter":            "s3fs",
 			"client":             "awss3",
-			"cosEndpoint":        cosEndpoint,
+			"cosEndpoint":        scInputParams.COSEndpoint,
 			"locationConstraint": locationConstraint,
 			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.annotations['cos.csi.driver/secret']}",
 			"csi.storage.k8s.io/node-publish-secret-namespace": "${pvc.namespace}",
@@ -270,22 +269,19 @@ func (c *IBMObjectCSI) GenerateS3fsSC(reclaimPolicy corev1.PersistentVolumeRecla
 }
 
 // GenerateRcloneSC ...
-func (c *IBMObjectCSI) GenerateRcloneSC(reclaimPolicy corev1.PersistentVolumeReclaimPolicy, s3Provider string,
-	region string, cosEndpoint string, cosStorageClass string) *storagev1.StorageClass {
+func (c *IBMObjectCSI) GenerateRcloneSC(scInputParams SCInputParams) *storagev1.StorageClass {
 	var storageClassName, locationConstraint string
 
-	if reclaimPolicy == corev1.PersistentVolumeReclaimRetain {
-		// "ibm-object-storage-standard-rclone-retain"
-		storageClassName = fmt.Sprintf("%s-%s-rclone-%s", constants.StorageClassPrefix, cosStorageClass, constants.RetainPolicyTag)
-	} else {
-		// "ibm-object-storage-standard-rclone"
-		storageClassName = fmt.Sprintf("%s-%s-rclone", constants.StorageClassPrefix, cosStorageClass)
+	// "ibm-object-storage-standard-rclone"
+	storageClassName = fmt.Sprintf("%s-%s-rclone", constants.StorageClassPrefix, scInputParams.COSStorageClass)
+	if scInputParams.ReclaimPolicy == corev1.PersistentVolumeReclaimRetain {
+		storageClassName = fmt.Sprintf("%s-%s", storageClassName, constants.RetainPolicyTag) // "ibm-object-storage-standard-rclone-retain"
 	}
 
-	if s3Provider == constants.S3ProviderIBM {
-		locationConstraint = fmt.Sprintf("%s-%s", region, cosStorageClass)
+	if scInputParams.S3Provider == constants.S3ProviderIBM {
+		locationConstraint = fmt.Sprintf("%s-%s", scInputParams.Region, scInputParams.COSStorageClass)
 	} else {
-		locationConstraint = region
+		locationConstraint = scInputParams.Region
 	}
 
 	return &storagev1.StorageClass{
@@ -294,22 +290,21 @@ func (c *IBMObjectCSI) GenerateRcloneSC(reclaimPolicy corev1.PersistentVolumeRec
 			Labels: constants.CommonCSIResourceLabels,
 		},
 		Provisioner:   constants.DriverName,
-		ReclaimPolicy: &reclaimPolicy,
+		ReclaimPolicy: &scInputParams.ReclaimPolicy,
 		MountOptions: []string{
 			"acl=private",
 			"bucket_acl=private",
-			"upload_cutoff=256Mi",
-			"chunk_size=64Mi",
-			"max_upload_parts=64",
-			"upload_concurrency=20",
-			"copy_cutoff=1Gi",
-			"memory_pool_flush_time=30s",
+			"upload_cutoff=100Mi",
+			"chunk_size=16Mi",
+			"max_upload_parts=1000",
+			"upload_concurrency=8",
+			"multi_thread_streams=8",
 			"disable_checksum=true",
 		},
 		Parameters: map[string]string{
 			"mounter":            "rclone",
 			"client":             "awss3",
-			"cosEndpoint":        cosEndpoint,
+			"cosEndpoint":        scInputParams.COSEndpoint,
 			"locationConstraint": locationConstraint,
 			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.annotations['cos.csi.driver/secret']}",
 			"csi.storage.k8s.io/node-publish-secret-namespace": "${pvc.namespace}",
