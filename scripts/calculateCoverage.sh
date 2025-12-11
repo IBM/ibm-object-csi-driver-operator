@@ -19,5 +19,5 @@ TOTAL_COVERAGE=$(go tool cover -func=cover.out | grep "total:" | tail -1 | awk '
 TOTAL_COVERAGE=${TOTAL_COVERAGE:-0.0}
 
 echo "-------------------------------------------------------------------------"
-echo "REAL COVERAGE: ${TOTAL_COVERAGE}%"
+echo "COVERAGE IS ${TOTAL_COVERAGE}%"
 echo "-------------------------------------------------------------------------"
