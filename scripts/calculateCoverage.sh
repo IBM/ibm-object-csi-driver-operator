@@ -5,23 +5,19 @@
 #******************************************************************************
 set -euo pipefail
 
-# Generate HTML if missing
 if [ ! -f cover.html ]; then
   if [ -f cover.out ]; then
+    echo "Generating cover.html from cover.out..."
     go tool cover -html=cover.out -o cover.html
   else
-    echo "No coverage data
+    echo "ERROR: No coverage data found"
     exit 1
   fi
 fi
 
-# Extract the **total** coverage line (last line with "total")
-TOTAL_LINE=$(go tool cover -func=cover.out | grep "total:" | tail -1)
-COVERAGE=$(echo "$TOTAL_LINE" | awk '{print $3}' | sed 's/%//')
-
-# Fallback
-COVERAGE=${COVERAGE:-0.0}
+TOTAL_COVERAGE=$(go tool cover -func=cover.out | grep "total:" | tail -1 | awk '{print $3}' | sed 's/%//')
+TOTAL_COVERAGE=${TOTAL_COVERAGE:-0.0}
 
 echo "-------------------------------------------------------------------------"
-echo "REAL COVERAGE (from 'total:' line): ${COVERAGE}%"
+echo "REAL COVERAGE: ${TOTAL_COVERAGE}%"
 echo "-------------------------------------------------------------------------"
