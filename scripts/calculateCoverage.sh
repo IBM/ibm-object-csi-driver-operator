@@ -5,29 +5,23 @@
 #******************************************************************************
 set -euo pipefail
 
-# Operator Makefile generates coverage.out → filtered → cover.out → cover.html
-# We ensure cover.html exists and extract the total coverage %
-
+# Generate HTML if missing
 if [ ! -f cover.html ]; then
   if [ -f cover.out ]; then
-    echo "Generating cover.html from cover.out..."
     go tool cover -html=cover.out -o cover.html
   else
-    echo "ERROR: No coverage data found (missing coverage.out)"
+    echo "No coverage data
     exit 1
   fi
 fi
 
-# Extract total coverage % from cover.html (exact same logic as COS CSI driver)
-COVERAGE=$(grep -o '[0-9.]*%' cover.html | head -1 | tr -d '%')
+# Extract the **total** coverage line (last line with "total")
+TOTAL_LINE=$(go tool cover -func=cover.out | grep "total:" | tail -1)
+COVERAGE=$(echo "$TOTAL_LINE" | awk '{print $3}' | sed 's/%//')
 
-# Fallback: use go tool if HTML parsing fails
-if [ -z "$COVERAGE" ] || [ "$COVERAGE" = "" ]; then
-  COVERAGE=$(go tool cover -func=coverage.out 2>/dev/null | grep total | awk '{print $3}' | tr -d '%')
-fi
-
-COVERAGE=${COVERAGE:-0.00}
+# Fallback
+COVERAGE=${COVERAGE:-0.0}
 
 echo "-------------------------------------------------------------------------"
-echo "COVERAGE IS ${COVERAGE}%"
+echo "REAL COVERAGE (from 'total:' line): ${COVERAGE}%"
 echo "-------------------------------------------------------------------------"
