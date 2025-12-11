@@ -51,7 +51,7 @@ jobs:
           ./scripts/calculateCoverage.sh
 
       - name: Publish coverage (only on main repo pushes)
-        if: success() && github.repository == 'IBM/ibm-object-csi-driver-operator'
+        if: success() && github.repository == 'IBM/ibm-object-csi-driver-operator' && github.ref == 'refs/heads/main'
         env:
           GHE_TOKEN: ${{ secrets.GHE_TOKEN }}
         run: |
