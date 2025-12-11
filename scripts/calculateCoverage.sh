@@ -5,19 +5,15 @@
 #******************************************************************************
 set -euo pipefail
 
-if [ ! -f cover.html ]; then
-  if [ -f cover.out ]; then
-    echo "Generating cover.html from cover.out..."
-    go tool cover -html=cover.out -o cover.html
-  else
-    echo "ERROR: No coverage data found"
-    exit 1
-  fi
-fi
+# Generate HTML report
+go tool cover -html=coverage.out -o cover.html
 
-TOTAL_COVERAGE=$(go tool cover -func=cover.out | grep "total:" | tail -1 | awk '{print $3}' | sed 's/%//')
-TOTAL_COVERAGE=${TOTAL_COVERAGE:-0.0}
+# Extract total coverage percentage from the "total:" line
+COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+
+# Fallback
+COVERAGE=${COVERAGE:-0.00}
 
 echo "-------------------------------------------------------------------------"
-echo "COVERAGE IS ${TOTAL_COVERAGE}%"
+echo "COVERAGE IS ${COVERAGE}%"
 echo "-------------------------------------------------------------------------"
