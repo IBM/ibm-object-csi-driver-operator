@@ -34,10 +34,9 @@ jobs:
       - name: Make scripts executable
         run: chmod +x scripts/*.sh || true
 
-      - name: Prepare
+      - name: Prepare environment
         run: |
           go mod tidy
-          make deps || true
 
       - name: Format check
         run: make fmt
@@ -45,14 +44,14 @@ jobs:
       - name: Vet
         run: make vet
 
-      - name: Unit tests + coverage
+      - name: Run tests + generate coverage
         run: |
           make test
           make coverage
           ./scripts/calculateCoverage.sh
 
-      - name: Publish coverage badge & PR comment
-        if: success()
+      - name: Publish coverage (only on main repo pushes)
+        if: success() && github.repository == 'IBM/ibm-object-csi-driver-operator'
         env:
           GHE_TOKEN: ${{ secrets.GHE_TOKEN }}
         run: |
