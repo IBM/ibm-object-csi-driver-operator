@@ -1,4 +1,7 @@
 # ibm-object-csi-driver-operator
+
+[![Coverage](https://ibm.github.io/ibm-object-csi-driver-operator/coverage/master/badge.svg)](https://ibm.github.io/ibm-object-csi-driver-operator/coverage/master/cover.html)
+
 A CSI based object storage plugin with dynamic bucket provisioning and plugable mounters, like rclone, s3fs and other. The plugin should seamlessly work in IBM, AWS and GCP platforms.
 
 ## Description
