@@ -5,10 +5,10 @@
 #******************************************************************************
 set -euo pipefail
 
-echo "Publishing coverage results..."
+echo "===== Publishing coverage results ====="
 
 if [ -z "${GHE_TOKEN:-}" ]; then
-  echo "GHE_TOKEN not set → skipping coverage publish (normal in forks)"
+  echo "GHE_TOKEN not set → skipping publish (normal in forks)"
   exit 0
 fi
 
@@ -16,18 +16,16 @@ REPO="$GITHUB_REPOSITORY"
 BRANCH="${GITHUB_REF_NAME:-master}"
 COMMIT="$GITHUB_SHA"
 
-# Use coverage from calculateCoverage.sh
-if [ -f cover.html ]; then
-  NEW_COVERAGE=$(grep -o '[0-9.]*%' cover.html | head -1 | tr -d '%')
-else
-  NEW_COVERAGE="0.00"
+if [ ! -f cover.html ]; then
+  echo "ERROR: cover.html missing"
+  exit 1
 fi
 
+NEW_COVERAGE=$(grep -o '[0-9.]*%' cover.html | head -1 | tr -d '%')
 NEW_COVERAGE=$(printf "%.2f" "${NEW_COVERAGE:-0.00}")
 
 echo "Current coverage: ${NEW_COVERAGE}%"
 
-# Badge color
 COLOR="red"
 if (( $(echo "$NEW_COVERAGE >= 85" | bc -l) )); then
   COLOR="brightgreen"
@@ -37,7 +35,6 @@ elif (( $(echo "$NEW_COVERAGE >= 50" | bc -l) )); then
   COLOR="yellow"
 fi
 
-# Temp dir for gh-pages
 WORKDIR=$(mktemp -d)
 cd "$WORKDIR"
 
@@ -59,13 +56,12 @@ curl -s "https://img.shields.io/badge/coverage-${NEW_COVERAGE}%25-${COLOR}.svg" 
      -o "coverage/$BRANCH/badge.svg"
 
 git add .
-git commit -m "Coverage update: $COMMIT" || echo "No changes to commit"
+git commit -m "Coverage: $COMMIT" || echo "Nothing to commit"
 git push "https://x-access-token:$GHE_TOKEN@github.com/$REPO.git" gh-pages
 
 echo "Coverage published!"
-echo "Badge URL: https://$REPO.github.io/coverage/$BRANCH/badge.svg"
+echo "Badge: https://$REPO.github.io/coverage/$BRANCH/badge.svg"
 
-# Comment on PR
 if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
   PR_NUMBER=$(jq -r .number "$GITHUB_EVENT_PATH")
   curl -s -X POST \
