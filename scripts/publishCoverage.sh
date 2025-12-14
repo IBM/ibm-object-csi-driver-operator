@@ -8,7 +8,7 @@ set -euo pipefail
 echo "Publishing coverage..."
 
 if [ -z "${GHE_TOKEN:-}" ]; then
-  echo "No GHE_TOKEN → skipping publish (normal in forks)"
+  echo "No GHE_TOKEN"
   exit 0
 fi
 
