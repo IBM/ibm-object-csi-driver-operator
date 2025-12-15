@@ -112,7 +112,7 @@ test: manifests generate fmt vet envtest ## Run tests.
 	go test -coverprofile=coverage.out $$(go list ./... | grep -v '/e2e' | grep -v '/fake' | grep -v 'api/v1alpha1')
 
 coverage: test
-	cat coverage.out | grep -v /controllers/fake/ > cover.out;  go tool cover -html=cover.out
+	cat coverage.out | grep -v /controllers/fake/ > cover.out; go tool cover -html=cover.out -o cover.html
 
 ##@ Build
 
