@@ -1,0 +1,59 @@
+name: Basic Checks
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  basic-checks:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # for coverage badge
+      pull-requests: write # for PR comments
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.3'
+
+      - name: Install bc
+        run: sudo apt-get update -qq && sudo apt-get install -y bc
+
+
+      - name: Prepare
+        run: |
+          export GO111MODULE=on
+          go mod tidy
+
+      - name: Format check
+        run: make fmt
+
+      - name: Vet
+        run: make vet
+
+      - name: Run tests + generate coverage
+        run: |
+          make test
+          make coverage
+          ./scripts/calculateCoverage.sh
+
+      - name: Publish coverage
+        if: success()
+        env:
+          GHE_TOKEN: ${{ secrets.GHE_TOKEN }}
+        run: |
+          ./scripts/publishCoverage.sh
