@@ -1,8 +1,10 @@
 #!/bin/bash
 #******************************************************************************
-# Copyright 2025 IBM Corp.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# You may not use this file except in compliance with the License.
+# * Licensed Materials - Property of IBM
+# * IBM Cloud Kubernetes Service, 5737-D43
+# * (C) Copyright IBM Corp. 2025 All Rights Reserved.
+# * US Government Users Restricted Rights - Use, duplication or
+# * disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
 #******************************************************************************
 #
 # This script calculates the test coverage from cover.html and outputs the percentage.
