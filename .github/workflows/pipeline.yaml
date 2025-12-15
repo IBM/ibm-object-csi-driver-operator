@@ -2,9 +2,11 @@ name: Basic Checks
 
 on:
   push:
-    branches: [ main, master ]
+    branches:
+      - main
   pull_request:
-    branches: [ main, master ]
+    branches:
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -26,13 +28,11 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: '1.25.3'
 
       - name: Install bc
         run: sudo apt-get update -qq && sudo apt-get install -y bc
 
-      - name: Make scripts executable
-        run: chmod +x scripts/*.sh || true
 
       - name: Prepare
         run: |

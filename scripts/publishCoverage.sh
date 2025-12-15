@@ -43,6 +43,19 @@ cp "$GITHUB_WORKSPACE/cover.html" "coverage/$BRANCH/cover.html"
 
 curl -s "https://img.shields.io/badge/coverage-${COVERAGE}%25-${COLOR}.svg" -o "coverage/$BRANCH/badge.svg"
 
+OLD_COVERAGE=$(grep -o '[0-9.]*%' "$GITHUB_WORKSPACE/cover.html" | head -1 | tr -d '%')
+OLD_COVERAGE=$(printf "%.2f" "${OLD_COVERAGE:-0.00}")
+
+NEW_COVERAGE="${COVERAGE}"
+
+if (( $(echo "$OLD_COVERAGE > $NEW_COVERAGE" | bc -l) )); then
+  RESULT_MESSAGE=":red_circle: Coverage decreased from $OLD_COVERAGE% to $NEW_COVERAGE%"
+elif (( $(echo "$OLD_COVERAGE == $NEW_COVERAGE" | bc -l) )); then
+  RESULT_MESSAGE=":thumbsup: Coverage remained same at $NEW_COVERAGE%"
+else
+  RESULT_MESSAGE=":thumbsup: Coverage increased from $OLD_COVERAGE% to $NEW_COVERAGE%"
+fi
+
 git add .
 git commit -m "Coverage update: $GITHUB_SHA" || echo "Nothing to commit"
 git push "https://x-access-token:$GHE_TOKEN@github.com/$REPO.git" gh-pages
@@ -53,6 +66,6 @@ if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
   PR_NUM=$(jq -r .number "$GITHUB_EVENT_PATH")
   curl -s -X POST \
     -H "Authorization: token $GHE_TOKEN" \
-    -d "{\"body\": \"**Code Coverage:** ${COVERAGE}%  \\n![badge](https://$REPO.github.io/coverage/$BRANCH/badge.svg)\"}" \
+    -d "{\"body\": \"$RESULT_MESSAGE\"}" \
     "https://api.github.com/repos/$REPO/issues/$PR_NUM/comments"
 fi
