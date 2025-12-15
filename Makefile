@@ -106,13 +106,14 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: test
-test: manifests generate fmt vet envtest ## Run tests.
+test: manifests generate fmt vet envtest ## Run tests and generate coverage report.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)"
-    ## go test -coverprofile=coverage.out ./...
-	go test -coverprofile=coverage.out $$(go list ./... | grep -v '/e2e' | grep -v '/fake' | grep -v 'api/v1alpha1')
+	## go test -coverprofile=coverage.out ./...
+	go test -coverprofile=coverage.out $(go list ./... | grep -v '/e2e' | grep -v '/fake' | grep -v 'api/v1alpha1')
 
 coverage: test
-	cat coverage.out | grep -v /controllers/fake/ > cover.out;  go tool cover -html=cover.out
+	# Generate cover.html from coverage.out
+	go tool cover -html=coverage.out -o cover.html
 
 ##@ Build
 
@@ -143,7 +144,7 @@ docker-push: ## Push docker image with the manager.
 podman-push: ## Push docker image with the manager.
 	podman push ${IMG}
 
-# PLATFORMS defines the target platforms for  the manager image be build to provide support to multiple
+## PLATFORMS defines the target platforms for  the manager image be build to provide support to multiple
 # architectures. (i.e. make docker-buildx IMG=myregistry/mypoperator:0.0.1). To use this option you need to:
 # - able to use docker buildx . More info: https://docs.docker.com/build/buildx/
 # - have enable BuildKit, More info: https://docs.docker.com/develop/develop-images/build_enhancements/
