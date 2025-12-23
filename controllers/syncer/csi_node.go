@@ -72,8 +72,8 @@ func (s *csiNodeSyncer) SyncFn() error {
 	nodeLabels := s.driver.GetCSINodePodLabels()
 
 	// ensure template
-	out.Spec.Template.ObjectMeta.Labels = nodeLabels
-	out.ObjectMeta.Labels = nodeLabels
+	out.Spec.Template.Labels = nodeLabels
+	out.Labels = nodeLabels
 	nodeAnnotations := s.driver.GetAnnotations()
 
 	ensureAnnotations(&out.Spec.Template.ObjectMeta, &out.ObjectMeta, nodeAnnotations)
