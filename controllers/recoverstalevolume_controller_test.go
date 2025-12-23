@@ -443,8 +443,8 @@ func TestRecoverStaleVolumeSetupWithManager(t *testing.T) {
 
 func TestCreateK8sClient(t *testing.T) {
 	t.Run("", func(t *testing.T) {
-		os.Setenv("KUBERNETES_SERVICE_HOST", "test-service-host") // #nosec G104 Skip error
-		os.Setenv("KUBERNETES_SERVICE_PORT", "test-service-port") // #nosec G104 Skip error
+		_ = os.Setenv("KUBERNETES_SERVICE_HOST", "test-service-host") // #nosec G104 Skip error
+		_ = os.Setenv("KUBERNETES_SERVICE_PORT", "test-service-port") // #nosec G104 Skip error
 
 		client, err := createK8sClient()
 		assert.Nil(t, client)
