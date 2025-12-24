@@ -384,7 +384,7 @@ func (t versionedTracker) update(gvr schema.GroupVersionResource, obj runtime.Ob
 		return err
 	}
 
-	oldObject, err := t.Get(gvr, ns, accessor.GetName())
+	oldObject, err := t.ObjectTracker.Get(gvr, ns, accessor.GetName())
 	if err != nil {
 		// If the resource is not found and the resource allows create on update, issue a
 		// create instead.
@@ -441,13 +441,13 @@ func (t versionedTracker) update(gvr schema.GroupVersionResource, obj runtime.Ob
 	}
 
 	if !accessor.GetDeletionTimestamp().IsZero() && len(accessor.GetFinalizers()) == 0 {
-		return t.Delete(gvr, accessor.GetNamespace(), accessor.GetName())
+		return t.ObjectTracker.Delete(gvr, accessor.GetNamespace(), accessor.GetName())
 	}
 	obj, err = convertFromUnstructuredIfNecessary(t.scheme, obj)
 	if err != nil {
 		return err
 	}
-	return t.Update(gvr, obj, ns)
+	return t.ObjectTracker.Update(gvr, obj, ns)
 }
 
 func (c *fakeClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
