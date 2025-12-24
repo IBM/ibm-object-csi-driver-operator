@@ -379,7 +379,9 @@ func fetchVolumeStatsFromNodeServerPodLogs(ctx context.Context, nodeServerPod, n
 		return nil, err
 	}
 	defer func() {
-		_ = nodePodLogs.Close()
+		if err := nodePodLogs.Close(); err != nil {
+			staleVolLog.Error(err, "Error: failed to close nodePodLogs request")
+		}
 	}()
 
 	buf := new(bytes.Buffer)
