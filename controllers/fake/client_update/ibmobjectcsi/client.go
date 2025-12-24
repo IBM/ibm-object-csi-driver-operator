@@ -386,7 +386,7 @@ func (t versionedTracker) update(gvr schema.GroupVersionResource, obj runtime.Ob
 		return err
 	}
 
-	oldObject, err := t.ObjectTracker.Get(gvr, ns, accessor.GetName())
+	oldObject, err := t.Get(gvr, ns, accessor.GetName())
 	if err != nil {
 		// If the resource is not found and the resource allows create on update, issue a
 		// create instead.
