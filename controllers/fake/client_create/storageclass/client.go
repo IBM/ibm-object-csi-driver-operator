@@ -442,7 +442,7 @@ func (t versionedTracker) update(gvr schema.GroupVersionResource, obj runtime.Ob
 	}
 
 	if !accessor.GetDeletionTimestamp().IsZero() && len(accessor.GetFinalizers()) == 0 {
-		return t.ObjectTracker.Delete(gvr, accessor.GetNamespace(), accessor.GetName())
+		return t.Delete(gvr, accessor.GetNamespace(), accessor.GetName())
 	}
 	obj, err = convertFromUnstructuredIfNecessary(t.scheme, obj)
 	if err != nil {
