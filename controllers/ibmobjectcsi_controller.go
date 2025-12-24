@@ -472,7 +472,7 @@ func (r *IBMObjectCSIReconciler) reconcileServiceAccount(instance *crutils.IBMOb
 func (r *IBMObjectCSIReconciler) rolloutRestartNode(node *appsv1.DaemonSet) error {
 	restartedAt := fmt.Sprintf("%s/restartedAt", constants.APIGroup)
 	timestamp := time.Now().String()
-	node.Spec.Template.ObjectMeta.Annotations[restartedAt] = timestamp
+	node.Spec.Template.Annotations[restartedAt] = timestamp
 	return r.Update(context.TODO(), node)
 }
 
