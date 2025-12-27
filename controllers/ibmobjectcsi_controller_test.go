@@ -706,7 +706,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Negative: Failed to get CSI driver while reconciling",
 			objects: []runtime.Object{
 				operatorDeploymnet,
-				ibmObjectCSICR,
+				ibmObjectCSICR.DeepCopy(),
 				addonConfigMap,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
