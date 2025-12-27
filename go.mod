@@ -10,7 +10,7 @@ require (
 	github.com/onsi/gomega v1.38.0
 	github.com/openshift/client-go v0.0.0-20250811163556-6193816ae379
 	github.com/presslabs/controller-util v0.16.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b
 	k8s.io/api v0.33.4
 	k8s.io/apimachinery v0.33.4
