@@ -90,6 +90,9 @@ const (
 	RcloneStorageClass       = StorageClassPrefix + "-rclone"
 	S3fsRetainStorageClass   = StorageClassPrefix + "-s3fs-retain"
 	S3fsStorageClass         = StorageClassPrefix + "-s3fs"
+	
+	S3MounterRetainStorageClass = StorageClassPrefix + "-s3mounter-retain"
+	S3MounterStorageClass       = StorageClassPrefix + "-s3mounter"
 
 	S3ProviderIBM    = "ibm-cos"
 	S3ProviderAWS    = "aws"

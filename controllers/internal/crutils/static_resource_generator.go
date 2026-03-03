@@ -311,3 +311,37 @@ func (c *IBMObjectCSI) GenerateRcloneSC(scInputParams SCInputParams) *storagev1.
 		},
 	}
 }
+
+// GenerateS3MounterSC ...
+func (c *IBMObjectCSI) GenerateS3MounterSC(scInputParams SCInputParams) *storagev1.StorageClass {
+	var storageClassName, locationConstraint string
+
+	if scInputParams.S3Provider == constants.S3ProviderIBM {
+		locationConstraint = fmt.Sprintf("%s-%s", scInputParams.Region, scInputParams.COSStorageClass)
+	} else {
+		locationConstraint = scInputParams.Region
+	}
+
+	// "ibm-object-storage-standard-s3mounter"
+	storageClassName = fmt.Sprintf("%s-%s-s3mounter", constants.StorageClassPrefix, scInputParams.COSStorageClass)
+	if scInputParams.ReclaimPolicy == corev1.PersistentVolumeReclaimRetain {
+		storageClassName = fmt.Sprintf("%s-%s", storageClassName, constants.RetainPolicyTag) // "ibm-object-storage-standard-s3mounter-retain"
+	}
+
+	return &storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   storageClassName,
+			Labels: constants.CommonCSIResourceLabels,
+		},
+		Provisioner:   constants.DriverName,
+		ReclaimPolicy: &scInputParams.ReclaimPolicy,
+		Parameters: map[string]string{
+			"mounter":            "s3mounter",
+			"client":             "awss3",
+			"cosEndpoint":        scInputParams.COSEndpoint,
+			"locationConstraint": locationConstraint,
+			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.annotations['cos.csi.driver/secret']}",
+			"csi.storage.k8s.io/node-publish-secret-namespace": "${pvc.namespace}",
+		},
+	}
+}
