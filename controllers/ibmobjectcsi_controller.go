@@ -612,14 +612,15 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
 			k8sSCs = append(k8sSCs, s3fsK8sSc)
 
 			// S3 Mounter
-			s3MounterK8sSc := instance.GenerateS3MounterSC(crutils.SCInputParams{
+			mountS3K8sSc := instance.GenerateMountS3SC(crutils.SCInputParams{
 				ReclaimPolicy:   rp,
 				S3Provider:      s3Provider,
 				Region:          requiredRegion,
 				COSEndpoint:     cosEP,
 				COSStorageClass: sc,
 			})
-			k8sSCs = append(k8sSCs, s3MounterK8sSc)
+			k8sSCs = append(k8sSCs, mountS3K8sSc)
+
 		}
 	}
 	return k8sSCs

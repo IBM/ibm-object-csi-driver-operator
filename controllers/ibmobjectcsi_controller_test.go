@@ -498,15 +498,15 @@ var (
 		},
 	}
 
-	s3MounterSC = &storagev1.StorageClass{
+	mountS3SC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   fmt.Sprintf("%s-standard-s3mounter", constants.StorageClassPrefix),
+			Name:   fmt.Sprintf("%s-standard-mount-s3", constants.StorageClassPrefix),
 			Labels: constants.CommonCSIResourceLabels,
 		},
 		Provisioner:   constants.DriverName,
 		ReclaimPolicy: &reclaimPolicyDelete,
 		Parameters: map[string]string{
-			"mounter":            "s3mounter",
+			"mounter":            "mount-s3",
 			"client":             "awss3",
 			"cosEndpoint":        "https://s3.us-east-2.amazonaws.com",
 			"locationConstraint": "us-east-2",
@@ -515,15 +515,15 @@ var (
 		},
 	}
 
-	s3MounterRetainSC = &storagev1.StorageClass{
+	mountS3RetainSC = &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   fmt.Sprintf("%s-standard-s3mounter-retain", constants.StorageClassPrefix),
+			Name:   fmt.Sprintf("%s-standard-mount-s3-retain", constants.StorageClassPrefix),
 			Labels: constants.CommonCSIResourceLabels,
 		},
 		Provisioner:   constants.DriverName,
 		ReclaimPolicy: &reclaimPolicyRetain,
 		Parameters: map[string]string{
-			"mounter":            "s3mounter",
+			"mounter":            "mount-s3",
 			"client":             "awss3",
 			"cosEndpoint":        "https://s3.us-east-2.amazonaws.com",
 			"locationConstraint": "us-east-2",
@@ -980,8 +980,8 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 				rCloneRetainSC,
 				s3fsSC,
 				s3fsRetainSC,
-				s3MounterSC,
-				s3MounterRetainSC,
+				mountS3SC,
+				mountS3RetainSC,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fakedelete.NewClientBuilder().WithRuntimeObjects(objs...).Build()

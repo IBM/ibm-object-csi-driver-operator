@@ -313,7 +313,7 @@ func (c *IBMObjectCSI) GenerateRcloneSC(scInputParams SCInputParams) *storagev1.
 }
 
 // GenerateS3MounterSC ...
-func (c *IBMObjectCSI) GenerateS3MounterSC(scInputParams SCInputParams) *storagev1.StorageClass {
+func (c *IBMObjectCSI) GenerateMountS3SC(scInputParams SCInputParams) *storagev1.StorageClass {
 	var storageClassName, locationConstraint string
 
 	if scInputParams.S3Provider == constants.S3ProviderIBM {
@@ -323,7 +323,7 @@ func (c *IBMObjectCSI) GenerateS3MounterSC(scInputParams SCInputParams) *storage
 	}
 
 	// "ibm-object-storage-standard-s3mounter"
-	storageClassName = fmt.Sprintf("%s-%s-s3mounter", constants.StorageClassPrefix, scInputParams.COSStorageClass)
+	storageClassName = fmt.Sprintf("%s-%s-mounts3", constants.StorageClassPrefix, scInputParams.COSStorageClass)
 	if scInputParams.ReclaimPolicy == corev1.PersistentVolumeReclaimRetain {
 		storageClassName = fmt.Sprintf("%s-%s", storageClassName, constants.RetainPolicyTag) // "ibm-object-storage-standard-s3mounter-retain"
 	}
@@ -336,7 +336,7 @@ func (c *IBMObjectCSI) GenerateS3MounterSC(scInputParams SCInputParams) *storage
 		Provisioner:   constants.DriverName,
 		ReclaimPolicy: &scInputParams.ReclaimPolicy,
 		Parameters: map[string]string{
-			"mounter":            "s3mounter",
+			"mounter":            "mount-s3",
 			"client":             "awss3",
 			"cosEndpoint":        scInputParams.COSEndpoint,
 			"locationConstraint": locationConstraint,
