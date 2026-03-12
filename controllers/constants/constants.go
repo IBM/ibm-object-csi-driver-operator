@@ -111,11 +111,15 @@ const (
 
 	MaxVolumesPerNodeEnv = "MAX_VOLUMES_PER_NODE"
 	//ConfigMap keys
-	MaxVolumesPerNodeCMKey       = "maxVolumesPerNode"
-	NodeServerCPURequestCMKey    = "nodeServerCPURequest"
-	NodeServerMemoryRequestCMKey = "nodeServerMemoryRequest"
-	NodeServerCPULimitCMKey      = "nodeServerCPULimit"
-	NodeServerMemoryLimitCMKey   = "nodeServerMemoryLimit"
+	MaxVolumesPerNodeCMKey            = "maxVolumesPerNode"
+	NodeServerCPURequestCMKey         = "nodeServerCPURequest"
+	NodeServerMemoryRequestCMKey      = "nodeServerMemoryRequest"
+	NodeServerCPULimitCMKey           = "nodeServerCPULimit"
+	NodeServerMemoryLimitCMKey        = "nodeServerMemoryLimit"
+	RestrictNodeServerSchedulingCMKey = "restrictNodeServerScheduling"
+
+	CSIAddonNodeLabelKey   = "cos.csi.addon/enabled"
+	CSIAddonNodeLabelValue = "true"
 )
 
 type FinalizerOps int

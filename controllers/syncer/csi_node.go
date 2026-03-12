@@ -95,11 +95,44 @@ func (s *csiNodeSyncer) ensurePodSpec() corev1.PodSpec {
 			RunAsUser:    func(uid int64) *int64 { return &uid }(2121),
 			RunAsGroup:   func(uid int64) *int64 { return &uid }(2121),
 		},
-		Affinity:           s.driver.Spec.Node.Affinity,
+		Affinity:           s.buildNodeAffinity(),
 		Tolerations:        s.driver.Spec.Node.Tolerations,
 		ServiceAccountName: constants.GetResourceName(constants.CSINodeServiceAccount),
 		PriorityClassName:  constants.CSINodePriorityClassName,
 	}
+}
+
+func (s *csiNodeSyncer) buildNodeAffinity() *corev1.Affinity {
+	affinity := s.driver.Spec.Node.Affinity
+
+	restrictScheduling := s.driver.Spec.Node.RestrictNodeServerScheduling
+
+	if restrictScheduling == "true" {
+		if affinity != nil && affinity.NodeAffinity != nil &&
+			affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution != nil {
+
+			for i := range affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms {
+				term := &affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[i]
+
+				hasRequirement := false
+				for _, expr := range term.MatchExpressions {
+					if expr.Key == constants.CSIAddonNodeLabelKey {
+						hasRequirement = true
+						break
+					}
+				}
+
+				if !hasRequirement {
+					term.MatchExpressions = append(term.MatchExpressions, corev1.NodeSelectorRequirement{
+						Key:      constants.CSIAddonNodeLabelKey,
+						Operator: corev1.NodeSelectorOpIn,
+						Values:   []string{constants.CSIAddonNodeLabelValue},
+					})
+				}
+			}
+		}
+	}
+	return affinity
 }
 
 func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
