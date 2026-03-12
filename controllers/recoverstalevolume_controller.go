@@ -172,7 +172,7 @@ func (r *RecoverStaleVolumeReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 				volumesUsedByPod := podData.Spec.Volumes
 				for _, volume := range volumesUsedByPod {
-					pvcDetails := volume.VolumeSource.PersistentVolumeClaim
+					pvcDetails := volume.PersistentVolumeClaim
 					if pvcDetails != nil {
 						pvcName := pvcDetails.ClaimName
 
@@ -328,7 +328,7 @@ func fetchDeploymentsUsingCSIVolumes(k8sOps *crutils.K8sResourceOps, log logr.Lo
 
 		volumes := deployment.Spec.Template.Spec.Volumes
 		for _, vol := range volumes {
-			pvcDetails := vol.VolumeSource.PersistentVolumeClaim
+			pvcDetails := vol.PersistentVolumeClaim
 			if pvcDetails != nil {
 				pvcName := pvcDetails.ClaimName
 				if util.Contains(reqPVCNames, pvcName) {
@@ -378,7 +378,11 @@ func fetchVolumeStatsFromNodeServerPodLogs(ctx context.Context, nodeServerPod, n
 	if err != nil {
 		return nil, err
 	}
-	defer nodePodLogs.Close() // #nosec G307 Close Stream
+	defer func() {
+		if err := nodePodLogs.Close(); err != nil {
+			staleVolLog.Error(err, "Error: failed to close nodePodLogs request")
+		}
+	}()
 
 	buf := new(bytes.Buffer)
 	_, err = io.Copy(buf, nodePodLogs)
