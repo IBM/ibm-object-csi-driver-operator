@@ -374,7 +374,8 @@ var (
 			Namespace: constants.ParamsConfigMapNamespace,
 		},
 		Data: map[string]string{
-			"maxVolumesPerNode": "0",
+			"maxVolumesPerNode":            "0",
+			"restrictNodeServerScheduling": "false",
 		},
 	}
 
@@ -384,11 +385,12 @@ var (
 			Namespace: constants.ParamsConfigMapNamespace,
 		},
 		Data: map[string]string{
-			"maxVolumesPerNode":    "10",
-			"CSINodeCPURequest":    "5m",
-			"CSINodeMemoryRequest": "5Mi",
-			"CSINodeCPULimit":      "50m",
-			"CSINodeMemoryLimit":   "50Mi",
+			"maxVolumesPerNode":            "10",
+			"CSINodeCPURequest":            "5m",
+			"CSINodeMemoryRequest":         "5Mi",
+			"CSINodeCPULimit":              "50m",
+			"CSINodeMemoryLimit":           "50Mi",
+			"restrictNodeServerScheduling": "true",
 		},
 	}
 

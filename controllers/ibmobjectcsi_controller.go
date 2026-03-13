@@ -672,11 +672,6 @@ func checkIfupdateCRFromConfigMapRequired(instance *objectdriverv1alpha1.IBMObje
 			instance.Spec.Node.RestrictNodeServerScheduling = val
 			crUpdateRequired = true
 		}
-	} else {
-		if instance.Spec.Node.RestrictNodeServerScheduling != "" {
-			instance.Spec.Node.RestrictNodeServerScheduling = ""
-			crUpdateRequired = true
-		}
 	}
 	return crUpdateRequired
 }
