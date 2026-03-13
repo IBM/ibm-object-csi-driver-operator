@@ -105,8 +105,9 @@ var (
 						Operator: corev1.TolerationOpExists,
 					},
 				},
-				Resources:         resources,
-				MaxVolumesPerNode: "0",
+				Resources:                    resources,
+				MaxVolumesPerNode:            "0",
+				RestrictNodeServerScheduling: "false",
 			},
 			Sidecars: []v1alpha1.CSISidecar{
 				{
