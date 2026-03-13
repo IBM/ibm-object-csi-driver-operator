@@ -1022,7 +1022,9 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 
 			if testcase.expectedErr != nil {
 				assert.Error(t, err)
-				assert.Contains(t, err.Error(), testcase.expectedErr.Error())
+				if err != nil {
+					assert.Contains(t, err.Error(), testcase.expectedErr.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 			}
