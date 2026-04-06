@@ -118,7 +118,7 @@ const (
 	NodeServerMemoryLimitCMKey        = "nodeServerMemoryLimit"
 	RestrictNodeServerSchedulingCMKey = "restrictNodeServerScheduling"
 
-	CSIAddonNodeLabelKey   = "cos.csi.addon/enabled"
+	CSIAddonNodeLabelKey   = "cos.csi.ibm.io/csi-node"
 	CSIAddonNodeLabelValue = "true"
 )
 
