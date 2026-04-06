@@ -72,6 +72,9 @@ type IBMObjectCSINodeSpec struct {
 
 	// +kubebuilder:validation:Optional
 	MaxVolumesPerNode string `json:"maxVolumesPerNode,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	RestrictNodeServerScheduling string `json:"restrictNodeServerScheduling,omitempty"`
 }
 
 // IBMObjectCSIControllerSpec defines the desired state of IBMObjectCSIController
