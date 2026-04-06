@@ -102,7 +102,7 @@ func (s *csiNodeSyncer) ensurePodSpec() corev1.PodSpec {
 	}
 }
 
-// buildNodeAffinity builds node affinity, adding cos.csi.addon/enabled=true label requirement when restrictNodeServerScheduling is "true".
+// buildNodeAffinity builds node affinity, adding cos.csi.ibm.io/csi-node=true label requirement when restrictNodeServerScheduling is "true".
 func (s *csiNodeSyncer) buildNodeAffinity() *corev1.Affinity {
 	affinity := s.driver.Spec.Node.Affinity
 
@@ -125,7 +125,7 @@ func (s *csiNodeSyncer) buildNodeAffinity() *corev1.Affinity {
 				}
 
 				// Add the label requirement if it doesn't exist
-				// This ensures pods only schedule on nodes with cos.csi.addon/enabled=true label
+				// This ensures pods only schedule on nodes with cos.csi.ibm.io/csi-node=true label
 				if !hasRequirement {
 					term.MatchExpressions = append(term.MatchExpressions, corev1.NodeSelectorRequirement{
 						Key:      constants.CSIAddonNodeLabelKey,
