@@ -29,7 +29,6 @@ import (
 	crutils "github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/crutils"
 	clustersyncer "github.com/IBM/ibm-object-csi-driver-operator/controllers/syncer"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util/common"
-	"github.com/IBM/ibm-object-csi-driver-operator/version"
 	"github.com/go-logr/logr"
 	"github.com/presslabs/controller-util/pkg/syncer"
 	appsv1 "k8s.io/api/apps/v1"
@@ -304,7 +303,7 @@ func (r *IBMObjectCSIReconciler) updateStatus(instance *crutils.IBMObjectCSI, or
 		phase = objectdriverv1alpha1.DriverPhaseCreating
 	}
 	instance.Status.Phase = phase
-	instance.Status.Version = version.DriverVersion
+	instance.Status.Version = instance.GetVersion()
 
 	if !reflect.DeepEqual(originalStatus, instance.Status) {
 		logger.Info("updating IBMObjectCSI status", "name", instance.Name, "from", originalStatus, "to", instance.Status)
