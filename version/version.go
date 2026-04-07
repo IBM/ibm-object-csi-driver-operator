@@ -1,9 +1,0 @@
-// Package version ...
-package version
-
-var (
-	// Version ...
-	Version = "1.0.13"
-	// DriverVersion ...
-	DriverVersion = "1.0.13"
-)
