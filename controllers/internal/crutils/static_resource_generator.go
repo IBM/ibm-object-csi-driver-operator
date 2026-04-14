@@ -227,16 +227,30 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRoleBinding() *rbacv1.ClusterRol
 // Generates3fsSC ...
 func (c *IBMObjectCSI) GenerateS3fsSC(scInputParams SCInputParams) *storagev1.StorageClass {
 	var storageClassName, locationConstraint string
-	if scInputParams.S3Provider == constants.S3ProviderIBM {
-		locationConstraint = fmt.Sprintf("%s-%s", scInputParams.Region, scInputParams.COSStorageClass)
-	} else {
-		locationConstraint = scInputParams.Region
-	}
 
-	// "ibm-object-storage-standard-s3fs"
-	storageClassName = fmt.Sprintf("%s-%s-s3fs", constants.StorageClassPrefix, scInputParams.COSStorageClass)
-	if scInputParams.ReclaimPolicy == corev1.PersistentVolumeReclaimRetain {
-		storageClassName = fmt.Sprintf("%s-%s", storageClassName, constants.RetainPolicyTag) // "ibm-object-storage-standard-s3fs-retain"
+	if scInputParams.IsCrossRegional {
+		storageClassName = fmt.Sprintf("%s-%s-cross-region-s3fs", constants.StorageClassPrefix, scInputParams.COSStorageClass)
+		if scInputParams.ReclaimPolicy == corev1.PersistentVolumeReclaimRetain {
+			storageClassName = fmt.Sprintf("%s-%s", storageClassName, constants.RetainPolicyTag)
+		}
+
+		if scInputParams.S3Provider == constants.S3ProviderIBM {
+			regionPrefix := scInputParams.Region[:2]
+			locationConstraint = fmt.Sprintf("%s-%s", regionPrefix, scInputParams.COSStorageClass)
+		} else {
+			locationConstraint = scInputParams.Region
+		}
+	} else {
+		storageClassName = fmt.Sprintf("%s-%s-s3fs", constants.StorageClassPrefix, scInputParams.COSStorageClass)
+		if scInputParams.ReclaimPolicy == corev1.PersistentVolumeReclaimRetain {
+			storageClassName = fmt.Sprintf("%s-%s", storageClassName, constants.RetainPolicyTag)
+		}
+
+		if scInputParams.S3Provider == constants.S3ProviderIBM {
+			locationConstraint = fmt.Sprintf("%s-%s", scInputParams.Region, scInputParams.COSStorageClass)
+		} else {
+			locationConstraint = scInputParams.Region
+		}
 	}
 
 	mountOptions := []string{
@@ -272,16 +286,29 @@ func (c *IBMObjectCSI) GenerateS3fsSC(scInputParams SCInputParams) *storagev1.St
 func (c *IBMObjectCSI) GenerateRcloneSC(scInputParams SCInputParams) *storagev1.StorageClass {
 	var storageClassName, locationConstraint string
 
-	// "ibm-object-storage-standard-rclone"
-	storageClassName = fmt.Sprintf("%s-%s-rclone", constants.StorageClassPrefix, scInputParams.COSStorageClass)
-	if scInputParams.ReclaimPolicy == corev1.PersistentVolumeReclaimRetain {
-		storageClassName = fmt.Sprintf("%s-%s", storageClassName, constants.RetainPolicyTag) // "ibm-object-storage-standard-rclone-retain"
-	}
+	if scInputParams.IsCrossRegional {
+		storageClassName = fmt.Sprintf("%s-%s-cross-region-rclone", constants.StorageClassPrefix, scInputParams.COSStorageClass)
+		if scInputParams.ReclaimPolicy == corev1.PersistentVolumeReclaimRetain {
+			storageClassName = fmt.Sprintf("%s-%s", storageClassName, constants.RetainPolicyTag)
+		}
 
-	if scInputParams.S3Provider == constants.S3ProviderIBM {
-		locationConstraint = fmt.Sprintf("%s-%s", scInputParams.Region, scInputParams.COSStorageClass)
+		if scInputParams.S3Provider == constants.S3ProviderIBM {
+			regionPrefix := scInputParams.Region[:2]
+			locationConstraint = fmt.Sprintf("%s-%s", regionPrefix, scInputParams.COSStorageClass)
+		} else {
+			locationConstraint = scInputParams.Region
+		}
 	} else {
-		locationConstraint = scInputParams.Region
+		storageClassName = fmt.Sprintf("%s-%s-rclone", constants.StorageClassPrefix, scInputParams.COSStorageClass)
+		if scInputParams.ReclaimPolicy == corev1.PersistentVolumeReclaimRetain {
+			storageClassName = fmt.Sprintf("%s-%s", storageClassName, constants.RetainPolicyTag)
+		}
+
+		if scInputParams.S3Provider == constants.S3ProviderIBM {
+			locationConstraint = fmt.Sprintf("%s-%s", scInputParams.Region, scInputParams.COSStorageClass)
+		} else {
+			locationConstraint = scInputParams.Region
+		}
 	}
 
 	return &storagev1.StorageClass{

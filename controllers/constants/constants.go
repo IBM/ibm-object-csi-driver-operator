@@ -97,9 +97,10 @@ const (
 	IaasIBMClassic   = "ibm-classic"
 	IaasIBMVPC       = "ibm-vpc"
 
-	IBMEP    = "https://s3.%s.%s.cloud-object-storage.appdomain.cloud"
-	AWSEP    = "https://s3.%s.amazonaws.com"
-	WasabiEP = "https://s3.%s.wasabisys.com"
+	IBMEP        = "https://s3.%s.%s.cloud-object-storage.appdomain.cloud"
+	IBMCrossRegEP = "https://s3.%s.cloud-object-storage.appdomain.cloud"
+	AWSEP        = "https://s3.%s.amazonaws.com"
+	WasabiEP     = "https://s3.%s.wasabisys.com"
 
 	DefaultLogTailLines    = 300
 	DefaultNamespace       = "default"
