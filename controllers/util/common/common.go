@@ -438,6 +438,20 @@ func (ch *ControllerHelper) SetIBMCosEP() {
 	}
 }
 
+func (ch *ControllerHelper) SetIBMCosCrossRegionalEP() {
+	if len(ch.IaaSProvider) == 0 || len(ch.Region) == 0 {
+		ch.CosEP = ""
+		return
+	}
+	if ch.IaaSProvider == constants.IaasIBMVPC || ch.IaaSProvider == constants.IaasIBMClassic {
+		epType := "private"
+		if ch.IaaSProvider == constants.IaasIBMVPC {
+			epType = "direct"
+		}
+		ch.CosEP = fmt.Sprintf(constants.IBMCrossRegEP, epType)
+	}
+}
+
 func (ch *ControllerHelper) SetS3ProviderEP() {
 	if ch.S3ProviderRegion == "" {
 		ch.CosEP = ""
