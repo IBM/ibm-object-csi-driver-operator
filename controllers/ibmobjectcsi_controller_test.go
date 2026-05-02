@@ -500,6 +500,40 @@ var (
 			"csi.storage.k8s.io/node-publish-secret-namespace": "${pvc.namespace}",
 		},
 	}
+
+	mountS3SC = &storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   fmt.Sprintf("%s-standard-mount-s3", constants.StorageClassPrefix),
+			Labels: constants.CommonCSIResourceLabels,
+		},
+		Provisioner:   constants.DriverName,
+		ReclaimPolicy: &reclaimPolicyDelete,
+		Parameters: map[string]string{
+			"mounter":            "mount-s3",
+			"client":             "awss3",
+			"cosEndpoint":        "https://s3.us-east-2.amazonaws.com",
+			"locationConstraint": "us-east-2",
+			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.annotations['cos.csi.driver/secret']}",
+			"csi.storage.k8s.io/node-publish-secret-namespace": "${pvc.namespace}",
+		},
+	}
+
+	mountS3RetainSC = &storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   fmt.Sprintf("%s-standard-mount-s3-retain", constants.StorageClassPrefix),
+			Labels: constants.CommonCSIResourceLabels,
+		},
+		Provisioner:   constants.DriverName,
+		ReclaimPolicy: &reclaimPolicyRetain,
+		Parameters: map[string]string{
+			"mounter":            "mount-s3",
+			"client":             "awss3",
+			"cosEndpoint":        "https://s3.us-east-2.amazonaws.com",
+			"locationConstraint": "us-east-2",
+			"csi.storage.k8s.io/node-publish-secret-name":      "${pvc.annotations['cos.csi.driver/secret']}",
+			"csi.storage.k8s.io/node-publish-secret-namespace": "${pvc.namespace}",
+		},
+	}
 )
 
 func TestIBMObjectCSIReconcile(t *testing.T) {
@@ -949,6 +983,8 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 				rCloneRetainSC,
 				s3fsSC,
 				s3fsRetainSC,
+				mountS3SC,
+				mountS3RetainSC,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fakedelete.NewClientBuilder().WithRuntimeObjects(objs...).Build()
