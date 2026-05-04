@@ -583,32 +583,87 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
 		r.ControllerHelper.SetIBMCosEP()
 		cosSCs = r.ControllerHelper.GetIBMCosSC()
 		requiredRegion = r.ControllerHelper.GetRegion()
+		cosEP := r.ControllerHelper.GetCosEP()
+
+		for _, sc := range cosSCs {
+			for _, rp := range reclaimPolicys {
+				rcloneK8sSc := instance.GenerateRcloneSC(crutils.SCInputParams{
+					ReclaimPolicy:   rp,
+					S3Provider:      s3Provider,
+					Region:          requiredRegion,
+					COSEndpoint:     cosEP,
+					COSStorageClass: sc,
+					IsCrossRegional: false,
+				})
+				k8sSCs = append(k8sSCs, rcloneK8sSc)
+
+				s3fsK8sSc := instance.GenerateS3fsSC(crutils.SCInputParams{
+					ReclaimPolicy:   rp,
+					S3Provider:      s3Provider,
+					Region:          requiredRegion,
+					COSEndpoint:     cosEP,
+					COSStorageClass: sc,
+					IsCrossRegional: false,
+				})
+				k8sSCs = append(k8sSCs, s3fsK8sSc)
+			}
+		}
+
+		// Generate cross-regional storageclasses
+		r.ControllerHelper.SetIBMCosCrossRegionalEP()
+		crossRegionalCosEP := r.ControllerHelper.GetCosEP()
+
+		for _, sc := range cosSCs {
+			for _, rp := range reclaimPolicys {
+				rcloneK8sSc := instance.GenerateRcloneSC(crutils.SCInputParams{
+					ReclaimPolicy:   rp,
+					S3Provider:      s3Provider,
+					Region:          requiredRegion,
+					COSEndpoint:     crossRegionalCosEP,
+					COSStorageClass: sc,
+					IsCrossRegional: true,
+				})
+				k8sSCs = append(k8sSCs, rcloneK8sSc)
+
+				s3fsK8sSc := instance.GenerateS3fsSC(crutils.SCInputParams{
+					ReclaimPolicy:   rp,
+					S3Provider:      s3Provider,
+					Region:          requiredRegion,
+					COSEndpoint:     crossRegionalCosEP,
+					COSStorageClass: sc,
+					IsCrossRegional: true,
+				})
+				k8sSCs = append(k8sSCs, s3fsK8sSc)
+			}
+		}
 	} else {
 		r.ControllerHelper.SetS3ProviderEP()
 		cosSCs = append(cosSCs, "standard")
 		requiredRegion = r.ControllerHelper.S3ProviderRegion
-	}
-	cosEP := r.ControllerHelper.GetCosEP()
+		cosEP := r.ControllerHelper.GetCosEP()
 
-	for _, sc := range cosSCs {
-		for _, rp := range reclaimPolicys {
-			rcloneK8sSc := instance.GenerateRcloneSC(crutils.SCInputParams{
-				ReclaimPolicy:   rp,
-				S3Provider:      s3Provider,
-				Region:          requiredRegion,
-				COSEndpoint:     cosEP,
-				COSStorageClass: sc,
-			})
-			k8sSCs = append(k8sSCs, rcloneK8sSc)
+		for _, sc := range cosSCs {
+			for _, rp := range reclaimPolicys {
+				rcloneK8sSc := instance.GenerateRcloneSC(crutils.SCInputParams{
+					ReclaimPolicy:   rp,
+					S3Provider:      s3Provider,
+					Region:          requiredRegion,
+					COSEndpoint:     cosEP,
+					COSStorageClass: sc,
+					IsCrossRegional: false,
+				})
+				k8sSCs = append(k8sSCs, rcloneK8sSc)
 
-			s3fsK8sSc := instance.GenerateS3fsSC(crutils.SCInputParams{
-				ReclaimPolicy:   rp,
-				S3Provider:      s3Provider,
-				Region:          requiredRegion,
-				COSEndpoint:     cosEP,
-				COSStorageClass: sc,
-			})
-			k8sSCs = append(k8sSCs, s3fsK8sSc)
+				s3fsK8sSc := instance.GenerateS3fsSC(crutils.SCInputParams{
+					ReclaimPolicy:   rp,
+					S3Provider:      s3Provider,
+					Region:          requiredRegion,
+					COSEndpoint:     cosEP,
+					COSStorageClass: sc,
+					IsCrossRegional: false,
+				})
+				k8sSCs = append(k8sSCs, s3fsK8sSc)
+			}
 		}
 	}
 	return k8sSCs
