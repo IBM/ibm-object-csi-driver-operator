@@ -428,6 +428,7 @@ func (ch *ControllerHelper) GetIBMCosSC() []string {
 func (ch *ControllerHelper) SetIBMCosEP() {
 	if len(ch.IaaSProvider) == 0 || len(ch.Region) == 0 {
 		ch.CosEP = ""
+		return
 	}
 	if ch.IaaSProvider == constants.IaasIBMVPC || ch.IaaSProvider == constants.IaasIBMClassic {
 		epType := "private"
@@ -435,6 +436,26 @@ func (ch *ControllerHelper) SetIBMCosEP() {
 			epType = "direct"
 		}
 		ch.CosEP = fmt.Sprintf(constants.IBMEP, epType, ch.Region)
+	}
+}
+
+func (ch *ControllerHelper) SetIBMCosCrossRegionalEP() {
+	if len(ch.IaaSProvider) == 0 || len(ch.Region) == 0 {
+		ch.CosEP = ""
+		return
+	}
+
+	geography, supported := constants.RegionToGeography[ch.Region]
+	if !supported {
+		geography = "us"
+	}
+
+	if ch.IaaSProvider == constants.IaasIBMVPC || ch.IaaSProvider == constants.IaasIBMClassic {
+		epType := "private"
+		if ch.IaaSProvider == constants.IaasIBMVPC {
+			epType = "direct"
+		}
+		ch.CosEP = fmt.Sprintf(constants.IBMCrossRegEP, epType, geography)
 	}
 }
 

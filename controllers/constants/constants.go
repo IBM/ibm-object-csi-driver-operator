@@ -97,10 +97,29 @@ const (
 	IaasIBMClassic   = "ibm-classic"
 	IaasIBMVPC       = "ibm-vpc"
 
-	IBMEP    = "https://s3.%s.%s.cloud-object-storage.appdomain.cloud"
-	AWSEP    = "https://s3.%s.amazonaws.com"
-	WasabiEP = "https://s3.%s.wasabisys.com"
+	IBMEP         = "https://s3.%s.%s.cloud-object-storage.appdomain.cloud"
+	IBMCrossRegEP = "https://s3.%s.%s.cloud-object-storage.appdomain.cloud"
+	AWSEP         = "https://s3.%s.amazonaws.com"
+	WasabiEP      = "https://s3.%s.wasabisys.com"
+)
 
+var RegionToGeography = map[string]string{
+	"us-south": "us",
+	"us-east":  "us",
+	"br-sao":   "us",
+	"ca-tor":   "us",
+	"ca-mon":   "us",
+	"eu-gb":    "eu",
+	"eu-de":    "eu",
+	"eu-es":    "eu",
+	"au-syd":   "ap",
+	"jp-tok":   "ap",
+	"jp-osa":   "ap",
+	"in-che":   "ap",
+	"in-mum":   "ap",
+}
+
+const (
 	DefaultLogTailLines    = 300
 	DefaultNamespace       = "default"
 	ReconcilationTime      = 5 * time.Minute
