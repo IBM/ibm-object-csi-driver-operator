@@ -103,6 +103,7 @@ const (
 	WasabiEP      = "https://s3.%s.wasabisys.com"
 )
 
+// RegionToGeography maps IBM Cloud regions to their geography (us/eu/ap) for cross-regional endpoints and locationConstraints
 var RegionToGeography = map[string]string{
 	"us-south": "us",
 	"us-east":  "us",
@@ -112,6 +113,7 @@ var RegionToGeography = map[string]string{
 	"eu-gb":    "eu",
 	"eu-de":    "eu",
 	"eu-es":    "eu",
+	"eu-fr2":   "eu",
 	"au-syd":   "ap",
 	"jp-tok":   "ap",
 	"jp-osa":   "ap",

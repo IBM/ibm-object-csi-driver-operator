@@ -430,13 +430,48 @@ func (ch *ControllerHelper) SetIBMCosEP() {
 		ch.CosEP = ""
 		return
 	}
+	
+	region := ch.Region
+	_, supported := constants.RegionToGeography[ch.Region]
+	if !supported {
+		if isPreprodRegion(ch.Region) {
+			region = "us-south"
+		} else {
+			region = "NA"
+		}
+	}
+	
 	if ch.IaaSProvider == constants.IaasIBMVPC || ch.IaaSProvider == constants.IaasIBMClassic {
 		epType := "private"
 		if ch.IaaSProvider == constants.IaasIBMVPC {
 			epType = "direct"
 		}
-		ch.CosEP = fmt.Sprintf(constants.IBMEP, epType, ch.Region)
+		ch.CosEP = fmt.Sprintf(constants.IBMEP, epType, region)
 	}
+}
+// isPreprodRegion checks if region is preprod (dev/stage/prestage/test)
+func isPreprodRegion(region string) bool {
+	if region == "" {
+		return false
+	}
+
+	regionLower := strings.ToLower(region)
+
+	preprodPrefixes := []string{"dev-", "prestage-", "stage-"}
+	for _, prefix := range preprodPrefixes {
+		if strings.HasPrefix(regionLower, prefix) {
+			return true
+		}
+	}
+
+	preprodIndicators := []string{"-ngdc-", "-test"}
+	for _, indicator := range preprodIndicators {
+		if strings.Contains(regionLower, indicator) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (ch *ControllerHelper) SetIBMCosCrossRegionalEP() {
@@ -447,7 +482,14 @@ func (ch *ControllerHelper) SetIBMCosCrossRegionalEP() {
 
 	geography, supported := constants.RegionToGeography[ch.Region]
 	if !supported {
-		geography = "us"
+		// For unknown regions, distinguish between preprod and future prod
+		if isPreprodRegion(ch.Region) {
+			// Preprod regions (dev/stage/prestage) use US geography
+			geography = "us"
+		} else {
+			// Future prod regions not yet in map use NA.
+			geography = "na"
+		}
 	}
 
 	if ch.IaaSProvider == constants.IaasIBMVPC || ch.IaaSProvider == constants.IaasIBMClassic {
