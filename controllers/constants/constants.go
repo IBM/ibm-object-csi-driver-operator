@@ -76,7 +76,7 @@ const (
 	CSINodeSCCClusterRole                 = "node-scc-clusterrole"
 	CSINodeSCCClusterRoleBinding          = "node-scc-clusterrolebinding"
 	CSINodePriorityClassName              = "system-node-critical"
-	CSIControllerPriorityClassName        = "system-cluster-critical"
+	CSIControllerPriorityClassName        = "ibm-app-cluster-critical"
 
 	ParamsConfigMap          = "managed-addon-ibm-object-csi-driver"
 	ParamsConfigMapNamespace = "kube-system"
