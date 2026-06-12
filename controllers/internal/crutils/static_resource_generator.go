@@ -229,7 +229,10 @@ func (c *IBMObjectCSI) GenerateS3fsSC(scInputParams SCInputParams) *storagev1.St
 	var storageClassName, locationConstraint string
 	if scInputParams.S3Provider == constants.S3ProviderIBM {
 		if scInputParams.IsCrossRegional {
-			geography := constants.RegionToGeography[scInputParams.Region]
+			geography, exists := constants.RegionToGeography[scInputParams.Region]
+			if !exists {
+				geography = "NA"
+			}
 			locationConstraint = fmt.Sprintf("%s-%s", geography, scInputParams.COSStorageClass)
 		} else {
 			locationConstraint = fmt.Sprintf("%s-%s", scInputParams.Region, scInputParams.COSStorageClass)
@@ -293,7 +296,10 @@ func (c *IBMObjectCSI) GenerateRcloneSC(scInputParams SCInputParams) *storagev1.
 
 	if scInputParams.S3Provider == constants.S3ProviderIBM {
 		if scInputParams.IsCrossRegional {
-			geography := constants.RegionToGeography[scInputParams.Region]
+			geography, exists := constants.RegionToGeography[scInputParams.Region]
+			if !exists {
+				geography = "NA"
+			}
 			locationConstraint = fmt.Sprintf("%s-%s", geography, scInputParams.COSStorageClass)
 		} else {
 			locationConstraint = fmt.Sprintf("%s-%s", scInputParams.Region, scInputParams.COSStorageClass)

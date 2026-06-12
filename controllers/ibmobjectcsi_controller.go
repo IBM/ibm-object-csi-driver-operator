@@ -637,6 +637,7 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
 				}
 			}
 		}
+		return k8sSCs
 	} else {
 		r.ControllerHelper.SetS3ProviderEP()
 		cosSCs = append(cosSCs, "standard")
