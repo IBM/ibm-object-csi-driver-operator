@@ -23,7 +23,7 @@ func getLocationConstraint(region, cosStorageClass string, isCrossRegional bool)
 		return fmt.Sprintf("%s-%s", geography, cosStorageClass)
 	}
 	
-	// For regional (non-cross-regional), use region directly without validation
+	// For regional, use region directly without validation
 	// to maintain backward compatibility with existing behavior
 	return fmt.Sprintf("%s-%s", region, cosStorageClass)
 }
