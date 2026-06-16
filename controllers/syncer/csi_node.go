@@ -147,8 +147,6 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 			"--servermode=node",
 			"--endpoint=$(CSI_ENDPOINT)",
 			"--nodeid=$(KUBE_NODE_NAME)",
-			"--logtostderr=true",
-			"--v=5",
 		},
 	)
 

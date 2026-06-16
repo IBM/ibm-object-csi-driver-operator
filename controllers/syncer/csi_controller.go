@@ -101,8 +101,6 @@ func (s *csiControllerSyncer) ensureContainersSpec() []corev1.Container {
 		s.driver.GetCSIControllerImage(),
 		[]string{"--endpoint=$(CSI_ENDPOINT)",
 			"--servermode=controller",
-			"--v=5",
-			"--logtostderr=true",
 		},
 	)
 
