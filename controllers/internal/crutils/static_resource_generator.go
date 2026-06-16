@@ -13,6 +13,21 @@ import (
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util"
 )
 
+// getLocationConstraint returns the locationConstraint for IBM COS based on region and cross-regional flag
+func getLocationConstraint(region, cosStorageClass string, isCrossRegional bool) string {
+	if isCrossRegional {
+		geography, exists := constants.RegionToGeography[region]
+		if !exists {
+			return "NA"
+		}
+		return fmt.Sprintf("%s-%s", geography, cosStorageClass)
+	}
+	
+	// For regional (non-cross-regional), use region directly without validation
+	// to maintain backward compatibility with existing behavior
+	return fmt.Sprintf("%s-%s", region, cosStorageClass)
+}
+
 // GenerateCSIDriver ...
 func (c *IBMObjectCSI) GenerateCSIDriver() *storagev1.CSIDriver {
 	defaultFSGroupPolicy := storagev1.FileFSGroupPolicy
@@ -228,15 +243,7 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRoleBinding() *rbacv1.ClusterRol
 func (c *IBMObjectCSI) GenerateS3fsSC(scInputParams SCInputParams) *storagev1.StorageClass {
 	var storageClassName, locationConstraint string
 	if scInputParams.S3Provider == constants.S3ProviderIBM {
-		if scInputParams.IsCrossRegional {
-			geography, exists := constants.RegionToGeography[scInputParams.Region]
-			if !exists {
-				geography = "NA"
-			}
-			locationConstraint = fmt.Sprintf("%s-%s", geography, scInputParams.COSStorageClass)
-		} else {
-			locationConstraint = fmt.Sprintf("%s-%s", scInputParams.Region, scInputParams.COSStorageClass)
-		}
+		locationConstraint = getLocationConstraint(scInputParams.Region, scInputParams.COSStorageClass, scInputParams.IsCrossRegional)
 	} else {
 		locationConstraint = scInputParams.Region
 	}
@@ -295,15 +302,7 @@ func (c *IBMObjectCSI) GenerateRcloneSC(scInputParams SCInputParams) *storagev1.
 	}
 
 	if scInputParams.S3Provider == constants.S3ProviderIBM {
-		if scInputParams.IsCrossRegional {
-			geography, exists := constants.RegionToGeography[scInputParams.Region]
-			if !exists {
-				geography = "NA"
-			}
-			locationConstraint = fmt.Sprintf("%s-%s", geography, scInputParams.COSStorageClass)
-		} else {
-			locationConstraint = fmt.Sprintf("%s-%s", scInputParams.Region, scInputParams.COSStorageClass)
-		}
+		locationConstraint = getLocationConstraint(scInputParams.Region, scInputParams.COSStorageClass, scInputParams.IsCrossRegional)
 	} else {
 		locationConstraint = scInputParams.Region
 	}

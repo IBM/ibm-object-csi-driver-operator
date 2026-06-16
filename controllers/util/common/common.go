@@ -431,10 +431,9 @@ func (ch *ControllerHelper) SetIBMCosEP() {
 		return
 	}
 
-	region := ch.Region
-	_, supported := constants.RegionToGeography[ch.Region]
-	if !supported {
-		region = "NA"
+	if _, supported := constants.RegionToGeography[ch.Region]; !supported {
+		ch.CosEP = "NA"
+		return
 	}
 
 	if ch.IaaSProvider == constants.IaasIBMVPC || ch.IaaSProvider == constants.IaasIBMClassic {
@@ -442,7 +441,7 @@ func (ch *ControllerHelper) SetIBMCosEP() {
 		if ch.IaaSProvider == constants.IaasIBMVPC {
 			epType = "direct"
 		}
-		ch.CosEP = fmt.Sprintf(constants.IBMEP, epType, region)
+		ch.CosEP = fmt.Sprintf(constants.IBMEP, epType, ch.Region)
 	}
 }
 
@@ -454,7 +453,8 @@ func (ch *ControllerHelper) SetIBMCosCrossRegionalEP() {
 
 	geography, supported := constants.RegionToGeography[ch.Region]
 	if !supported {
-		geography = "NA"
+		ch.CosEP = "NA"
+		return
 	}
 
 	if ch.IaaSProvider == constants.IaasIBMVPC || ch.IaaSProvider == constants.IaasIBMClassic {
