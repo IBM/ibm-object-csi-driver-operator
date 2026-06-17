@@ -431,11 +431,6 @@ func (ch *ControllerHelper) SetIBMCosEP() {
 		return
 	}
 
-	if _, supported := constants.RegionToGeography[ch.Region]; !supported {
-		ch.CosEP = "NA"
-		return
-	}
-
 	if ch.IaaSProvider == constants.IaasIBMVPC || ch.IaaSProvider == constants.IaasIBMClassic {
 		epType := "private"
 		if ch.IaaSProvider == constants.IaasIBMVPC {
