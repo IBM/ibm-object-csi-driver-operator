@@ -430,7 +430,6 @@ func (ch *ControllerHelper) SetIBMCosEP() {
 		ch.CosEP = ""
 		return
 	}
-
 	if ch.IaaSProvider == constants.IaasIBMVPC || ch.IaaSProvider == constants.IaasIBMClassic {
 		epType := "private"
 		if ch.IaaSProvider == constants.IaasIBMVPC {
