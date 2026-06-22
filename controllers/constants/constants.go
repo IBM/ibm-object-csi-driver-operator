@@ -129,6 +129,24 @@ const (
 	RemoveFinalizer
 )
 
+// RegionToGeography maps IBM Cloud regions to their geography (us/eu/ap) for cross-regional endpoints and locationConstraints
+var RegionToGeography = map[string]string{
+	"us-south": "us",
+	"us-east":  "us",
+	"br-sao":   "us",
+	"ca-tor":   "us",
+	"ca-mon":   "us",
+	"eu-gb":    "eu",
+	"eu-de":    "eu",
+	"eu-es":    "eu",
+	"eu-fr2":   "eu",
+	"au-syd":   "ap",
+	"jp-tok":   "ap",
+	"jp-osa":   "ap",
+	"in-che":   "ap",
+	"in-mum":   "ap",
+}
+
 var CommonCSIResourceLabels = map[string]string{
 	"app.kubernetes.io/part-of":    CSIDriverName,
 	"app.kubernetes.io/managed-by": CSIOperatorName,

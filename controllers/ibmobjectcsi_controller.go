@@ -569,27 +569,50 @@ func (r *IBMObjectCSIReconciler) getClusterRoleBindings(instance *crutils.IBMObj
 
 func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCSI) []*storagev1.StorageClass {
 	var requiredRegion string
-
 	s3Provider := r.ControllerHelper.GetS3Provider()
-
 	k8sSCs := []*storagev1.StorageClass{}
 	cosSCs := []string{}
-
 	reclaimPolicys := []corev1.PersistentVolumeReclaimPolicy{
 		corev1.PersistentVolumeReclaimRetain,
 		corev1.PersistentVolumeReclaimDelete}
-
 	if len(s3Provider) == 0 || s3Provider == constants.S3ProviderIBM {
-		r.ControllerHelper.SetIBMCosEP()
 		cosSCs = r.ControllerHelper.GetIBMCosSC()
 		requiredRegion = r.ControllerHelper.GetRegion()
+
+		r.ControllerHelper.SetIBMCosCrossRegionalEP()
+		crossRegCosEP := r.ControllerHelper.GetCosEP()
+		if crossRegCosEP != "" {
+			for _, sc := range cosSCs {
+				for _, rp := range reclaimPolicys {
+					rcloneK8sSc := instance.GenerateRcloneSC(crutils.SCInputParams{
+						ReclaimPolicy:   rp,
+						S3Provider:      s3Provider,
+						Region:          requiredRegion,
+						COSEndpoint:     crossRegCosEP,
+						COSStorageClass: sc,
+						IsCrossRegional: true,
+					})
+					k8sSCs = append(k8sSCs, rcloneK8sSc)
+					s3fsK8sSc := instance.GenerateS3fsSC(crutils.SCInputParams{
+						ReclaimPolicy:   rp,
+						S3Provider:      s3Provider,
+						Region:          requiredRegion,
+						COSEndpoint:     crossRegCosEP,
+						COSStorageClass: sc,
+						IsCrossRegional: true,
+					})
+					k8sSCs = append(k8sSCs, s3fsK8sSc)
+				}
+			}
+		}
+		// For regional storageclasses, set regional COS Endpoint
+		r.ControllerHelper.SetIBMCosEP()
 	} else {
 		r.ControllerHelper.SetS3ProviderEP()
 		cosSCs = append(cosSCs, "standard")
 		requiredRegion = r.ControllerHelper.S3ProviderRegion
 	}
 	cosEP := r.ControllerHelper.GetCosEP()
-
 	for _, sc := range cosSCs {
 		for _, rp := range reclaimPolicys {
 			rcloneK8sSc := instance.GenerateRcloneSC(crutils.SCInputParams{
@@ -600,7 +623,6 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
 				COSStorageClass: sc,
 			})
 			k8sSCs = append(k8sSCs, rcloneK8sSc)
-
 			s3fsK8sSc := instance.GenerateS3fsSC(crutils.SCInputParams{
 				ReclaimPolicy:   rp,
 				S3Provider:      s3Provider,
