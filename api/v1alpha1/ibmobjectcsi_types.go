@@ -31,7 +31,7 @@ type IBMObjectCSISpec struct {
 	Node       IBMObjectCSINodeSpec       `json:"node"`
 
 	// +kubebuilder:validation:Optional
-	Installer *IBMObjectCSIInstallerSpec `json:"installer,omitempty"`
+	BinsInstaller *IBMObjectCSIBinsInstallerSpec `json:"binsInstaller,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	Sidecars []CSISidecar `json:"sidecars,omitempty"`
@@ -45,8 +45,8 @@ type IBMObjectCSISpec struct {
 	S3ProviderRegion string `json:"s3ProviderRegion,omitempty"`
 }
 
-// IBMObjectCSIInstallerSpec defines the installer DaemonSet spec
-type IBMObjectCSIInstallerSpec struct {
+// IBMObjectCSIBinsInstallerSpec defines the bins-installer DaemonSet spec
+type IBMObjectCSIBinsInstallerSpec struct {
 	Repository string `json:"repository"`
 	Tag        string `json:"tag"`
 

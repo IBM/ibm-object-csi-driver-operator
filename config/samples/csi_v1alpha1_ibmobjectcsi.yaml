@@ -71,9 +71,9 @@ spec:
                   values:
                     - rhel
 
-  # installer copies cos-csi-mounter binaries onto each node.
+  # binsInstaller copies cos-csi-mounter binaries onto each node.
   # When restrictNodeServerScheduling is true, only runs on nodes labelled cos.csi.ibm.io/csi-node=true.
-  installer:
+  binsInstaller:
     repository: icr.io/ibm/ibm-object-csi-driver-bins
     tag: "v1.0.6"
     imagePullPolicy: IfNotPresent

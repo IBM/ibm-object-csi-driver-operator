@@ -41,7 +41,7 @@ var (
 	reclaimPolicyDelete  = corev1.PersistentVolumeReclaimDelete
 	secrets              = crutils.GetImagePullSecrets(ibmObjectCSICR.Spec.ImagePullSecrets)
 
-	ibmObjectCSICRWithInstaller = &v1alpha1.IBMObjectCSI{
+	ibmObjectCSICRWithBinsInstaller = &v1alpha1.IBMObjectCSI{
 		ObjectMeta: ibmObjectCSICR.ObjectMeta,
 		Spec: v1alpha1.IBMObjectCSISpec{
 			Controller:       ibmObjectCSICR.Spec.Controller,
@@ -49,16 +49,16 @@ var (
 			Sidecars:         ibmObjectCSICR.Spec.Sidecars,
 			ImagePullSecrets: ibmObjectCSICR.Spec.ImagePullSecrets,
 			HealthPort:       ibmObjectCSICR.Spec.HealthPort,
-			Installer:        installerSpec,
+			BinsInstaller:        installerSpec,
 		},
 	}
 
-	ibmObjectCSICRWithDeletionTSAndInstaller = &v1alpha1.IBMObjectCSI{
+	ibmObjectCSICRWithDeletionTSAndBinsInstaller = &v1alpha1.IBMObjectCSI{
 		ObjectMeta: ibmObjectCSICRWithDeletionTS.ObjectMeta,
 		Spec: v1alpha1.IBMObjectCSISpec{
 			S3Provider:       constants.S3ProviderAWS,
 			S3ProviderRegion: "us-east-2",
-			Installer:        installerSpec,
+			BinsInstaller:        installerSpec,
 		},
 	}
 
@@ -1024,27 +1024,27 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			expectedErr:  errors.New(UpdateError),
 		},
 		{
-			testCaseName: "Positive: Successful reconcile with installer spec set — creates installer DaemonSet",
+			testCaseName: "Positive: Successful reconcile with bins-installer spec set — creates bins-installer DaemonSet",
 			objects: []runtime.Object{
 				operatorDeploymnet,
-				ibmObjectCSICRWithInstaller,
+				ibmObjectCSICRWithBinsInstaller,
 				addonConfigMap,
 				csiNode,
 				controllerDeployment,
 				controllerPod,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
-				statusSubRes := ibmObjectCSICRWithInstaller
+				statusSubRes := ibmObjectCSICRWithBinsInstaller
 				return fake.NewClientBuilder().WithRuntimeObjects(objs...).WithStatusSubresource(statusSubRes).Build()
 			},
 			expectedResp: reconcile.Result{},
 			expectedErr:  nil,
 		},
 		{
-			testCaseName: "Positive: Reconcile with installer spec set — updates existing installer DaemonSet",
+			testCaseName: "Positive: Reconcile with bins-installer spec set — updates existing bins-installer DaemonSet",
 			objects: []runtime.Object{
 				operatorDeploymnet,
-				ibmObjectCSICRWithInstaller,
+				ibmObjectCSICRWithBinsInstaller,
 				addonConfigMap,
 				csiNode,
 				controllerDeployment,
@@ -1052,17 +1052,17 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 				csiInstaller,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
-				statusSubRes := ibmObjectCSICRWithInstaller
+				statusSubRes := ibmObjectCSICRWithBinsInstaller
 				return fake.NewClientBuilder().WithRuntimeObjects(objs...).WithStatusSubresource(statusSubRes).Build()
 			},
 			expectedResp: reconcile.Result{},
 			expectedErr:  nil,
 		},
 		{
-			testCaseName: "Negative: Failed to create installer DaemonSet",
+			testCaseName: "Negative: Failed to create bins-installer DaemonSet",
 			objects: []runtime.Object{
 				operatorDeploymnet,
-				ibmObjectCSICRWithInstaller,
+				ibmObjectCSICRWithBinsInstaller,
 				addonConfigMap,
 				csiNode,
 				controllerDeployment,
@@ -1082,10 +1082,10 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			expectedErr:  errors.New(CreateError),
 		},
 		{
-			testCaseName: "Negative: Failed to get installer DaemonSet",
+			testCaseName: "Negative: Failed to get bins-installer DaemonSet",
 			objects: []runtime.Object{
 				operatorDeploymnet,
-				ibmObjectCSICRWithInstaller,
+				ibmObjectCSICRWithBinsInstaller,
 				addonConfigMap,
 				csiNode,
 				controllerDeployment,
@@ -1105,10 +1105,10 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			expectedErr:  errors.New(GetError),
 		},
 		{
-			testCaseName: "Negative: Failed to update installer DaemonSet",
+			testCaseName: "Negative: Failed to update bins-installer DaemonSet",
 			objects: []runtime.Object{
 				operatorDeploymnet,
-				ibmObjectCSICRWithInstaller,
+				ibmObjectCSICRWithBinsInstaller,
 				addonConfigMap,
 				csiNode,
 				controllerDeployment,
@@ -1129,10 +1129,10 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			expectedErr:  errors.New(UpdateError),
 		},
 		{
-			testCaseName: "Negative: IBMObjectCSI CR deleted — failed to get installer DaemonSet",
+			testCaseName: "Negative: IBMObjectCSI CR deleted — failed to get bins-installer DaemonSet",
 			objects: []runtime.Object{
 				operatorDeploymnet,
-				ibmObjectCSICRWithDeletionTSAndInstaller,
+				ibmObjectCSICRWithDeletionTSAndBinsInstaller,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fake.NewClientBuilder().WithRuntimeObjects(objs...).WithInterceptorFuncs(interceptor.Funcs{
@@ -1148,10 +1148,10 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			expectedErr:  errors.New(GetError),
 		},
 		{
-			testCaseName: "Positive: IBMObjectCSI CR deleted with installer DaemonSet — delete succeeds",
+			testCaseName: "Positive: IBMObjectCSI CR deleted with bins-installer DaemonSet — delete succeeds",
 			objects: []runtime.Object{
 				operatorDeploymnet,
-				ibmObjectCSICRWithDeletionTSAndInstaller,
+				ibmObjectCSICRWithDeletionTSAndBinsInstaller,
 				csiInstaller,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
@@ -1161,10 +1161,10 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			expectedErr:  nil,
 		},
 		{
-			testCaseName: "Negative: IBMObjectCSI CR deleted — failed to delete installer DaemonSet",
+			testCaseName: "Negative: IBMObjectCSI CR deleted — failed to delete bins-installer DaemonSet",
 			objects: []runtime.Object{
 				operatorDeploymnet,
-				ibmObjectCSICRWithDeletionTSAndInstaller,
+				ibmObjectCSICRWithDeletionTSAndBinsInstaller,
 				csiInstaller,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
@@ -1174,10 +1174,10 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			expectedErr:  errors.New(DeleteError),
 		},
 		{
-			testCaseName: "Positive: ConfigMap sync updates installer spec restrictNodeServerScheduling",
+			testCaseName: "Positive: ConfigMap sync updates bins-installer spec restrictNodeServerScheduling",
 			objects: []runtime.Object{
 				operatorDeploymnet,
-				ibmObjectCSICRWithInstaller,
+				ibmObjectCSICRWithBinsInstaller,
 				addonConfigMapWithUpdatedData,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {

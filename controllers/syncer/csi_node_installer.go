@@ -12,12 +12,12 @@ import (
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/crutils"
 )
 
-// NewCSIInstallerDaemonSet returns the installer DaemonSet for kube-system.
+// NewCSIBinsInstallerDaemonSet returns the installer DaemonSet for kube-system.
 // Managed directly by the controller (not via presslabs syncer) because
 // cross-namespace ownerReferences are not allowed in Kubernetes.
-func NewCSIInstallerDaemonSet(driver *crutils.IBMObjectCSI) *appsv1.DaemonSet {
-	installerLabels := driver.GetCSIInstallerPodLabels()
-	selectorLabels := driver.GetCSIInstallerSelectorLabels()
+func NewCSIBinsInstallerDaemonSet(driver *crutils.IBMObjectCSI) *appsv1.DaemonSet {
+	installerLabels := driver.GetCSIBinsInstallerPodLabels()
+	selectorLabels := driver.GetCSIBinsInstallerSelectorLabels()
 
 	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -31,7 +31,7 @@ func NewCSIInstallerDaemonSet(driver *crutils.IBMObjectCSI) *appsv1.DaemonSet {
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: installerLabels,
 				},
-				Spec: ensureInstallerPodSpec(driver),
+				Spec: ensureBinsInstallerPodSpec(driver),
 			},
 			UpdateStrategy: appsv1.DaemonSetUpdateStrategy{
 				Type: appsv1.RollingUpdateDaemonSetStrategyType,
@@ -45,7 +45,7 @@ func NewCSIInstallerDaemonSet(driver *crutils.IBMObjectCSI) *appsv1.DaemonSet {
 	return ds
 }
 
-func ensureInstallerPodSpec(driver *crutils.IBMObjectCSI) corev1.PodSpec {
+func ensureBinsInstallerPodSpec(driver *crutils.IBMObjectCSI) corev1.PodSpec {
 	privileged := true
 	runAsUser := int64(0)
 
@@ -59,14 +59,14 @@ func ensureInstallerPodSpec(driver *crutils.IBMObjectCSI) corev1.PodSpec {
 		InitContainers: []corev1.Container{
 			{
 				Name:  constants.CSIInstallerContainer,
-				Image: driver.GetCSIInstallerImage(),
+				Image: driver.GetCSIBinsInstallerImage(),
 				Command: []string{
 					"/bin/bash",
 					"-c",
 					"/home/cos-mounters/cos-csi-installer/cos-csi-install.sh && /home/cos-mounters/copy-cos-mounter-bins.sh",
 				},
-				ImagePullPolicy: getInstallerImagePullPolicy(driver),
-				Resources:       getInstallerResourceRequests(driver),
+				ImagePullPolicy: getBinsInstallerImagePullPolicy(driver),
+				Resources:       getBinsInstallerResourceRequests(driver),
 				SecurityContext: &corev1.SecurityContext{
 					Privileged: &privileged,
 					RunAsUser:  &runAsUser,
@@ -97,23 +97,23 @@ func ensureInstallerPodSpec(driver *crutils.IBMObjectCSI) corev1.PodSpec {
 				},
 			},
 		},
-		Tolerations: getInstallerTolerations(driver),
-		Affinity:    buildInstallerAffinity(driver),
+		Tolerations: getBinsInstallerTolerations(driver),
+		Affinity:    buildBinsInstallerAffinity(driver),
 	}
 
 	return spec
 }
 
-// buildInstallerAffinity mirrors buildNodeAffinity in csi_node.go.
+// buildBinsInstallerAffinity mirrors buildNodeAffinity in csi_node.go.
 // When restrictNodeServerScheduling is true it injects the cos.csi.ibm.io/csi-node=true
 // label requirement so the installer only runs on nodes that also run the node plugin.
-func buildInstallerAffinity(driver *crutils.IBMObjectCSI) *corev1.Affinity {
-	if driver.Spec.Installer == nil {
+func buildBinsInstallerAffinity(driver *crutils.IBMObjectCSI) *corev1.Affinity {
+	if driver.Spec.BinsInstaller == nil {
 		return nil
 	}
 
-	affinity := driver.Spec.Installer.Affinity
-	restrictScheduling := driver.Spec.Installer.RestrictNodeServerScheduling
+	affinity := driver.Spec.BinsInstaller.Affinity
+	restrictScheduling := driver.Spec.BinsInstaller.RestrictNodeServerScheduling
 
 	if restrictScheduling == "true" {
 		if affinity != nil && affinity.NodeAffinity != nil &&
@@ -144,23 +144,23 @@ func buildInstallerAffinity(driver *crutils.IBMObjectCSI) *corev1.Affinity {
 	return affinity
 }
 
-func getInstallerTolerations(driver *crutils.IBMObjectCSI) []corev1.Toleration {
-	if driver.Spec.Installer != nil && len(driver.Spec.Installer.Tolerations) > 0 {
-		return driver.Spec.Installer.Tolerations
+func getBinsInstallerTolerations(driver *crutils.IBMObjectCSI) []corev1.Toleration {
+	if driver.Spec.BinsInstaller != nil && len(driver.Spec.BinsInstaller.Tolerations) > 0 {
+		return driver.Spec.BinsInstaller.Tolerations
 	}
 	// default: tolerate everything — installer must run on all nodes
 	return []corev1.Toleration{{Operator: corev1.TolerationOpExists}}
 }
 
-func getInstallerImagePullPolicy(driver *crutils.IBMObjectCSI) corev1.PullPolicy {
-	if driver.Spec.Installer != nil && driver.Spec.Installer.ImagePullPolicy != "" {
-		return driver.Spec.Installer.ImagePullPolicy
+func getBinsInstallerImagePullPolicy(driver *crutils.IBMObjectCSI) corev1.PullPolicy {
+	if driver.Spec.BinsInstaller != nil && driver.Spec.BinsInstaller.ImagePullPolicy != "" {
+		return driver.Spec.BinsInstaller.ImagePullPolicy
 	}
 	return corev1.PullIfNotPresent
 }
 
-func getInstallerResourceRequests(driver *crutils.IBMObjectCSI) corev1.ResourceRequirements {
-	resources := driver.GetCSIInstallerResourceRequests()
+func getBinsInstallerResourceRequests(driver *crutils.IBMObjectCSI) corev1.ResourceRequirements {
+	resources := driver.GetCSIBinsInstallerResourceRequests()
 
 	var requests, limits corev1.ResourceList
 

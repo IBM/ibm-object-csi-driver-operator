@@ -154,7 +154,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return reconcile.Result{}, err
 		}
 
-		if err := r.deleteInstallerDaemonSet(instance); err != nil {
+		if err := r.deleteBinsInstallerDaemonSet(instance); err != nil {
 			return reconcile.Result{}, err
 		}
 
@@ -214,7 +214,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return reconcile.Result{}, err
 	}
 
-	if err := r.reconcileInstallerDaemonSet(instance); err != nil {
+	if err := r.reconcileBinsInstallerDaemonSet(instance); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -553,44 +553,44 @@ func (r *IBMObjectCSIReconciler) deleteCSIDriver(instance *crutils.IBMObjectCSI)
 	return nil
 }
 
-func (r *IBMObjectCSIReconciler) reconcileInstallerDaemonSet(instance *crutils.IBMObjectCSI) error {
+func (r *IBMObjectCSIReconciler) reconcileBinsInstallerDaemonSet(instance *crutils.IBMObjectCSI) error {
 	logger := csiLog.WithName("reconcileInstallerDaemonSet")
 
-	if instance.Spec.Installer == nil {
-		logger.Info("installer spec not set, skipping installer DaemonSet reconcile")
+	if instance.Spec.BinsInstaller == nil {
+		logger.Info("bins-installer spec not set, skipping bins-installer DaemonSet reconcile")
 		return nil
 	}
 
-	desired := clustersyncer.NewCSIInstallerDaemonSet(instance)
+	desired := clustersyncer.NewCSIBinsInstallerDaemonSet(instance)
 	found := &appsv1.DaemonSet{}
 	err := r.Get(context.TODO(), types.NamespacedName{
 		Name:      constants.CSIInstallerName,
 		Namespace: constants.CSIInstallerNamespace,
 	}, found)
 	if err != nil && errors.IsNotFound(err) {
-		logger.Info("creating installer DaemonSet", "Namespace", constants.CSIInstallerNamespace, "Name", constants.CSIInstallerName)
+		logger.Info("creating bins-installer DaemonSet", "Namespace", constants.CSIInstallerNamespace, "Name", constants.CSIInstallerName)
 		if err := r.Create(context.TODO(), desired); err != nil {
-			logger.Error(err, "failed to create installer DaemonSet")
+			logger.Error(err, "failed to create bins-installer DaemonSet")
 			return err
 		}
 		return nil
 	} else if err != nil {
-		logger.Error(err, "failed to get installer DaemonSet")
+		logger.Error(err, "failed to get bins-installer DaemonSet")
 		return err
 	}
 
 	// update the existing DaemonSet with the desired spec
 	found.Spec = desired.Spec
 	found.Labels = desired.Labels
-	logger.Info("updating installer DaemonSet", "Namespace", constants.CSIInstallerNamespace, "Name", constants.CSIInstallerName)
+	logger.Info("updating bins-installer DaemonSet", "Namespace", constants.CSIInstallerNamespace, "Name", constants.CSIInstallerName)
 	if err := r.Update(context.TODO(), found); err != nil {
-		logger.Error(err, "failed to update installer DaemonSet")
+		logger.Error(err, "failed to update bins-installer DaemonSet")
 		return err
 	}
 	return nil
 }
 
-func (r *IBMObjectCSIReconciler) deleteInstallerDaemonSet(instance *crutils.IBMObjectCSI) error {
+func (r *IBMObjectCSIReconciler) deleteBinsInstallerDaemonSet(instance *crutils.IBMObjectCSI) error {
 	logger := csiLog.WithName("deleteInstallerDaemonSet")
 
 	found := &appsv1.DaemonSet{}
@@ -602,13 +602,13 @@ func (r *IBMObjectCSIReconciler) deleteInstallerDaemonSet(instance *crutils.IBMO
 		if errors.IsNotFound(err) {
 			return nil
 		}
-		logger.Error(err, "failed to get installer DaemonSet")
+		logger.Error(err, "failed to get bins-installer DaemonSet")
 		return err
 	}
 
-	logger.Info("deleting installer DaemonSet", "Name", constants.CSIInstallerName)
+	logger.Info("deleting bins-installer DaemonSet", "Name", constants.CSIInstallerName)
 	if err := r.Delete(context.TODO(), found); err != nil {
-		logger.Error(err, "failed to delete installer DaemonSet")
+		logger.Error(err, "failed to delete bins-installer DaemonSet")
 		return err
 	}
 	return nil
@@ -762,8 +762,8 @@ func checkIfupdateCRFromConfigMapRequired(instance *objectdriverv1alpha1.IBMObje
 			instance.Spec.Node.RestrictNodeServerScheduling = val
 			crUpdateRequired = true
 		}
-		if instance.Spec.Installer != nil && instance.Spec.Installer.RestrictNodeServerScheduling != val {
-			instance.Spec.Installer.RestrictNodeServerScheduling = val
+		if instance.Spec.BinsInstaller != nil && instance.Spec.BinsInstaller.RestrictNodeServerScheduling != val {
+			instance.Spec.BinsInstaller.RestrictNodeServerScheduling = val
 			crUpdateRequired = true
 		}
 	}

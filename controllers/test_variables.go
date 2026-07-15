@@ -51,7 +51,7 @@ var (
 )
 
 var (
-	installerSpec = &v1alpha1.IBMObjectCSIInstallerSpec{
+	installerSpec = &v1alpha1.IBMObjectCSIBinsInstallerSpec{
 		Repository:      "icr.io/ibm/ibm-object-csi-driver-bins",
 		Tag:             "v1.0.2-alpha",
 		ImagePullPolicy: corev1.PullIfNotPresent,
