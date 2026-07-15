@@ -154,6 +154,10 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return reconcile.Result{}, err
 		}
 
+		if err := r.deleteInstallerDaemonSet(instance); err != nil {
+			return reconcile.Result{}, err
+		}
+
 		if err := r.ControllerHelper.RemoveFinalizer(
 			instance, instance.Unwrap()); err != nil {
 			return reconcile.Result{}, err
@@ -207,6 +211,10 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	csiNodeSyncer := clustersyncer.NewCSINodeSyncer(r.Client, instance)
 	if err := syncer.Sync(ctx, csiNodeSyncer, r.Recorder); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if err := r.reconcileInstallerDaemonSet(instance); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -545,6 +553,67 @@ func (r *IBMObjectCSIReconciler) deleteCSIDriver(instance *crutils.IBMObjectCSI)
 	return nil
 }
 
+func (r *IBMObjectCSIReconciler) reconcileInstallerDaemonSet(instance *crutils.IBMObjectCSI) error {
+	logger := csiLog.WithName("reconcileInstallerDaemonSet")
+
+	if instance.Spec.Installer == nil {
+		logger.Info("installer spec not set, skipping installer DaemonSet reconcile")
+		return nil
+	}
+
+	desired := clustersyncer.NewCSIInstallerDaemonSet(instance)
+	found := &appsv1.DaemonSet{}
+	err := r.Get(context.TODO(), types.NamespacedName{
+		Name:      constants.CSIInstallerName,
+		Namespace: constants.CSIInstallerNamespace,
+	}, found)
+	if err != nil && errors.IsNotFound(err) {
+		logger.Info("creating installer DaemonSet", "Namespace", constants.CSIInstallerNamespace, "Name", constants.CSIInstallerName)
+		if err := r.Create(context.TODO(), desired); err != nil {
+			logger.Error(err, "failed to create installer DaemonSet")
+			return err
+		}
+		return nil
+	} else if err != nil {
+		logger.Error(err, "failed to get installer DaemonSet")
+		return err
+	}
+
+	// update the existing DaemonSet with the desired spec
+	found.Spec = desired.Spec
+	found.Labels = desired.Labels
+	logger.Info("updating installer DaemonSet", "Namespace", constants.CSIInstallerNamespace, "Name", constants.CSIInstallerName)
+	if err := r.Update(context.TODO(), found); err != nil {
+		logger.Error(err, "failed to update installer DaemonSet")
+		return err
+	}
+	return nil
+}
+
+func (r *IBMObjectCSIReconciler) deleteInstallerDaemonSet(instance *crutils.IBMObjectCSI) error {
+	logger := csiLog.WithName("deleteInstallerDaemonSet")
+
+	found := &appsv1.DaemonSet{}
+	err := r.Get(context.TODO(), types.NamespacedName{
+		Name:      constants.CSIInstallerName,
+		Namespace: constants.CSIInstallerNamespace,
+	}, found)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		logger.Error(err, "failed to get installer DaemonSet")
+		return err
+	}
+
+	logger.Info("deleting installer DaemonSet", "Name", constants.CSIInstallerName)
+	if err := r.Delete(context.TODO(), found); err != nil {
+		logger.Error(err, "failed to delete installer DaemonSet")
+		return err
+	}
+	return nil
+}
+
 func (r *IBMObjectCSIReconciler) deleteClusterRoleBindings(instance *crutils.IBMObjectCSI) error {
 	clusterRoleBindings := r.getClusterRoleBindings(instance)
 	return r.ControllerHelper.DeleteClusterRoleBindings(clusterRoleBindings)
@@ -691,6 +760,10 @@ func checkIfupdateCRFromConfigMapRequired(instance *objectdriverv1alpha1.IBMObje
 	if val, ok := cm.Data[constants.RestrictNodeServerSchedulingCMKey]; ok {
 		if instance.Spec.Node.RestrictNodeServerScheduling != val {
 			instance.Spec.Node.RestrictNodeServerScheduling = val
+			crUpdateRequired = true
+		}
+		if instance.Spec.Installer != nil && instance.Spec.Installer.RestrictNodeServerScheduling != val {
+			instance.Spec.Installer.RestrictNodeServerScheduling = val
 			crUpdateRequired = true
 		}
 	}

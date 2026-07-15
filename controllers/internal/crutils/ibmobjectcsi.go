@@ -128,3 +128,32 @@ func (c *IBMObjectCSI) GetCSIControllerResourceRequests() *objectdriverv1alpha1.
 func (c *IBMObjectCSI) GetCSINodeResourceRequests() *objectdriverv1alpha1.ResourcesSpec {
 	return &c.Spec.Node.Resources
 }
+
+// GetCSIInstallerImage ...
+func (c *IBMObjectCSI) GetCSIInstallerImage() string {
+	if c.Spec.Installer == nil {
+		return ""
+	}
+	if c.Spec.Installer.Tag == "" {
+		return c.Spec.Installer.Repository
+	}
+	return c.Spec.Installer.Repository + ":" + c.Spec.Installer.Tag
+}
+
+// GetCSIInstallerSelectorLabels ...
+func (c *IBMObjectCSI) GetCSIInstallerSelectorLabels() labels.Set {
+	return common.GetSelectorLabels(constants.CSIInstaller)
+}
+
+// GetCSIInstallerPodLabels ...
+func (c *IBMObjectCSI) GetCSIInstallerPodLabels() labels.Set {
+	return labels.Merge(c.GetLabels(), c.GetCSIInstallerSelectorLabels())
+}
+
+// GetCSIInstallerResourceRequests ...
+func (c *IBMObjectCSI) GetCSIInstallerResourceRequests() *objectdriverv1alpha1.ResourcesSpec {
+	if c.Spec.Installer == nil {
+		return &objectdriverv1alpha1.ResourcesSpec{}
+	}
+	return &c.Spec.Installer.Resources
+}
