@@ -6,6 +6,8 @@ import (
 
 	"github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -46,6 +48,32 @@ var (
 	testNode1               = "test-node-1"
 	testNode2               = "test-node-2"
 	testNode3               = "test-node-3"
+)
+
+var (
+	installerSpec = &v1alpha1.IBMObjectCSIInstallerSpec{
+		Repository:      "icr.io/ibm/ibm-object-csi-driver-bins",
+		Tag:             "v1.0.2-alpha",
+		ImagePullPolicy: corev1.PullIfNotPresent,
+		Resources: v1alpha1.ResourcesSpec{
+			Limits: v1alpha1.ReqLimits{
+				CPU:    "40m",
+				Memory: "200Mi",
+			},
+			Requests: v1alpha1.ReqLimits{
+				CPU:    "20m",
+				Memory: "40Mi",
+			},
+		},
+		RestrictNodeServerScheduling: "false",
+	}
+
+	csiInstaller = &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.CSIInstallerName,
+			Namespace: constants.CSIInstallerNamespace,
+		},
+	}
 )
 
 var testNodeServerPodLogs = `E0319 05:32:00.429871       1 nodeserver.go:245] NodeGetVolumeStats: error occurred while getting volume stats map[Error:transport endpoint is not connected VolumeId:test-pv-1]`

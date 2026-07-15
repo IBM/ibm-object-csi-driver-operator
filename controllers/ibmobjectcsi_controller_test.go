@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -30,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -38,6 +40,27 @@ var (
 	reclaimPolicyRetain  = corev1.PersistentVolumeReclaimRetain
 	reclaimPolicyDelete  = corev1.PersistentVolumeReclaimDelete
 	secrets              = crutils.GetImagePullSecrets(ibmObjectCSICR.Spec.ImagePullSecrets)
+
+	ibmObjectCSICRWithInstaller = &v1alpha1.IBMObjectCSI{
+		ObjectMeta: ibmObjectCSICR.ObjectMeta,
+		Spec: v1alpha1.IBMObjectCSISpec{
+			Controller:       ibmObjectCSICR.Spec.Controller,
+			Node:             ibmObjectCSICR.Spec.Node,
+			Sidecars:         ibmObjectCSICR.Spec.Sidecars,
+			ImagePullSecrets: ibmObjectCSICR.Spec.ImagePullSecrets,
+			HealthPort:       ibmObjectCSICR.Spec.HealthPort,
+			Installer:        installerSpec,
+		},
+	}
+
+	ibmObjectCSICRWithDeletionTSAndInstaller = &v1alpha1.IBMObjectCSI{
+		ObjectMeta: ibmObjectCSICRWithDeletionTS.ObjectMeta,
+		Spec: v1alpha1.IBMObjectCSISpec{
+			S3Provider:       constants.S3ProviderAWS,
+			S3ProviderRegion: "us-east-2",
+			Installer:        installerSpec,
+		},
+	}
 
 	operatorDeploymnet = &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -999,6 +1022,169 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			},
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(UpdateError),
+		},
+		{
+			testCaseName: "Positive: Successful reconcile with installer spec set — creates installer DaemonSet",
+			objects: []runtime.Object{
+				operatorDeploymnet,
+				ibmObjectCSICRWithInstaller,
+				addonConfigMap,
+				csiNode,
+				controllerDeployment,
+				controllerPod,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				statusSubRes := ibmObjectCSICRWithInstaller
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).WithStatusSubresource(statusSubRes).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  nil,
+		},
+		{
+			testCaseName: "Positive: Reconcile with installer spec set — updates existing installer DaemonSet",
+			objects: []runtime.Object{
+				operatorDeploymnet,
+				ibmObjectCSICRWithInstaller,
+				addonConfigMap,
+				csiNode,
+				controllerDeployment,
+				controllerPod,
+				csiInstaller,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				statusSubRes := ibmObjectCSICRWithInstaller
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).WithStatusSubresource(statusSubRes).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  nil,
+		},
+		{
+			testCaseName: "Negative: Failed to create installer DaemonSet",
+			objects: []runtime.Object{
+				operatorDeploymnet,
+				ibmObjectCSICRWithInstaller,
+				addonConfigMap,
+				csiNode,
+				controllerDeployment,
+				controllerPod,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).WithInterceptorFuncs(interceptor.Funcs{
+					Create: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.CreateOption) error {
+						if _, ok := obj.(*appsv1.DaemonSet); ok {
+							return errors.New(CreateError)
+						}
+						return c.Create(ctx, obj, opts...)
+					},
+				}).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(CreateError),
+		},
+		{
+			testCaseName: "Negative: Failed to get installer DaemonSet",
+			objects: []runtime.Object{
+				operatorDeploymnet,
+				ibmObjectCSICRWithInstaller,
+				addonConfigMap,
+				csiNode,
+				controllerDeployment,
+				controllerPod,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).WithInterceptorFuncs(interceptor.Funcs{
+					Get: func(ctx context.Context, c client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+						if _, ok := obj.(*appsv1.DaemonSet); ok && key.Namespace == constants.CSIInstallerNamespace {
+							return errors.New(GetError)
+						}
+						return c.Get(ctx, key, obj, opts...)
+					},
+				}).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(GetError),
+		},
+		{
+			testCaseName: "Negative: Failed to update installer DaemonSet",
+			objects: []runtime.Object{
+				operatorDeploymnet,
+				ibmObjectCSICRWithInstaller,
+				addonConfigMap,
+				csiNode,
+				controllerDeployment,
+				controllerPod,
+				csiInstaller,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).WithInterceptorFuncs(interceptor.Funcs{
+					Update: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.UpdateOption) error {
+						if ds, ok := obj.(*appsv1.DaemonSet); ok && ds.Namespace == constants.CSIInstallerNamespace {
+							return errors.New(UpdateError)
+						}
+						return c.Update(ctx, obj, opts...)
+					},
+				}).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(UpdateError),
+		},
+		{
+			testCaseName: "Negative: IBMObjectCSI CR deleted — failed to get installer DaemonSet",
+			objects: []runtime.Object{
+				operatorDeploymnet,
+				ibmObjectCSICRWithDeletionTSAndInstaller,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).WithInterceptorFuncs(interceptor.Funcs{
+					Get: func(ctx context.Context, c client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+						if _, ok := obj.(*appsv1.DaemonSet); ok && key.Namespace == constants.CSIInstallerNamespace {
+							return errors.New(GetError)
+						}
+						return c.Get(ctx, key, obj, opts...)
+					},
+				}).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(GetError),
+		},
+		{
+			testCaseName: "Positive: IBMObjectCSI CR deleted with installer DaemonSet — delete succeeds",
+			objects: []runtime.Object{
+				operatorDeploymnet,
+				ibmObjectCSICRWithDeletionTSAndInstaller,
+				csiInstaller,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  nil,
+		},
+		{
+			testCaseName: "Negative: IBMObjectCSI CR deleted — failed to delete installer DaemonSet",
+			objects: []runtime.Object{
+				operatorDeploymnet,
+				ibmObjectCSICRWithDeletionTSAndInstaller,
+				csiInstaller,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fakedelete.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(DeleteError),
+		},
+		{
+			testCaseName: "Positive: ConfigMap sync updates installer spec restrictNodeServerScheduling",
+			objects: []runtime.Object{
+				operatorDeploymnet,
+				ibmObjectCSICRWithInstaller,
+				addonConfigMapWithUpdatedData,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  nil,
 		},
 	}
 
