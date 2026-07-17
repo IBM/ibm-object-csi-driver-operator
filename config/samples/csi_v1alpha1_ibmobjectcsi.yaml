@@ -74,7 +74,7 @@ spec:
   sidecars:
   - name: csi-node-driver-registrar
     repository: k8s.gcr.io/sig-storage/csi-node-driver-registrar
-    tag: "v2.17.0"
+    tag: "v2.16.0"
     imagePullPolicy: IfNotPresent
     resources:
       limits:
