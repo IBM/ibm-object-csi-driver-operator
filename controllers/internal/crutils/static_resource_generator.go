@@ -261,7 +261,6 @@ func (c *IBMObjectCSI) GenerateS3fsSC(scInputParams SCInputParams) *storagev1.St
 	mountOptions := []string{
 		"multipart_size=52",
 		"multireq_max=20",
-		"max_dirty_data=5120",
 		"parallel_count=20",
 		"max_stat_cache_size=100000",
 		"retries=5",
