@@ -265,6 +265,7 @@ func (c *IBMObjectCSI) GenerateS3fsSC(scInputParams SCInputParams) *storagev1.St
 		"max_stat_cache_size=100000",
 		"retries=5",
 		"kernel_cache",
+		"max_background=1000",
 	}
 
 	return &storagev1.StorageClass{
