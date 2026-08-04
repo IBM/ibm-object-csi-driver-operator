@@ -53,6 +53,7 @@ mountOptions:
     - "max_stat_cache_size=100000"
     - "retries=5"
     - "kernel_cache"
+    - "max_background=1000"
 parameters:
   mounter: <"s3fs" or "rclone">
   client: "awss3"
