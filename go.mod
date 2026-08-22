@@ -10,7 +10,7 @@ require (
 	github.com/onsi/gomega v1.38.0
 	github.com/openshift/client-go v0.0.0-20250811163556-6193816ae379
 	github.com/presslabs/controller-util v0.16.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.12.1
 	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b
 	k8s.io/api v0.33.4
 	k8s.io/apimachinery v0.33.4
@@ -58,6 +58,7 @@ require (
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/oauth2 v0.27.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
