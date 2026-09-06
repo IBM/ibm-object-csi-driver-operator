@@ -3,11 +3,11 @@ package crutils
 
 import (
 	"fmt"
+	"strings"
 
 	objectdriverv1alpha1 "github.com/IBM/ibm-object-csi-driver-operator/api/v1alpha1"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/common"
-	csiversion "github.com/IBM/ibm-object-csi-driver-operator/version"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
@@ -28,16 +28,28 @@ func (c *IBMObjectCSI) Unwrap() *objectdriverv1alpha1.IBMObjectCSI {
 	return c.IBMObjectCSI
 }
 
+// GetVersion returns the release version from CR annotation
+func (c *IBMObjectCSI) GetVersion() string {
+	if c.Annotations != nil {
+		if release, ok := c.Annotations["release"]; ok && release != "" {
+			return strings.TrimPrefix(release, "v")
+		}
+	}
+	return "unknown"
+}
+
 // GetLabels returns all the labels to be set on all resources
 func (c *IBMObjectCSI) GetLabels() labels.Set {
+	version := c.GetVersion()
+
 	labels := labels.Set{
 		"app.kubernetes.io/name":       constants.CSIDriverName,
 		"app.kubernetes.io/instance":   c.Name,
-		"app.kubernetes.io/version":    csiversion.Version,
+		"app.kubernetes.io/version":    version,
 		"app.kubernetes.io/part-of":    constants.CSIDriverName,
 		"app.kubernetes.io/managed-by": constants.CSIOperatorName,
 		"product":                      constants.CSIDriverName,
-		"release":                      fmt.Sprintf("v%s", csiversion.Version),
+		"release":                      fmt.Sprintf("v%s", version),
 	}
 
 	if c.Labels != nil {
@@ -53,10 +65,12 @@ func (c *IBMObjectCSI) GetLabels() labels.Set {
 
 // GetAnnotations returns all the annotations to be set on all resources
 func (c *IBMObjectCSI) GetAnnotations() labels.Set {
+	version := c.GetVersion()
+
 	labels := labels.Set{
 		"productID":      constants.CSIDriverName,
 		"productName":    constants.CSIDriverName,
-		"productVersion": csiversion.Version,
+		"productVersion": version,
 	}
 
 	if c.Annotations != nil {

@@ -76,7 +76,7 @@ const (
 	CSINodeSCCClusterRole                 = "node-scc-clusterrole"
 	CSINodeSCCClusterRoleBinding          = "node-scc-clusterrolebinding"
 	CSINodePriorityClassName              = "system-node-critical"
-	CSIControllerPriorityClassName        = "system-cluster-critical"
+	CSIControllerPriorityClassName        = "ibm-app-cluster-critical"
 
 	ParamsConfigMap          = "managed-addon-ibm-object-csi-driver"
 	ParamsConfigMapNamespace = "kube-system"
@@ -114,11 +114,15 @@ const (
 
 	MaxVolumesPerNodeEnv = "MAX_VOLUMES_PER_NODE"
 	//ConfigMap keys
-	MaxVolumesPerNodeCMKey       = "maxVolumesPerNode"
-	NodeServerCPURequestCMKey    = "nodeServerCPURequest"
-	NodeServerMemoryRequestCMKey = "nodeServerMemoryRequest"
-	NodeServerCPULimitCMKey      = "nodeServerCPULimit"
-	NodeServerMemoryLimitCMKey   = "nodeServerMemoryLimit"
+	MaxVolumesPerNodeCMKey            = "maxVolumesPerNode"
+	NodeServerCPURequestCMKey         = "nodeServerCPURequest"
+	NodeServerMemoryRequestCMKey      = "nodeServerMemoryRequest"
+	NodeServerCPULimitCMKey           = "nodeServerCPULimit"
+	NodeServerMemoryLimitCMKey        = "nodeServerMemoryLimit"
+	RestrictNodeServerSchedulingCMKey = "restrictNodeServerScheduling"
+
+	CSIAddonNodeLabelKey   = "cos.csi.ibm.io/csi-node"
+	CSIAddonNodeLabelValue = "true"
 )
 
 type FinalizerOps int
@@ -127,6 +131,24 @@ const (
 	AddFinalizer FinalizerOps = iota + 1
 	RemoveFinalizer
 )
+
+// RegionToGeography maps IBM Cloud regions to their geography (us/eu/ap) for cross-regional endpoints and locationConstraints
+var RegionToGeography = map[string]string{
+	"us-south": "us",
+	"us-east":  "us",
+	"br-sao":   "us",
+	"ca-tor":   "us",
+	"ca-mon":   "us",
+	"eu-gb":    "eu",
+	"eu-de":    "eu",
+	"eu-es":    "eu",
+	"eu-fr2":   "eu",
+	"au-syd":   "ap",
+	"jp-tok":   "ap",
+	"jp-osa":   "ap",
+	"in-che":   "ap",
+	"in-mum":   "ap",
+}
 
 var CommonCSIResourceLabels = map[string]string{
 	"app.kubernetes.io/part-of":    CSIDriverName,

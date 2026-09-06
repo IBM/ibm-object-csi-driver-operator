@@ -105,28 +105,29 @@ var (
 						Operator: corev1.TolerationOpExists,
 					},
 				},
-				Resources:         resources,
-				MaxVolumesPerNode: "0",
+				Resources:                    resources,
+				MaxVolumesPerNode:            "0",
+				RestrictNodeServerScheduling: "false",
 			},
 			Sidecars: []v1alpha1.CSISidecar{
 				{
 					Name:            constants.CSINodeDriverRegistrar,
 					Repository:      "k8s.gcr.io/sig-storage/csi-node-driver-registrar",
-					Tag:             "v2.12.0",
+					Tag:             "v2.17.0",
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Resources:       resources,
 				},
 				{
 					Name:            constants.CSIProvisioner,
 					Repository:      "k8s.gcr.io/sig-storage/csi-provisioner",
-					Tag:             "v5.1.0",
+					Tag:             "v6.2.0",
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Resources:       resources,
 				},
 				{
 					Name:            constants.LivenessProbe,
 					Repository:      "k8s.gcr.io/sig-storage/livenessprobe",
-					Tag:             "v2.14.0",
+					Tag:             "v2.18.0",
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Resources:       resources,
 				},
@@ -374,7 +375,8 @@ var (
 			Namespace: constants.ParamsConfigMapNamespace,
 		},
 		Data: map[string]string{
-			"maxVolumesPerNode": "0",
+			"maxVolumesPerNode":            "0",
+			"restrictNodeServerScheduling": "false",
 		},
 	}
 
@@ -384,11 +386,12 @@ var (
 			Namespace: constants.ParamsConfigMapNamespace,
 		},
 		Data: map[string]string{
-			"maxVolumesPerNode":    "10",
-			"CSINodeCPURequest":    "5m",
-			"CSINodeMemoryRequest": "5Mi",
-			"CSINodeCPULimit":      "50m",
-			"CSINodeMemoryLimit":   "50Mi",
+			"maxVolumesPerNode":            "10",
+			"CSINodeCPURequest":            "5m",
+			"CSINodeMemoryRequest":         "5Mi",
+			"CSINodeCPULimit":              "50m",
+			"CSINodeMemoryLimit":           "50Mi",
+			"restrictNodeServerScheduling": "true",
 		},
 	}
 
@@ -457,7 +460,6 @@ var (
 		ReclaimPolicy: &reclaimPolicyDelete,
 		MountOptions: []string{
 			"multipart_size=62",
-			"max_dirty_data=51200",
 			"parallel_count=8",
 			"max_stat_cache_size=100000",
 			"retries=5",
@@ -482,7 +484,6 @@ var (
 		ReclaimPolicy: &reclaimPolicyRetain,
 		MountOptions: []string{
 			"multipart_size=62",
-			"max_dirty_data=51200",
 			"parallel_count=8",
 			"max_stat_cache_size=100000",
 			"retries=5",
@@ -1056,7 +1057,9 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 
 			if testcase.expectedErr != nil {
 				assert.Error(t, err)
-				assert.Contains(t, err.Error(), testcase.expectedErr.Error())
+				if err != nil {
+					assert.Contains(t, err.Error(), testcase.expectedErr.Error())
+				}
 			} else {
 				assert.NoError(t, err)
 			}

@@ -49,11 +49,11 @@ metadata:
 provisioner: cos.s3.csi.ibm.io
 mountOptions:
     - "multipart_size=62"
-    - "max_dirty_data=51200"
     - "parallel_count=8"
     - "max_stat_cache_size=100000"
     - "retries=5"
     - "kernel_cache"
+    - "max_background=1000"
 parameters:
   mounter: <"s3fs" or "rclone">
   client: "awss3"

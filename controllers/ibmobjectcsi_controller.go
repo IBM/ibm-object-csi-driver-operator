@@ -29,7 +29,6 @@ import (
 	crutils "github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/crutils"
 	clustersyncer "github.com/IBM/ibm-object-csi-driver-operator/controllers/syncer"
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/util/common"
-	"github.com/IBM/ibm-object-csi-driver-operator/version"
 	"github.com/go-logr/logr"
 	"github.com/presslabs/controller-util/pkg/syncer"
 	appsv1 "k8s.io/api/apps/v1"
@@ -304,7 +303,7 @@ func (r *IBMObjectCSIReconciler) updateStatus(instance *crutils.IBMObjectCSI, or
 		phase = objectdriverv1alpha1.DriverPhaseCreating
 	}
 	instance.Status.Phase = phase
-	instance.Status.Version = version.DriverVersion
+	instance.Status.Version = instance.GetVersion()
 
 	if !reflect.DeepEqual(originalStatus, instance.Status) {
 		logger.Info("updating IBMObjectCSI status", "name", instance.Name, "from", originalStatus, "to", instance.Status)
@@ -570,27 +569,50 @@ func (r *IBMObjectCSIReconciler) getClusterRoleBindings(instance *crutils.IBMObj
 
 func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCSI) []*storagev1.StorageClass {
 	var requiredRegion string
-
 	s3Provider := r.ControllerHelper.GetS3Provider()
-
 	k8sSCs := []*storagev1.StorageClass{}
 	cosSCs := []string{}
-
 	reclaimPolicys := []corev1.PersistentVolumeReclaimPolicy{
 		corev1.PersistentVolumeReclaimRetain,
 		corev1.PersistentVolumeReclaimDelete}
-
 	if len(s3Provider) == 0 || s3Provider == constants.S3ProviderIBM {
-		r.ControllerHelper.SetIBMCosEP()
 		cosSCs = r.ControllerHelper.GetIBMCosSC()
 		requiredRegion = r.ControllerHelper.GetRegion()
+
+		r.ControllerHelper.SetIBMCosCrossRegionalEP()
+		crossRegCosEP := r.ControllerHelper.GetCosEP()
+		if crossRegCosEP != "" {
+			for _, sc := range cosSCs {
+				for _, rp := range reclaimPolicys {
+					rcloneK8sSc := instance.GenerateRcloneSC(crutils.SCInputParams{
+						ReclaimPolicy:   rp,
+						S3Provider:      s3Provider,
+						Region:          requiredRegion,
+						COSEndpoint:     crossRegCosEP,
+						COSStorageClass: sc,
+						IsCrossRegional: true,
+					})
+					k8sSCs = append(k8sSCs, rcloneK8sSc)
+					s3fsK8sSc := instance.GenerateS3fsSC(crutils.SCInputParams{
+						ReclaimPolicy:   rp,
+						S3Provider:      s3Provider,
+						Region:          requiredRegion,
+						COSEndpoint:     crossRegCosEP,
+						COSStorageClass: sc,
+						IsCrossRegional: true,
+					})
+					k8sSCs = append(k8sSCs, s3fsK8sSc)
+				}
+			}
+		}
+		// For regional storageclasses, set regional COS Endpoint
+		r.ControllerHelper.SetIBMCosEP()
 	} else {
 		r.ControllerHelper.SetS3ProviderEP()
 		cosSCs = append(cosSCs, "standard")
 		requiredRegion = r.ControllerHelper.S3ProviderRegion
 	}
 	cosEP := r.ControllerHelper.GetCosEP()
-
 	for _, sc := range cosSCs {
 		for _, rp := range reclaimPolicys {
 			rcloneK8sSc := instance.GenerateRcloneSC(crutils.SCInputParams{
@@ -601,7 +623,6 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
 				COSStorageClass: sc,
 			})
 			k8sSCs = append(k8sSCs, rcloneK8sSc)
-
 			s3fsK8sSc := instance.GenerateS3fsSC(crutils.SCInputParams{
 				ReclaimPolicy:   rp,
 				S3Provider:      s3Provider,
@@ -674,6 +695,13 @@ func checkIfupdateCRFromConfigMapRequired(instance *objectdriverv1alpha1.IBMObje
 	if val, ok := cm.Data[constants.MaxVolumesPerNodeCMKey]; ok {
 		if instance.Spec.Node.MaxVolumesPerNode != val {
 			instance.Spec.Node.MaxVolumesPerNode = val
+			crUpdateRequired = true
+		}
+	}
+
+	if val, ok := cm.Data[constants.RestrictNodeServerSchedulingCMKey]; ok {
+		if instance.Spec.Node.RestrictNodeServerScheduling != val {
+			instance.Spec.Node.RestrictNodeServerScheduling = val
 			crUpdateRequired = true
 		}
 	}

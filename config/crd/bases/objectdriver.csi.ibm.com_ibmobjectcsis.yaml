@@ -2006,6 +2006,8 @@ spec:
                     - limits
                     - requests
                     type: object
+                  restrictNodeServerScheduling:
+                    type: string
                   tag:
                     type: string
                   tolerations:
