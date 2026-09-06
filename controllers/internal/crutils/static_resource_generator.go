@@ -329,17 +329,12 @@ func (c *IBMObjectCSI) GenerateMountS3SC(scInputParams SCInputParams) *storagev1
 	}
 
 	mountOptions := []string{
-		"log-directory=/data/s3mount/logs",
-		"force-path-style",
 		"upload-checksums=off",
-		"allow-delete",
-		"allow-overwrite",
 		"read-part-size=16777216",
-		"write-part-size=16777216",
+		"write-part-size=33554432",
+		"max-threads=16",
 		"maximum-throughput-gbps=10",
 		"metadata-ttl=60",
-		"cache=/tmp/mounts3-cache",
-		"max-cache-size=256",
 	}
 
 	return &storagev1.StorageClass{
