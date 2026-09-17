@@ -212,6 +212,95 @@ func (ch *ControllerHelper) getClusterRole(cr *rbacv1.ClusterRole) (*rbacv1.Clus
 	return found, err
 }
 
+// ReconcileRole reconciles a namespaced Role: creates it if absent, patches rules if it exists.
+func (ch *ControllerHelper) ReconcileRole(roles []*rbacv1.Role) error {
+	logger := ch.Log.WithValues("Resource Type", "Role")
+	for _, role := range roles {
+		found := &rbacv1.Role{}
+		err := ch.Get(context.TODO(), types.NamespacedName{Name: role.GetName(), Namespace: role.GetNamespace()}, found)
+		if err != nil && k8sErr.IsNotFound(err) {
+			logger.Info("Creating a new Role", "Name", role.GetName(), "Namespace", role.GetNamespace())
+			if err = ch.Create(context.TODO(), role); err != nil {
+				return err
+			}
+		} else if err != nil {
+			logger.Error(err, "Failed to get Role", "Name", role.GetName())
+			return err
+		} else {
+			patch := client.MergeFrom(found.DeepCopy())
+			found.Rules = role.Rules
+			if err = ch.Patch(context.TODO(), found, patch); err != nil {
+				logger.Error(err, "Failed to patch Role", "Name", found.GetName())
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// DeleteRole deletes a namespaced Role if it exists.
+func (ch *ControllerHelper) DeleteRole(roles []*rbacv1.Role) error {
+	logger := ch.Log.WithName("DeleteRole")
+	for _, role := range roles {
+		found := &rbacv1.Role{}
+		err := ch.Get(context.TODO(), types.NamespacedName{Name: role.GetName(), Namespace: role.GetNamespace()}, found)
+		if err != nil && k8sErr.IsNotFound(err) {
+			continue
+		} else if err != nil {
+			logger.Error(err, "failed to get Role", "Name", role.GetName())
+			return err
+		}
+		logger.Info("deleting Role", "Name", role.GetName(), "Namespace", role.GetNamespace())
+		if err = ch.Delete(context.TODO(), found); err != nil {
+			logger.Error(err, "failed to delete Role", "Name", role.GetName())
+			return err
+		}
+	}
+	return nil
+}
+
+// ReconcileRoleBinding reconciles a namespaced RoleBinding: creates it if absent.
+func (ch *ControllerHelper) ReconcileRoleBinding(roleBindings []*rbacv1.RoleBinding) error {
+	logger := ch.Log.WithValues("Resource Type", "RoleBinding")
+	for _, rb := range roleBindings {
+		found := &rbacv1.RoleBinding{}
+		err := ch.Get(context.TODO(), types.NamespacedName{Name: rb.GetName(), Namespace: rb.GetNamespace()}, found)
+		if err != nil && k8sErr.IsNotFound(err) {
+			logger.Info("Creating a new RoleBinding", "Name", rb.GetName(), "Namespace", rb.GetNamespace())
+			if err = ch.Create(context.TODO(), rb); err != nil {
+				return err
+			}
+		} else if err != nil {
+			logger.Error(err, "Failed to get RoleBinding", "Name", rb.GetName())
+			return err
+		} else {
+			logger.Info("Skip reconcile: RoleBinding already exists", "Name", rb.GetName())
+		}
+	}
+	return nil
+}
+
+// DeleteRoleBinding deletes a namespaced RoleBinding if it exists.
+func (ch *ControllerHelper) DeleteRoleBinding(roleBindings []*rbacv1.RoleBinding) error {
+	logger := ch.Log.WithName("DeleteRoleBinding")
+	for _, rb := range roleBindings {
+		found := &rbacv1.RoleBinding{}
+		err := ch.Get(context.TODO(), types.NamespacedName{Name: rb.GetName(), Namespace: rb.GetNamespace()}, found)
+		if err != nil && k8sErr.IsNotFound(err) {
+			continue
+		} else if err != nil {
+			logger.Error(err, "failed to get RoleBinding", "Name", rb.GetName())
+			return err
+		}
+		logger.Info("deleting RoleBinding", "Name", rb.GetName(), "Namespace", rb.GetNamespace())
+		if err = ch.Delete(context.TODO(), found); err != nil {
+			logger.Error(err, "failed to delete RoleBinding", "Name", rb.GetName())
+			return err
+		}
+	}
+	return nil
+}
+
 // AddFinalizerIfNotPresent ...
 func (ch *ControllerHelper) AddFinalizerIfNotPresent(instance crutils.Instance,
 	unwrappedInstance client.Object) error {
