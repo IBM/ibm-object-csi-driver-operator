@@ -1078,10 +1078,11 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			client := testcase.clientFunc(testcase.objects)
 
 			ibmObjectCSIReconciler := &IBMObjectCSIReconciler{
-				Client: client,
-				Scheme: scheme,
+				Client:    client,
+				APIReader: client,
+				Scheme:    scheme,
 				// Recorder:         record.NewFakeRecorder(0),
-				ControllerHelper: common.NewControllerHelper(client, TestLog),
+				ControllerHelper: common.NewControllerHelper(client, client, TestLog),
 			}
 
 			res, err := ibmObjectCSIReconciler.Reconcile(TestCtx, ibmObjectCSIReconcileRequest)

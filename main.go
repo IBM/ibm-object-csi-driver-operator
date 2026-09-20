@@ -112,7 +112,7 @@ func main() {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
-	controllerHelper := common.NewControllerHelper(mgr.GetClient(), setupLog)
+	controllerHelper := common.NewControllerHelper(mgr.GetClient(), mgr.GetAPIReader(), setupLog)
 
 	// TODO: TIER Based SC Get cluster info
 	inConfig, err := rest.InClusterConfig()
@@ -137,6 +137,7 @@ func main() {
 
 	if err = (&controllers.IBMObjectCSIReconciler{
 		Client:           mgr.GetClient(),
+		APIReader:        mgr.GetAPIReader(),
 		Scheme:           mgr.GetScheme(),
 		ControllerHelper: controllerHelper,
 	}).SetupWithManager(mgr); err != nil {

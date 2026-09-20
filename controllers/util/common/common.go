@@ -30,6 +30,7 @@ import (
 // ControllerHelper ...
 type ControllerHelper struct {
 	client.Client
+	APIReader        client.Reader
 	Log              logr.Logger
 	Region           string
 	CosEP            string // Regional COS Endpoint
@@ -39,10 +40,11 @@ type ControllerHelper struct {
 }
 
 // NewControllerHelper ...
-func NewControllerHelper(client client.Client, logger logr.Logger) *ControllerHelper {
+func NewControllerHelper(c client.Client, apiReader client.Reader, logger logr.Logger) *ControllerHelper {
 	return &ControllerHelper{
-		Client: client,
-		Log:    logger,
+		Client:    c,
+		APIReader: apiReader,
+		Log:       logger,
 	}
 }
 
@@ -140,7 +142,7 @@ func (ch *ControllerHelper) ReconcileStorageClasses(storageclasses []*storagev1.
 
 func (ch *ControllerHelper) getClusterRoleBinding(crb *rbacv1.ClusterRoleBinding) (*rbacv1.ClusterRoleBinding, error) {
 	found := &rbacv1.ClusterRoleBinding{}
-	err := ch.Get(context.TODO(), types.NamespacedName{
+	err := ch.APIReader.Get(context.TODO(), types.NamespacedName{
 		Name:      crb.Name,
 		Namespace: crb.Namespace,
 	}, found)
@@ -205,7 +207,7 @@ func (ch *ControllerHelper) ReconcileClusterRole(clusterRoles []*rbacv1.ClusterR
 
 func (ch *ControllerHelper) getClusterRole(cr *rbacv1.ClusterRole) (*rbacv1.ClusterRole, error) {
 	found := &rbacv1.ClusterRole{}
-	err := ch.Get(context.TODO(), types.NamespacedName{
+	err := ch.APIReader.Get(context.TODO(), types.NamespacedName{
 		Name:      cr.GetName(),
 		Namespace: cr.GetNamespace(),
 	}, found)
@@ -217,7 +219,7 @@ func (ch *ControllerHelper) ReconcileRole(roles []*rbacv1.Role) error {
 	logger := ch.Log.WithValues("Resource Type", "Role")
 	for _, role := range roles {
 		found := &rbacv1.Role{}
-		err := ch.Get(context.TODO(), types.NamespacedName{Name: role.GetName(), Namespace: role.GetNamespace()}, found)
+		err := ch.APIReader.Get(context.TODO(), types.NamespacedName{Name: role.GetName(), Namespace: role.GetNamespace()}, found)
 		if err != nil && k8sErr.IsNotFound(err) {
 			logger.Info("Creating a new Role", "Name", role.GetName(), "Namespace", role.GetNamespace())
 			if err = ch.Create(context.TODO(), role); err != nil {
@@ -243,7 +245,7 @@ func (ch *ControllerHelper) DeleteRole(roles []*rbacv1.Role) error {
 	logger := ch.Log.WithName("DeleteRole")
 	for _, role := range roles {
 		found := &rbacv1.Role{}
-		err := ch.Get(context.TODO(), types.NamespacedName{Name: role.GetName(), Namespace: role.GetNamespace()}, found)
+		err := ch.APIReader.Get(context.TODO(), types.NamespacedName{Name: role.GetName(), Namespace: role.GetNamespace()}, found)
 		if err != nil && k8sErr.IsNotFound(err) {
 			continue
 		} else if err != nil {
@@ -264,7 +266,7 @@ func (ch *ControllerHelper) ReconcileRoleBinding(roleBindings []*rbacv1.RoleBind
 	logger := ch.Log.WithValues("Resource Type", "RoleBinding")
 	for _, rb := range roleBindings {
 		found := &rbacv1.RoleBinding{}
-		err := ch.Get(context.TODO(), types.NamespacedName{Name: rb.GetName(), Namespace: rb.GetNamespace()}, found)
+		err := ch.APIReader.Get(context.TODO(), types.NamespacedName{Name: rb.GetName(), Namespace: rb.GetNamespace()}, found)
 		if err != nil && k8sErr.IsNotFound(err) {
 			logger.Info("Creating a new RoleBinding", "Name", rb.GetName(), "Namespace", rb.GetNamespace())
 			if err = ch.Create(context.TODO(), rb); err != nil {
@@ -285,7 +287,7 @@ func (ch *ControllerHelper) DeleteRoleBinding(roleBindings []*rbacv1.RoleBinding
 	logger := ch.Log.WithName("DeleteRoleBinding")
 	for _, rb := range roleBindings {
 		found := &rbacv1.RoleBinding{}
-		err := ch.Get(context.TODO(), types.NamespacedName{Name: rb.GetName(), Namespace: rb.GetNamespace()}, found)
+		err := ch.APIReader.Get(context.TODO(), types.NamespacedName{Name: rb.GetName(), Namespace: rb.GetNamespace()}, found)
 		if err != nil && k8sErr.IsNotFound(err) {
 			continue
 		} else if err != nil {

@@ -58,6 +58,7 @@ var csiLog = logf.Log.WithName("ibmobjectcsi_controller")
 // IBMObjectCSIReconciler reconciles a IBMObjectCSI object
 type IBMObjectCSIReconciler struct {
 	client.Client
+	APIReader        client.Reader
 	Scheme           *runtime.Scheme
 	Recorder         record.EventRecorder
 	ControllerHelper *common.ControllerHelper
@@ -515,7 +516,7 @@ func (r *IBMObjectCSIReconciler) reconcileCSIDriver(instance *crutils.IBMObjectC
 
 	cd := instance.GenerateCSIDriver()
 	found := &storagev1.CSIDriver{}
-	err := r.Get(context.TODO(), types.NamespacedName{Name: cd.Name, Namespace: ""}, found)
+	err := r.APIReader.Get(context.TODO(), types.NamespacedName{Name: cd.Name, Namespace: ""}, found)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			logger.Info("Creating a new CSIDriver", "Name", cd.GetName())
@@ -538,7 +539,7 @@ func (r *IBMObjectCSIReconciler) deleteCSIDriver(instance *crutils.IBMObjectCSI)
 
 	csiDriver := instance.GenerateCSIDriver()
 	found := &storagev1.CSIDriver{}
-	err := r.Get(context.TODO(), types.NamespacedName{
+	err := r.APIReader.Get(context.TODO(), types.NamespacedName{
 		Name:      csiDriver.Name,
 		Namespace: csiDriver.Namespace,
 	}, found)
