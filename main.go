@@ -25,6 +25,7 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -33,6 +34,7 @@ import (
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -83,8 +85,14 @@ func main() {
 		Cache: cache.Options{
 			DefaultLabelSelector: labels.SelectorFromSet(constants.CommonCSIResourceLabelForCaching),
 			DefaultNamespaces: map[string]cache.Config{
-				constants.CSIOperatorNamespace:     {},
-				constants.ParamsConfigMapNamespace: {},
+				constants.CSIOperatorNamespace: {},
+			},
+			ByObject: map[client.Object]cache.ByObject{
+				&corev1.ConfigMap{}: {
+					Namespaces: map[string]cache.Config{
+						constants.ParamsConfigMapNamespace: {},
+					},
+				},
 			},
 		},
 
