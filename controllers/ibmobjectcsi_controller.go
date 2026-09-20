@@ -341,7 +341,7 @@ func (r *IBMObjectCSIReconciler) restartControllerPodfromDeployment(logger logr.
 func (r *IBMObjectCSIReconciler) getControllerPod(controllerDeployment *appsv1.Deployment) (*corev1.Pod, error) {
 	var listOptions = &client.ListOptions{Namespace: controllerDeployment.Namespace}
 	podsList := &corev1.PodList{}
-	err := r.List(context.TODO(), podsList, listOptions)
+	err := r.APIReader.List(context.TODO(), podsList, listOptions)
 	if err != nil {
 		return nil, err
 	}
