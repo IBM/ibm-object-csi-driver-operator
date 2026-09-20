@@ -82,6 +82,10 @@ func main() {
 		LeaderElectionID:       "af88e983.csi.ibm.com",
 		Cache: cache.Options{
 			DefaultLabelSelector: labels.SelectorFromSet(constants.CommonCSIResourceLabelForCaching),
+			DefaultNamespaces: map[string]cache.Config{
+				constants.CSIOperatorNamespace:     {},
+				constants.ParamsConfigMapNamespace: {},
+			},
 		},
 
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
@@ -132,14 +136,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.RecoverStaleVolumeReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		IsTest: false,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "RecoverStaleVolume")
-		os.Exit(1)
-	}
+	// RecoverStaleVolume controller is disabled - CRD is not installed in this deployment.
+	// Code is retained for future use. To re-enable, uncomment the block below.
+	// if err = (&controllers.RecoverStaleVolumeReconciler{
+	// 	Client: mgr.GetClient(),
+	// 	Scheme: mgr.GetScheme(),
+	// 	IsTest: false,
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create controller", "controller", "RecoverStaleVolume")
+	// 	os.Exit(1)
+	// }
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
