@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
@@ -193,6 +194,10 @@ func (ch *ControllerHelper) ReconcileClusterRole(clusterRoles []*rbacv1.ClusterR
 			logger.Error(err, "Failed to get ClusterRole", "Name", cr.GetName())
 			return err
 		} else {
+			if reflect.DeepEqual(k8sCR.Rules, cr.Rules) {
+				logger.Info("Skip reconcile: ClusterRole already exists and rules are up to date", "Name", k8sCR.GetName())
+				continue
+			}
 			patch := client.MergeFrom(k8sCR.DeepCopy())
 			k8sCR.Rules = cr.Rules
 			err = ch.Patch(context.TODO(), k8sCR, patch)
@@ -200,6 +205,7 @@ func (ch *ControllerHelper) ReconcileClusterRole(clusterRoles []*rbacv1.ClusterR
 				logger.Error(err, "Failed to patch ClusterRole", "Name", k8sCR.GetName())
 				return err
 			}
+			logger.Info("Patched ClusterRole with updated rules", "Name", k8sCR.GetName())
 		}
 	}
 	return nil
@@ -229,12 +235,17 @@ func (ch *ControllerHelper) ReconcileRole(roles []*rbacv1.Role) error {
 			logger.Error(err, "Failed to get Role", "Name", role.GetName())
 			return err
 		} else {
+			if reflect.DeepEqual(found.Rules, role.Rules) {
+				logger.Info("Skip reconcile: Role already exists and rules are up to date", "Name", found.GetName(), "Namespace", found.GetNamespace())
+				continue
+			}
 			patch := client.MergeFrom(found.DeepCopy())
 			found.Rules = role.Rules
 			if err = ch.Patch(context.TODO(), found, patch); err != nil {
 				logger.Error(err, "Failed to patch Role", "Name", found.GetName())
 				return err
 			}
+			logger.Info("Patched Role with updated rules", "Name", found.GetName(), "Namespace", found.GetNamespace())
 		}
 	}
 	return nil
