@@ -75,6 +75,9 @@ const (
 	CSIControllerSCCClusterRoleBinding    = "controller-scc-clusterrolebinding"
 	CSINodeSCCClusterRole                 = "node-scc-clusterrole"
 	CSINodeSCCClusterRoleBinding          = "node-scc-clusterrolebinding"
+	CSIClusterInfoRole                    = "clusterinfo-role"
+	CSIClusterInfoRoleBinding             = "clusterinfo-rolebinding"
+	ClusterInfoConfigMap                  = "cluster-info"
 	CSINodePriorityClassName              = "system-node-critical"
 	CSIControllerPriorityClassName        = "ibm-app-cluster-critical"
 

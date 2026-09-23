@@ -22,7 +22,7 @@ func getLocationConstraint(region, cosStorageClass string, isCrossRegional bool)
 		}
 		return fmt.Sprintf("%s-%s", geography, cosStorageClass)
 	}
-	
+
 	// For regional, use region directly without validation
 	// to maintain backward compatibility with existing behavior
 	return fmt.Sprintf("%s-%s", region, cosStorageClass)
@@ -81,7 +81,7 @@ func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRole() *rbacv1.ClusterR
 			{
 				APIGroups: []string{""},
 				Resources: []string{constants.SecretsResource},
-				Verbs:     []string{constants.VerbGet, constants.VerbList},
+				Verbs:     []string{constants.VerbGet},
 			},
 			{
 				APIGroups: []string{""},
@@ -112,11 +112,6 @@ func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRole() *rbacv1.ClusterR
 				APIGroups: []string{""},
 				Resources: []string{constants.NodesResource},
 				Verbs:     []string{constants.VerbGet, constants.VerbList, constants.VerbWatch},
-			},
-			{
-				APIGroups: []string{""},
-				Resources: []string{constants.ConfigMapResource},
-				Verbs:     []string{constants.VerbGet, constants.VerbList},
 			},
 		},
 	}
@@ -208,11 +203,6 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRole() *rbacv1.ClusterRole {
 				Resources: []string{constants.PersistentVolumesResource, constants.SecretsResource},
 				Verbs:     []string{constants.VerbGet},
 			},
-			{
-				APIGroups: []string{""},
-				Resources: []string{constants.ConfigMapResource},
-				Verbs:     []string{constants.VerbGet, constants.VerbList},
-			},
 		},
 	}
 }
@@ -234,6 +224,55 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRoleBinding() *rbacv1.ClusterRol
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
 			Name:     constants.GetResourceName(constants.CSINodeSCCClusterRole),
+			APIGroup: constants.RbacAuthorizationAPIGroup,
+		},
+	}
+}
+
+// GenerateClusterInfoRole generates a namespaced Role in kube-system that grants
+// get access to the cluster-info ConfigMap for the CSI controller and node service accounts.
+func (c *IBMObjectCSI) GenerateClusterInfoRole() *rbacv1.Role {
+	return &rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.GetResourceName(constants.CSIClusterInfoRole),
+			Namespace: constants.ParamsConfigMapNamespace,
+			Labels:    constants.CommonCSIResourceLabels,
+		},
+		Rules: []rbacv1.PolicyRule{
+			{
+				APIGroups:     []string{""},
+				Resources:     []string{constants.ConfigMapResource},
+				ResourceNames: []string{constants.ClusterInfoConfigMap},
+				Verbs:         []string{constants.VerbGet},
+			},
+		},
+	}
+}
+
+// GenerateClusterInfoRoleBinding generates a RoleBinding in kube-system that binds
+// the cluster-info Role to the CSI controller and node service accounts.
+func (c *IBMObjectCSI) GenerateClusterInfoRoleBinding() *rbacv1.RoleBinding {
+	return &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.GetResourceName(constants.CSIClusterInfoRoleBinding),
+			Namespace: constants.ParamsConfigMapNamespace,
+			Labels:    constants.CommonCSIResourceLabels,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Name:      constants.GetResourceName(constants.CSIControllerServiceAccount),
+				Namespace: c.Namespace,
+			},
+			{
+				Kind:      "ServiceAccount",
+				Name:      constants.GetResourceName(constants.CSINodeServiceAccount),
+				Namespace: c.Namespace,
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			Kind:     "Role",
+			Name:     constants.GetResourceName(constants.CSIClusterInfoRole),
 			APIGroup: constants.RbacAuthorizationAPIGroup,
 		},
 	}
