@@ -139,13 +139,16 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	r.ControllerHelper.S3Provider = s3Provider
 	r.ControllerHelper.S3ProviderRegion = instance.Spec.S3ProviderRegion
 
+	sccSupported := r.isSCCSupported()
+	reqLogger.Info("SCC support detected", "sccSupported", sccSupported)
+
 	// If the deletion timestamp is set, perform cleanup operations and remove a finalizer before returning from the reconciliation process.
 	if !instance.GetDeletionTimestamp().IsZero() {
-		if err := r.deleteClusterRoleBindings(instance); err != nil {
+		if err := r.deleteClusterRoleBindings(instance, sccSupported); err != nil {
 			return reconcile.Result{}, err
 		}
 
-		if err := r.deleteClusterRoles(instance); err != nil {
+		if err := r.deleteClusterRoles(instance, sccSupported); err != nil {
 			return reconcile.Result{}, err
 		}
 
@@ -194,8 +197,12 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	for _, rec := range []reconciler{
 		r.reconcileCSIDriver,
 		r.reconcileServiceAccount,
-		r.reconcileClusterRole,
-		r.reconcileClusterRoleBinding,
+		func(instance *crutils.IBMObjectCSI) error {
+			return r.reconcileClusterRole(instance, sccSupported)
+		},
+		func(instance *crutils.IBMObjectCSI) error {
+			return r.reconcileClusterRoleBinding(instance, sccSupported)
+		},
 	} {
 		if err = rec(instance); err != nil {
 			return reconcile.Result{}, err
@@ -392,8 +399,8 @@ func (r *IBMObjectCSIReconciler) getControllerDeployment(instance *crutils.IBMOb
 	return controllerDeployment, err
 }
 
-func (r *IBMObjectCSIReconciler) reconcileClusterRoleBinding(instance *crutils.IBMObjectCSI) error {
-	clusterRoleBindings := r.getClusterRoleBindings(instance)
+func (r *IBMObjectCSIReconciler) reconcileClusterRoleBinding(instance *crutils.IBMObjectCSI, sccSupported bool) error {
+	clusterRoleBindings := r.getClusterRoleBindings(instance, sccSupported)
 	return r.ControllerHelper.ReconcileClusterRoleBinding(clusterRoleBindings)
 }
 
@@ -406,8 +413,8 @@ func (r *IBMObjectCSIReconciler) reconcileStorageClasses(instance *crutils.IBMOb
 	return r.ControllerHelper.ReconcileStorageClasses(storageClasses)
 }
 
-func (r *IBMObjectCSIReconciler) reconcileClusterRole(instance *crutils.IBMObjectCSI) error {
-	clusterRoles := r.getClusterRoles(instance)
+func (r *IBMObjectCSIReconciler) reconcileClusterRole(instance *crutils.IBMObjectCSI, sccSupported bool) error {
+	clusterRoles := r.getClusterRoles(instance, sccSupported)
 	return r.ControllerHelper.ReconcileClusterRole(clusterRoles)
 }
 
@@ -548,8 +555,8 @@ func (r *IBMObjectCSIReconciler) deleteCSIDriver(instance *crutils.IBMObjectCSI)
 	return nil
 }
 
-func (r *IBMObjectCSIReconciler) deleteClusterRoleBindings(instance *crutils.IBMObjectCSI) error {
-	clusterRoleBindings := r.getClusterRoleBindings(instance)
+func (r *IBMObjectCSIReconciler) deleteClusterRoleBindings(instance *crutils.IBMObjectCSI, sccSupported bool) error {
+	clusterRoleBindings := r.getClusterRoleBindings(instance, sccSupported)
 	return r.ControllerHelper.DeleteClusterRoleBindings(clusterRoleBindings)
 }
 
@@ -558,16 +565,15 @@ func (r *IBMObjectCSIReconciler) deleteStorageClasses(instance *crutils.IBMObjec
 	return r.ControllerHelper.DeleteStorageClasses(storageClasses)
 }
 
-func (r *IBMObjectCSIReconciler) getClusterRoleBindings(instance *crutils.IBMObjectCSI) []*rbacv1.ClusterRoleBinding {
-	externalProvisioner := instance.GenerateExternalProvisionerClusterRoleBinding()
-	controllerSCC := instance.GenerateSCCForControllerClusterRoleBinding()
-	nodeSCC := instance.GenerateSCCForNodeClusterRoleBinding()
-
-	return []*rbacv1.ClusterRoleBinding{
-		externalProvisioner,
-		controllerSCC,
-		nodeSCC,
+func (r *IBMObjectCSIReconciler) getClusterRoleBindings(instance *crutils.IBMObjectCSI, sccSupported bool) []*rbacv1.ClusterRoleBinding {
+	bindings := []*rbacv1.ClusterRoleBinding{
+		instance.GenerateExternalProvisionerClusterRoleBinding(),
 	}
+	if sccSupported {
+		bindings = append(bindings, instance.GenerateSCCForControllerClusterRoleBinding())
+		bindings = append(bindings, instance.GenerateSCCForNodeClusterRoleBinding())
+	}
+	return bindings
 }
 
 func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCSI) []*storagev1.StorageClass {
@@ -639,21 +645,30 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
 	return k8sSCs
 }
 
-func (r *IBMObjectCSIReconciler) deleteClusterRoles(instance *crutils.IBMObjectCSI) error {
-	clusterRoles := r.getClusterRoles(instance)
+func (r *IBMObjectCSIReconciler) deleteClusterRoles(instance *crutils.IBMObjectCSI, sccSupported bool) error {
+	clusterRoles := r.getClusterRoles(instance, sccSupported)
 	return r.ControllerHelper.DeleteClusterRoles(clusterRoles)
 }
 
-func (r *IBMObjectCSIReconciler) getClusterRoles(instance *crutils.IBMObjectCSI) []*rbacv1.ClusterRole {
-	externalProvisioner := instance.GenerateExternalProvisionerClusterRole()
-	controllerSCC := instance.GenerateSCCForControllerClusterRole()
-	nodeSCC := instance.GenerateSCCForNodeClusterRole()
-
-	return []*rbacv1.ClusterRole{
-		externalProvisioner,
-		controllerSCC,
-		nodeSCC,
+func (r *IBMObjectCSIReconciler) getClusterRoles(instance *crutils.IBMObjectCSI, sccSupported bool) []*rbacv1.ClusterRole {
+	roles := []*rbacv1.ClusterRole{
+		instance.GenerateExternalProvisionerClusterRole(),
 	}
+	if sccSupported {
+		roles = append(roles, instance.GenerateSCCForControllerClusterRole())
+		roles = append(roles, instance.GenerateSCCForNodeClusterRole())
+	}
+	return roles
+}
+
+// isSCCSupported checks if the security.openshift.io API group is registered in the cluster.
+// Returns true on ROKS/OpenShift clusters where SCC is available, false on IKS.
+func (r *IBMObjectCSIReconciler) isSCCSupported() bool {
+	_, err := r.Client.RESTMapper().ResourcesFor(schema.GroupVersionResource{
+		Group:    constants.SecurityOpenshiftAPIGroup,
+		Resource: constants.SecurityContextConstraintsResource,
+	})
+	return err == nil
 }
 
 func checkIfupdateCRFromConfigMapRequired(instance *objectdriverv1alpha1.IBMObjectCSI, cm *corev1.ConfigMap) bool {
