@@ -26,12 +26,28 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+
+// sccRESTMapper returns a REST mapper with security.openshift.io registered,
+// simulating a ROKS/OpenShift cluster where isSCCSupported() returns true.
+func sccRESTMapper() meta.RESTMapper {
+	mapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{
+		{Group: constants.SecurityOpenshiftAPIGroup, Version: "v1"},
+	})
+	mapper.Add(schema.GroupVersionKind{
+		Group:   constants.SecurityOpenshiftAPIGroup,
+		Version: "v1",
+		Kind:    "SecurityContextConstraints",
+	}, meta.RESTScopeRoot)
+	return mapper
+}
 
 var (
 	defaultFSGroupPolicy = storagev1.FileFSGroupPolicy
@@ -918,7 +934,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 				nodeSCCCRB,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
-				return fakedelete.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+				return fakedelete.NewClientBuilder().WithRuntimeObjects(objs...).WithRESTMapper(sccRESTMapper()).Build()
 			},
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(DeleteError),
@@ -933,7 +949,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 				nodeSCCCR,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
-				return fakedelete.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+				return fakedelete.NewClientBuilder().WithRuntimeObjects(objs...).WithRESTMapper(sccRESTMapper()).Build()
 			},
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(DeleteError),
