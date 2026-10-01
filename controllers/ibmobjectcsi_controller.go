@@ -58,6 +58,7 @@ var csiLog = logf.Log.WithName("ibmobjectcsi_controller")
 // IBMObjectCSIReconciler reconciles a IBMObjectCSI object
 type IBMObjectCSIReconciler struct {
 	client.Client
+	APIReader        client.Reader
 	Scheme           *runtime.Scheme
 	Recorder         record.EventRecorder
 	ControllerHelper *common.ControllerHelper
@@ -66,8 +67,8 @@ type IBMObjectCSIReconciler struct {
 //+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=ibmobjectcsis,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=ibmobjectcsis/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=ibmobjectcsis/finalizers,verbs=update
-//+kubebuilder:rbac:groups="",resources=pods,verbs=get;delete;list;watch
-//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;create;delete;list;watch;update
+//+kubebuilder:rbac:groups="",resources=pods,verbs=delete;list
+//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;update;patch
 //+kubebuilder:rbac:groups="",resources=persistentvolumeclaims/status,verbs=get;update;patch
@@ -77,14 +78,16 @@ type IBMObjectCSIReconciler struct {
 //+kubebuilder:rbac:groups="",resources=events,verbs=*
 //+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
 //+kubebuilder:rbac:groups=apps,resources=deployments;daemonsets;statefulsets,verbs=get;list;watch;update;create;delete
-//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=create;delete;get;watch;list
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings,verbs=create;delete;get;watch;list;update;patch
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=create;get;list;watch
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles,verbs=create;delete;get;patch
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=create;delete;get
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=create;delete;get;patch
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=create;delete;get
 //+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch
 //+kubebuilder:rbac:groups=apps,resourceNames=ibm-object-csi-operator,resources=deployments/finalizers,verbs=update
-//+kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers,verbs=create;delete;get;watch;list
+//+kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers,verbs=create;delete;get
 //+kubebuilder:rbac:groups=storage.k8s.io,resources=csinodes,verbs=get;list;watch
 //+kubebuilder:rbac:groups=security.openshift.io,resourceNames=anyuid;privileged,resources=securitycontextconstraints,verbs=use
-//+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=create;list;watch;delete
 //+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=*,verbs=*
 //+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=create;get;list;watch;delete;update;patch
 //+kubebuilder:rbac:groups=config.openshift.io,resources=infrastructures,verbs=get;list
@@ -146,6 +149,14 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return reconcile.Result{}, err
 		}
 
+		if err := r.deleteRoleBindings(instance); err != nil {
+			return reconcile.Result{}, err
+		}
+
+		if err := r.deleteRoles(instance); err != nil {
+			return reconcile.Result{}, err
+		}
+
 		if err := r.deleteStorageClasses(instance); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -193,6 +204,8 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		r.reconcileServiceAccount,
 		r.reconcileClusterRole,
 		r.reconcileClusterRoleBinding,
+		r.reconcileRole,
+		r.reconcileRoleBinding,
 	} {
 		if err = rec(instance); err != nil {
 			return reconcile.Result{}, err
@@ -328,7 +341,7 @@ func (r *IBMObjectCSIReconciler) restartControllerPodfromDeployment(logger logr.
 func (r *IBMObjectCSIReconciler) getControllerPod(controllerDeployment *appsv1.Deployment) (*corev1.Pod, error) {
 	var listOptions = &client.ListOptions{Namespace: controllerDeployment.Namespace}
 	podsList := &corev1.PodList{}
-	err := r.List(context.TODO(), podsList, listOptions)
+	err := r.APIReader.List(context.TODO(), podsList, listOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -503,7 +516,7 @@ func (r *IBMObjectCSIReconciler) reconcileCSIDriver(instance *crutils.IBMObjectC
 
 	cd := instance.GenerateCSIDriver()
 	found := &storagev1.CSIDriver{}
-	err := r.Get(context.TODO(), types.NamespacedName{Name: cd.Name, Namespace: ""}, found)
+	err := r.APIReader.Get(context.TODO(), types.NamespacedName{Name: cd.Name, Namespace: ""}, found)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			logger.Info("Creating a new CSIDriver", "Name", cd.GetName())
@@ -526,7 +539,7 @@ func (r *IBMObjectCSIReconciler) deleteCSIDriver(instance *crutils.IBMObjectCSI)
 
 	csiDriver := instance.GenerateCSIDriver()
 	found := &storagev1.CSIDriver{}
-	err := r.Get(context.TODO(), types.NamespacedName{
+	err := r.APIReader.Get(context.TODO(), types.NamespacedName{
 		Name:      csiDriver.Name,
 		Namespace: csiDriver.Namespace,
 	}, found)
@@ -548,6 +561,22 @@ func (r *IBMObjectCSIReconciler) deleteCSIDriver(instance *crutils.IBMObjectCSI)
 func (r *IBMObjectCSIReconciler) deleteClusterRoleBindings(instance *crutils.IBMObjectCSI) error {
 	clusterRoleBindings := r.getClusterRoleBindings(instance)
 	return r.ControllerHelper.DeleteClusterRoleBindings(clusterRoleBindings)
+}
+
+func (r *IBMObjectCSIReconciler) reconcileRole(instance *crutils.IBMObjectCSI) error {
+	return r.ControllerHelper.ReconcileRole([]*rbacv1.Role{instance.GenerateClusterInfoRole()})
+}
+
+func (r *IBMObjectCSIReconciler) reconcileRoleBinding(instance *crutils.IBMObjectCSI) error {
+	return r.ControllerHelper.ReconcileRoleBinding([]*rbacv1.RoleBinding{instance.GenerateClusterInfoRoleBinding()})
+}
+
+func (r *IBMObjectCSIReconciler) deleteRoles(instance *crutils.IBMObjectCSI) error {
+	return r.ControllerHelper.DeleteRole([]*rbacv1.Role{instance.GenerateClusterInfoRole()})
+}
+
+func (r *IBMObjectCSIReconciler) deleteRoleBindings(instance *crutils.IBMObjectCSI) error {
+	return r.ControllerHelper.DeleteRoleBinding([]*rbacv1.RoleBinding{instance.GenerateClusterInfoRoleBinding()})
 }
 
 func (r *IBMObjectCSIReconciler) deleteStorageClasses(instance *crutils.IBMObjectCSI) error {
