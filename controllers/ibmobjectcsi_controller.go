@@ -568,10 +568,10 @@ func (r *IBMObjectCSIReconciler) deleteStorageClasses(instance *crutils.IBMObjec
 func (r *IBMObjectCSIReconciler) getClusterRoleBindings(instance *crutils.IBMObjectCSI, sccSupported bool) []*rbacv1.ClusterRoleBinding {
 	bindings := []*rbacv1.ClusterRoleBinding{
 		instance.GenerateExternalProvisionerClusterRoleBinding(),
+		instance.GenerateSCCForNodeClusterRoleBinding(),
 	}
 	if sccSupported {
 		bindings = append(bindings, instance.GenerateSCCForControllerClusterRoleBinding())
-		bindings = append(bindings, instance.GenerateSCCForNodeClusterRoleBinding())
 	}
 	return bindings
 }
@@ -653,10 +653,10 @@ func (r *IBMObjectCSIReconciler) deleteClusterRoles(instance *crutils.IBMObjectC
 func (r *IBMObjectCSIReconciler) getClusterRoles(instance *crutils.IBMObjectCSI, sccSupported bool) []*rbacv1.ClusterRole {
 	roles := []*rbacv1.ClusterRole{
 		instance.GenerateExternalProvisionerClusterRole(),
+		instance.GenerateSCCForNodeClusterRole(sccSupported),
 	}
 	if sccSupported {
 		roles = append(roles, instance.GenerateSCCForControllerClusterRole())
-		roles = append(roles, instance.GenerateSCCForNodeClusterRole())
 	}
 	return roles
 }
