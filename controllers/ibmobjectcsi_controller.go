@@ -149,14 +149,6 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return reconcile.Result{}, err
 		}
 
-		if err := r.deleteRoleBindings(instance); err != nil {
-			return reconcile.Result{}, err
-		}
-
-		if err := r.deleteRoles(instance); err != nil {
-			return reconcile.Result{}, err
-		}
-
 		if err := r.deleteStorageClasses(instance); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -204,8 +196,6 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		r.reconcileServiceAccount,
 		r.reconcileClusterRole,
 		r.reconcileClusterRoleBinding,
-		r.reconcileRole,
-		r.reconcileRoleBinding,
 	} {
 		if err = rec(instance); err != nil {
 			return reconcile.Result{}, err
@@ -213,12 +203,12 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	// sync the resources which change over time
-	csiControllerSyncer := clustersyncer.NewCSIControllerSyncer(r.Client, instance)
+	csiControllerSyncer := clustersyncer.NewCSIControllerSyncer(r.Client, instance, r.ControllerHelper.IaaSProvider)
 	if err := syncer.Sync(ctx, csiControllerSyncer, r.Recorder); err != nil {
 		return reconcile.Result{}, err
 	}
 
-	csiNodeSyncer := clustersyncer.NewCSINodeSyncer(r.Client, instance)
+	csiNodeSyncer := clustersyncer.NewCSINodeSyncer(r.Client, instance, r.ControllerHelper.IaaSProvider)
 	if err := syncer.Sync(ctx, csiNodeSyncer, r.Recorder); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -561,22 +551,6 @@ func (r *IBMObjectCSIReconciler) deleteCSIDriver(instance *crutils.IBMObjectCSI)
 func (r *IBMObjectCSIReconciler) deleteClusterRoleBindings(instance *crutils.IBMObjectCSI) error {
 	clusterRoleBindings := r.getClusterRoleBindings(instance)
 	return r.ControllerHelper.DeleteClusterRoleBindings(clusterRoleBindings)
-}
-
-func (r *IBMObjectCSIReconciler) reconcileRole(instance *crutils.IBMObjectCSI) error {
-	return r.ControllerHelper.ReconcileRole([]*rbacv1.Role{instance.GenerateClusterInfoRole()})
-}
-
-func (r *IBMObjectCSIReconciler) reconcileRoleBinding(instance *crutils.IBMObjectCSI) error {
-	return r.ControllerHelper.ReconcileRoleBinding([]*rbacv1.RoleBinding{instance.GenerateClusterInfoRoleBinding()})
-}
-
-func (r *IBMObjectCSIReconciler) deleteRoles(instance *crutils.IBMObjectCSI) error {
-	return r.ControllerHelper.DeleteRole([]*rbacv1.Role{instance.GenerateClusterInfoRole()})
-}
-
-func (r *IBMObjectCSIReconciler) deleteRoleBindings(instance *crutils.IBMObjectCSI) error {
-	return r.ControllerHelper.DeleteRoleBinding([]*rbacv1.RoleBinding{instance.GenerateClusterInfoRoleBinding()})
 }
 
 func (r *IBMObjectCSIReconciler) deleteStorageClasses(instance *crutils.IBMObjectCSI) error {

@@ -22,12 +22,13 @@ import (
 )
 
 type csiControllerSyncer struct {
-	driver *crutils.IBMObjectCSI
-	obj    runtime.Object
+	driver       *crutils.IBMObjectCSI
+	obj          runtime.Object
+	iaaSProvider string
 }
 
 // NewCSIControllerSyncer returns a syncer for CSI controller
-func NewCSIControllerSyncer(c client.Client, driver *crutils.IBMObjectCSI) syncer.Interface {
+func NewCSIControllerSyncer(c client.Client, driver *crutils.IBMObjectCSI, iaaSProvider string) syncer.Interface {
 	obj := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        constants.GetResourceName(constants.CSIController),
@@ -52,8 +53,9 @@ func NewCSIControllerSyncer(c client.Client, driver *crutils.IBMObjectCSI) synce
 	}
 
 	sync := &csiControllerSyncer{
-		driver: driver,
-		obj:    obj,
+		driver:       driver,
+		obj:          obj,
+		iaaSProvider: iaaSProvider,
 	}
 
 	return syncer.NewObjectSyncer(constants.CSIController, driver.Unwrap(), obj, c, func() error {
@@ -180,12 +182,14 @@ func (s *csiControllerSyncer) ensureContainer(name, image string, args []string)
 func (s *csiControllerSyncer) getEnvFor(name string) []corev1.EnvVar {
 	switch name {
 	case constants.ControllerContainerName:
-		return []corev1.EnvVar{
+		envVars := []corev1.EnvVar{
 			{
 				Name:  "CSI_ENDPOINT",
 				Value: constants.CSIEndpoint,
 			},
 		}
+		envVars = append(envVars, getEndpointEnvVars(s.iaaSProvider)...)
+		return envVars
 
 	case constants.CSIProvisioner:
 		return []corev1.EnvVar{
