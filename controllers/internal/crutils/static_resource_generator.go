@@ -229,55 +229,6 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRoleBinding() *rbacv1.ClusterRol
 	}
 }
 
-// GenerateClusterInfoRole generates a namespaced Role in kube-system that grants
-// get access to the cluster-info ConfigMap for the CSI controller and node service accounts.
-func (c *IBMObjectCSI) GenerateClusterInfoRole() *rbacv1.Role {
-	return &rbacv1.Role{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.GetResourceName(constants.CSIClusterInfoRole),
-			Namespace: constants.ParamsConfigMapNamespace,
-			Labels:    constants.CommonCSIResourceLabels,
-		},
-		Rules: []rbacv1.PolicyRule{
-			{
-				APIGroups:     []string{""},
-				Resources:     []string{constants.ConfigMapResource},
-				ResourceNames: []string{constants.ClusterInfoConfigMap},
-				Verbs:         []string{constants.VerbGet},
-			},
-		},
-	}
-}
-
-// GenerateClusterInfoRoleBinding generates a RoleBinding in kube-system that binds
-// the cluster-info Role to the CSI controller and node service accounts.
-func (c *IBMObjectCSI) GenerateClusterInfoRoleBinding() *rbacv1.RoleBinding {
-	return &rbacv1.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.GetResourceName(constants.CSIClusterInfoRoleBinding),
-			Namespace: constants.ParamsConfigMapNamespace,
-			Labels:    constants.CommonCSIResourceLabels,
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind:      "ServiceAccount",
-				Name:      constants.GetResourceName(constants.CSIControllerServiceAccount),
-				Namespace: c.Namespace,
-			},
-			{
-				Kind:      "ServiceAccount",
-				Name:      constants.GetResourceName(constants.CSINodeServiceAccount),
-				Namespace: c.Namespace,
-			},
-		},
-		RoleRef: rbacv1.RoleRef{
-			Kind:     "Role",
-			Name:     constants.GetResourceName(constants.CSIClusterInfoRole),
-			APIGroup: constants.RbacAuthorizationAPIGroup,
-		},
-	}
-}
-
 // Generates3fsSC ...
 func (c *IBMObjectCSI) GenerateS3fsSC(scInputParams SCInputParams) *storagev1.StorageClass {
 	var storageClassName, locationConstraint string

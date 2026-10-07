@@ -374,45 +374,6 @@ var (
 		},
 	}
 
-	clusterInfoRole = &rbacv1.Role{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.GetResourceName(constants.CSIClusterInfoRole),
-			Namespace: constants.ParamsConfigMapNamespace,
-		},
-		Rules: []rbacv1.PolicyRule{
-			{
-				APIGroups:     []string{""},
-				Resources:     []string{constants.ConfigMapResource},
-				ResourceNames: []string{constants.ClusterInfoConfigMap},
-				Verbs:         []string{constants.VerbGet},
-			},
-		},
-	}
-
-	clusterInfoRoleBinding = &rbacv1.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      constants.GetResourceName(constants.CSIClusterInfoRoleBinding),
-			Namespace: constants.ParamsConfigMapNamespace,
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind:      "ServiceAccount",
-				Name:      constants.GetResourceName(constants.CSIControllerServiceAccount),
-				Namespace: TestNamespace,
-			},
-			{
-				Kind:      "ServiceAccount",
-				Name:      constants.GetResourceName(constants.CSINodeServiceAccount),
-				Namespace: TestNamespace,
-			},
-		},
-		RoleRef: rbacv1.RoleRef{
-			Kind:     "Role",
-			Name:     constants.GetResourceName(constants.CSIClusterInfoRole),
-			APIGroup: constants.RbacAuthorizationAPIGroup,
-		},
-	}
-
 	addonConfigMap = &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.ParamsConfigMap,
@@ -1025,32 +986,6 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			},
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(GetError),
-		},
-		{
-			testCaseName: "Negative: IBMObjectCSI CR is deleted and failed to delete role binding",
-			objects: []runtime.Object{
-				operatorDeploymnet,
-				ibmObjectCSICRWithDeletionTS,
-				clusterInfoRoleBinding,
-			},
-			clientFunc: func(objs []runtime.Object) client.WithWatch {
-				return fakedelete.NewClientBuilder().WithRuntimeObjects(objs...).Build()
-			},
-			expectedResp: reconcile.Result{},
-			expectedErr:  errors.New(DeleteError),
-		},
-		{
-			testCaseName: "Negative: IBMObjectCSI CR is deleted and failed to delete role",
-			objects: []runtime.Object{
-				operatorDeploymnet,
-				ibmObjectCSICRWithDeletionTS,
-				clusterInfoRole,
-			},
-			clientFunc: func(objs []runtime.Object) client.WithWatch {
-				return fakedelete.NewClientBuilder().WithRuntimeObjects(objs...).Build()
-			},
-			expectedResp: reconcile.Result{},
-			expectedErr:  errors.New(DeleteError),
 		},
 		{
 			testCaseName: "Negative: Failed to remove finaliser from IBMObjectCSI CR",

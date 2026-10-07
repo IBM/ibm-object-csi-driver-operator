@@ -22,12 +22,13 @@ import (
 )
 
 type csiNodeSyncer struct {
-	driver *crutils.IBMObjectCSI
-	obj    runtime.Object
+	driver       *crutils.IBMObjectCSI
+	obj          runtime.Object
+	iaaSProvider string
 }
 
 // NewCSINodeSyncer returns a syncer for CSI node
-func NewCSINodeSyncer(c client.Client, driver *crutils.IBMObjectCSI) syncer.Interface {
+func NewCSINodeSyncer(c client.Client, driver *crutils.IBMObjectCSI, iaaSProvider string) syncer.Interface {
 	obj := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        constants.GetResourceName(constants.CSINode),
@@ -55,8 +56,9 @@ func NewCSINodeSyncer(c client.Client, driver *crutils.IBMObjectCSI) syncer.Inte
 	}
 
 	sync := &csiNodeSyncer{
-		driver: driver,
-		obj:    obj,
+		driver:       driver,
+		obj:          obj,
+		iaaSProvider: iaaSProvider,
 	}
 
 	return syncer.NewObjectSyncer(constants.CSINode, driver.Unwrap(), obj, c, func() error {
@@ -300,6 +302,7 @@ func (s *csiNodeSyncer) getEnvFor(name string) []corev1.EnvVar {
 				Value: s.driver.Spec.Node.MaxVolumesPerNode,
 			})
 		}
+		envVars = append(envVars, getEndpointEnvVars(s.iaaSProvider)...)
 		return envVars
 
 	case constants.CSINodeDriverRegistrar:

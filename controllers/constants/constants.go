@@ -75,9 +75,6 @@ const (
 	CSIControllerSCCClusterRoleBinding    = "controller-scc-clusterrolebinding"
 	CSINodeSCCClusterRole                 = "node-scc-clusterrole"
 	CSINodeSCCClusterRoleBinding          = "node-scc-clusterrolebinding"
-	CSIClusterInfoRole                    = "clusterinfo-role"
-	CSIClusterInfoRoleBinding             = "clusterinfo-rolebinding"
-	ClusterInfoConfigMap                  = "cluster-info"
 	CSINodePriorityClassName              = "system-node-critical"
 	CSIControllerPriorityClassName        = "ibm-app-cluster-critical"
 
@@ -99,6 +96,20 @@ const (
 	S3ProviderWasabi = "wasabi"
 	IaasIBMClassic   = "ibm-classic"
 	IaasIBMVPC       = "ibm-vpc"
+
+	// Environment variable names injected into the controller and node containers.
+	EnvIAMEndpoint              = "IAM_ENDPOINT"
+	EnvCOSResourceConfigEndpoint = "COS_RESOURCE_CONFIG_ENDPOINT"
+
+	// IAM and COS resource config endpoints per IaaS provider type.
+	// Empty strings are used when the provider is unknown.
+	IAMEndpointVPC     = "https://private.iam.cloud.ibm.com"
+	IAMEndpointClassic = "https://iam.cloud.ibm.com"
+	IAMEndpointUnknown = ""
+
+	COSResourceConfigEndpointVPC     = "https://config.direct.cloud-object-storage.cloud.ibm.com/v1"
+	COSResourceConfigEndpointClassic = "https://config.private.cloud-object-storage.cloud.ibm.com/v1"
+	COSResourceConfigEndpointUnknown = ""
 
 	IBMEP    = "https://s3.%s.%s.cloud-object-storage.appdomain.cloud"
 	AWSEP    = "https://s3.%s.amazonaws.com"
