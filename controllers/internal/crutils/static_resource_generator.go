@@ -180,30 +180,35 @@ func (c *IBMObjectCSI) GenerateSCCForControllerClusterRoleBinding() *rbacv1.Clus
 }
 
 // GenerateSCCForNodeClusterRole ...
-func (c *IBMObjectCSI) GenerateSCCForNodeClusterRole() *rbacv1.ClusterRole {
+func (c *IBMObjectCSI) GenerateSCCForNodeClusterRole(sccSupported bool) *rbacv1.ClusterRole {
+	rules := []rbacv1.PolicyRule{}
+	if sccSupported {
+		rules = append(rules, rbacv1.PolicyRule{
+			APIGroups:     []string{constants.SecurityOpenshiftAPIGroup},
+			Resources:     []string{constants.SecurityContextConstraintsResource},
+			ResourceNames: []string{"privileged"},
+			Verbs:         []string{"use"},
+		})
+	}
+	rules = append(rules, []rbacv1.PolicyRule{
+		{
+			APIGroups: []string{""},
+			Resources: []string{constants.NodesResource},
+			Verbs:     []string{constants.VerbGet},
+		},
+		{
+			APIGroups: []string{""},
+			Resources: []string{constants.PersistentVolumesResource, constants.SecretsResource},
+			Verbs:     []string{constants.VerbGet},
+		},
+	}...)
+
 	return &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   constants.GetResourceName(constants.CSINodeSCCClusterRole),
 			Labels: constants.CommonCSIResourceLabels,
 		},
-		Rules: []rbacv1.PolicyRule{
-			{
-				APIGroups:     []string{constants.SecurityOpenshiftAPIGroup},
-				Resources:     []string{constants.SecurityContextConstraintsResource},
-				ResourceNames: []string{"privileged"},
-				Verbs:         []string{"use"},
-			},
-			{
-				APIGroups: []string{""},
-				Resources: []string{constants.NodesResource},
-				Verbs:     []string{constants.VerbGet},
-			},
-			{
-				APIGroups: []string{""},
-				Resources: []string{constants.PersistentVolumesResource, constants.SecretsResource},
-				Verbs:     []string{constants.VerbGet},
-			},
-		},
+		Rules: rules,
 	}
 }
 
