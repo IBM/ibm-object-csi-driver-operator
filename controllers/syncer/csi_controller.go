@@ -7,7 +7,6 @@ import (
 	"github.com/imdario/mergo"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -77,7 +76,12 @@ func (s *csiControllerSyncer) SyncFn() error {
 	out.Labels = controllerLabels
 	ensureAnnotations(&out.Spec.Template.ObjectMeta, &out.ObjectMeta, controllerAnnotations)
 
-	err := mergo.Merge(&out.Spec.Template.Spec, s.ensurePodSpec(), mergo.WithTransformers(transformers.PodSpec))
+	podSpec, err := s.ensurePodSpec()
+	if err != nil {
+		return err
+	}
+
+	err = mergo.Merge(&out.Spec.Template.Spec, podSpec, mergo.WithTransformers(transformers.PodSpec))
 	if err != nil {
 		return err
 	}
@@ -85,9 +89,13 @@ func (s *csiControllerSyncer) SyncFn() error {
 	return nil
 }
 
-func (s *csiControllerSyncer) ensurePodSpec() corev1.PodSpec {
+func (s *csiControllerSyncer) ensurePodSpec() (corev1.PodSpec, error) {
+	containers, err := s.ensureContainersSpec()
+	if err != nil {
+		return corev1.PodSpec{}, err
+	}
 	return corev1.PodSpec{
-		Containers: s.ensureContainersSpec(),
+		Containers: containers,
 		Volumes:    s.ensureVolumes(),
 		SecurityContext: &corev1.PodSecurityContext{
 			RunAsNonRoot: util.True(),
@@ -98,10 +106,10 @@ func (s *csiControllerSyncer) ensurePodSpec() corev1.PodSpec {
 		Tolerations:        s.driver.Spec.Controller.Tolerations,
 		ServiceAccountName: constants.GetResourceName(constants.CSIControllerServiceAccount),
 		PriorityClassName:  constants.CSIControllerPriorityClassName,
-	}
+	}, nil
 }
 
-func (s *csiControllerSyncer) ensureContainersSpec() []corev1.Container {
+func (s *csiControllerSyncer) ensureContainersSpec() ([]corev1.Container, error) {
 	controllerPlugin := s.ensureContainer(constants.ControllerContainerName,
 		s.driver.GetCSIControllerImage(),
 		[]string{"--endpoint=$(CSI_ENDPOINT)",
@@ -111,7 +119,11 @@ func (s *csiControllerSyncer) ensureContainersSpec() []corev1.Container {
 		},
 	)
 
-	controllerPlugin.Resources = getCSIControllerResourceRequests(s.driver)
+	var err error
+	controllerPlugin.Resources, err = getResourceRequirements(s.driver.Spec.Controller.Resources)
+	if err != nil {
+		return nil, fmt.Errorf("container %s: %w", constants.ControllerContainerName, err)
+	}
 
 	healthPort := s.driver.Spec.HealthPort
 	if healthPort == 0 {
@@ -144,7 +156,10 @@ func (s *csiControllerSyncer) ensureContainersSpec() []corev1.Container {
 		provisionerArgs,
 	)
 	provisioner.ImagePullPolicy = s.getCSIProvisionerPullPolicy()
-	provisioner.Resources = getSidecarResourceRequests(s.driver, constants.CSIProvisioner)
+	provisioner.Resources, err = getSidecarResourceRequests(s.driver, constants.CSIProvisioner)
+	if err != nil {
+		return nil, err
+	}
 
 	healthPortArg := fmt.Sprintf("--health-port=%v", healthPort)
 	livenessProbe := s.ensureContainer(constants.LivenessProbe,
@@ -155,13 +170,16 @@ func (s *csiControllerSyncer) ensureContainersSpec() []corev1.Container {
 		},
 	)
 	livenessProbe.ImagePullPolicy = s.getLivenessProbePullPolicy()
-	livenessProbe.Resources = getSidecarResourceRequests(s.driver, constants.LivenessProbe)
+	livenessProbe.Resources, err = getSidecarResourceRequests(s.driver, constants.LivenessProbe)
+	if err != nil {
+		return nil, err
+	}
 
 	return []corev1.Container{
 		controllerPlugin,
 		provisioner,
 		livenessProbe,
-	}
+	}, nil
 }
 
 func (s *csiControllerSyncer) ensureContainer(name, image string, args []string) corev1.Container {
@@ -298,55 +316,14 @@ func getSidecarByName(driver *crutils.IBMObjectCSI, name string) *objectdriverv1
 	return nil
 }
 
-func getCSIControllerResourceRequests(driver *crutils.IBMObjectCSI) corev1.ResourceRequirements {
-	resources := driver.GetCSIControllerResourceRequests()
-
-	var requests, limits corev1.ResourceList
-
-	if resources.Requests.CPU != "" && resources.Requests.Memory != "" {
-		requests = corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse(resources.Requests.CPU),
-			corev1.ResourceMemory: resource.MustParse(resources.Requests.Memory),
-		}
-	}
-	if resources.Limits.CPU != "" && resources.Limits.Memory != "" {
-		limits = corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse(resources.Limits.CPU),
-			corev1.ResourceMemory: resource.MustParse(resources.Limits.Memory),
-		}
-	}
-	return corev1.ResourceRequirements{
-		Limits:   limits,
-		Requests: requests,
-	}
-}
-
-func getSidecarResourceRequests(driver *crutils.IBMObjectCSI, sidecarName string) corev1.ResourceRequirements {
+func getSidecarResourceRequests(driver *crutils.IBMObjectCSI, sidecarName string) (corev1.ResourceRequirements, error) {
 	sidecar := getSidecarByName(driver, sidecarName)
-
-	sidecarResources := corev1.ResourceRequirements{}
-
-	if sidecar != nil {
-		resources := sidecar.Resources
-
-		var requests, limits corev1.ResourceList
-
-		if resources.Requests.CPU != "" && resources.Requests.Memory != "" {
-			requests = corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse(resources.Requests.CPU),
-				corev1.ResourceMemory: resource.MustParse(resources.Requests.Memory),
-			}
-		}
-		if resources.Limits.CPU != "" && resources.Limits.Memory != "" {
-			limits = corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse(resources.Limits.CPU),
-				corev1.ResourceMemory: resource.MustParse(resources.Limits.Memory),
-			}
-		}
-
-		sidecarResources.Limits = limits
-		sidecarResources.Requests = requests
+	if sidecar == nil {
+		return corev1.ResourceRequirements{}, nil
 	}
-
-	return sidecarResources
+	res, err := getResourceRequirements(sidecar.Resources)
+	if err != nil {
+		return corev1.ResourceRequirements{}, fmt.Errorf("sidecar %s: %w", sidecarName, err)
+	}
+	return res, nil
 }

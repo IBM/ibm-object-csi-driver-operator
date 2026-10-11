@@ -98,7 +98,7 @@ const (
 	IaasIBMVPC       = "ibm-vpc"
 
 	// Environment variable names injected into the controller and node containers.
-	EnvIAMEndpoint              = "IAM_ENDPOINT"
+	EnvIAMEndpoint               = "IAM_ENDPOINT"
 	EnvCOSResourceConfigEndpoint = "COS_RESOURCE_CONFIG_ENDPOINT"
 
 	// IAM and COS resource config endpoints per IaaS provider type.

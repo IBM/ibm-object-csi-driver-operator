@@ -531,6 +531,39 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			expectedErr:  nil,
 		},
 		{
+			testCaseName: "Negative: Invalid node server resource quantity returns error instead of panic",
+			objects: []runtime.Object{
+				operatorDeploymnet,
+				&v1alpha1.IBMObjectCSI{
+					ObjectMeta: ibmObjectCSICR.ObjectMeta,
+					Spec: v1alpha1.IBMObjectCSISpec{
+						Controller: ibmObjectCSICR.Spec.Controller,
+						Node: v1alpha1.IBMObjectCSINodeSpec{
+							Repository: ibmObjectCSICR.Spec.Node.Repository,
+							Tag:        ibmObjectCSICR.Spec.Node.Tag,
+							Resources: v1alpha1.ResourcesSpec{
+								Requests: resources.Requests,
+								Limits:   v1alpha1.ReqLimits{CPU: "abc", Memory: "200Mi"},
+							},
+							MaxVolumesPerNode:            "0",
+							RestrictNodeServerScheduling: "false",
+						},
+						Sidecars:   ibmObjectCSICR.Spec.Sidecars,
+						HealthPort: ibmObjectCSICR.Spec.HealthPort,
+					},
+				},
+				addonConfigMap,
+				csiNode,
+				controllerDeployment,
+				controllerPod,
+			},
+			clientFunc: func(objs []runtime.Object) client.WithWatch {
+				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			},
+			expectedResp: reconcile.Result{},
+			expectedErr:  errors.New(`container ibm-object-csi-node: invalid resource limits: cpu "abc"`),
+		},
+		{
 			testCaseName: "Positive: IBMObjectCSI CR not found",
 			objects:      []runtime.Object{},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
