@@ -324,12 +324,12 @@ var (
 			{
 				APIGroups: []string{""},
 				Resources: []string{constants.SecretsResource},
-				Verbs:     []string{constants.VerbGet, constants.VerbList},
+				Verbs:     []string{constants.VerbGet},
 			},
 			{
 				APIGroups: []string{""},
 				Resources: []string{constants.PersistentVolumesResource},
-				Verbs:     []string{constants.VerbGet, constants.VerbList, constants.VerbWatch, constants.VerbCreate, constants.VerbDelete},
+				Verbs:     []string{constants.VerbGet, constants.VerbList, constants.VerbWatch, constants.VerbPatch, constants.VerbCreate, constants.VerbDelete},
 			},
 			{
 				APIGroups: []string{""},
@@ -387,6 +387,11 @@ var (
 			{
 				APIGroups: []string{""},
 				Resources: []string{constants.NodesResource},
+				Verbs:     []string{constants.VerbGet},
+			},
+			{
+				APIGroups: []string{""},
+				Resources: []string{constants.PersistentVolumesResource, constants.SecretsResource},
 				Verbs:     []string{constants.VerbGet},
 			},
 		},
@@ -483,7 +488,6 @@ var (
 		ReclaimPolicy: &reclaimPolicyDelete,
 		MountOptions: []string{
 			"multipart_size=62",
-			"max_dirty_data=51200",
 			"parallel_count=8",
 			"max_stat_cache_size=100000",
 			"retries=5",
@@ -508,7 +512,6 @@ var (
 		ReclaimPolicy: &reclaimPolicyRetain,
 		MountOptions: []string{
 			"multipart_size=62",
-			"max_dirty_data=51200",
 			"parallel_count=8",
 			"max_stat_cache_size=100000",
 			"retries=5",
@@ -1196,10 +1199,11 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			client := testcase.clientFunc(testcase.objects)
 
 			ibmObjectCSIReconciler := &IBMObjectCSIReconciler{
-				Client: client,
-				Scheme: scheme,
+				Client:    client,
+				APIReader: client,
+				Scheme:    scheme,
 				// Recorder:         record.NewFakeRecorder(0),
-				ControllerHelper: common.NewControllerHelper(client, TestLog),
+				ControllerHelper: common.NewControllerHelper(client, client, TestLog),
 			}
 
 			res, err := ibmObjectCSIReconciler.Reconcile(TestCtx, ibmObjectCSIReconcileRequest)

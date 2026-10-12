@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/IBM/ibm-object-csi-driver-operator/controllers/constants"
@@ -30,6 +31,7 @@ import (
 // ControllerHelper ...
 type ControllerHelper struct {
 	client.Client
+	APIReader        client.Reader
 	Log              logr.Logger
 	Region           string
 	CosEP            string // Regional COS Endpoint
@@ -39,10 +41,11 @@ type ControllerHelper struct {
 }
 
 // NewControllerHelper ...
-func NewControllerHelper(client client.Client, logger logr.Logger) *ControllerHelper {
+func NewControllerHelper(c client.Client, apiReader client.Reader, logger logr.Logger) *ControllerHelper {
 	return &ControllerHelper{
-		Client: client,
-		Log:    logger,
+		Client:    c,
+		APIReader: apiReader,
+		Log:       logger,
 	}
 }
 
@@ -140,7 +143,7 @@ func (ch *ControllerHelper) ReconcileStorageClasses(storageclasses []*storagev1.
 
 func (ch *ControllerHelper) getClusterRoleBinding(crb *rbacv1.ClusterRoleBinding) (*rbacv1.ClusterRoleBinding, error) {
 	found := &rbacv1.ClusterRoleBinding{}
-	err := ch.Get(context.TODO(), types.NamespacedName{
+	err := ch.APIReader.Get(context.TODO(), types.NamespacedName{
 		Name:      crb.Name,
 		Namespace: crb.Namespace,
 	}, found)
@@ -191,6 +194,10 @@ func (ch *ControllerHelper) ReconcileClusterRole(clusterRoles []*rbacv1.ClusterR
 			logger.Error(err, "Failed to get ClusterRole", "Name", cr.GetName())
 			return err
 		} else {
+			if reflect.DeepEqual(k8sCR.Rules, cr.Rules) {
+				logger.Info("Skip reconcile: ClusterRole already exists and rules are up to date", "Name", k8sCR.GetName())
+				continue
+			}
 			patch := client.MergeFrom(k8sCR.DeepCopy())
 			k8sCR.Rules = cr.Rules
 			err = ch.Patch(context.TODO(), k8sCR, patch)
@@ -198,6 +205,7 @@ func (ch *ControllerHelper) ReconcileClusterRole(clusterRoles []*rbacv1.ClusterR
 				logger.Error(err, "Failed to patch ClusterRole", "Name", k8sCR.GetName())
 				return err
 			}
+			logger.Info("Patched ClusterRole with updated rules", "Name", k8sCR.GetName())
 		}
 	}
 	return nil
@@ -205,11 +213,105 @@ func (ch *ControllerHelper) ReconcileClusterRole(clusterRoles []*rbacv1.ClusterR
 
 func (ch *ControllerHelper) getClusterRole(cr *rbacv1.ClusterRole) (*rbacv1.ClusterRole, error) {
 	found := &rbacv1.ClusterRole{}
-	err := ch.Get(context.TODO(), types.NamespacedName{
+	err := ch.APIReader.Get(context.TODO(), types.NamespacedName{
 		Name:      cr.GetName(),
 		Namespace: cr.GetNamespace(),
 	}, found)
 	return found, err
+}
+
+// ReconcileRole reconciles a namespaced Role: creates it if absent, patches rules if it exists.
+func (ch *ControllerHelper) ReconcileRole(roles []*rbacv1.Role) error {
+	logger := ch.Log.WithValues("Resource Type", "Role")
+	for _, role := range roles {
+		found := &rbacv1.Role{}
+		err := ch.APIReader.Get(context.TODO(), types.NamespacedName{Name: role.GetName(), Namespace: role.GetNamespace()}, found)
+		if err != nil && k8sErr.IsNotFound(err) {
+			logger.Info("Creating a new Role", "Name", role.GetName(), "Namespace", role.GetNamespace())
+			if err = ch.Create(context.TODO(), role); err != nil {
+				return err
+			}
+		} else if err != nil {
+			logger.Error(err, "Failed to get Role", "Name", role.GetName())
+			return err
+		} else {
+			if reflect.DeepEqual(found.Rules, role.Rules) {
+				logger.Info("Skip reconcile: Role already exists and rules are up to date", "Name", found.GetName(), "Namespace", found.GetNamespace())
+				continue
+			}
+			patch := client.MergeFrom(found.DeepCopy())
+			found.Rules = role.Rules
+			if err = ch.Patch(context.TODO(), found, patch); err != nil {
+				logger.Error(err, "Failed to patch Role", "Name", found.GetName())
+				return err
+			}
+			logger.Info("Patched Role with updated rules", "Name", found.GetName(), "Namespace", found.GetNamespace())
+		}
+	}
+	return nil
+}
+
+// DeleteRole deletes a namespaced Role if it exists.
+func (ch *ControllerHelper) DeleteRole(roles []*rbacv1.Role) error {
+	logger := ch.Log.WithName("DeleteRole")
+	for _, role := range roles {
+		found := &rbacv1.Role{}
+		err := ch.APIReader.Get(context.TODO(), types.NamespacedName{Name: role.GetName(), Namespace: role.GetNamespace()}, found)
+		if err != nil && k8sErr.IsNotFound(err) {
+			continue
+		} else if err != nil {
+			logger.Error(err, "failed to get Role", "Name", role.GetName())
+			return err
+		}
+		logger.Info("deleting Role", "Name", role.GetName(), "Namespace", role.GetNamespace())
+		if err = ch.Delete(context.TODO(), found); err != nil {
+			logger.Error(err, "failed to delete Role", "Name", role.GetName())
+			return err
+		}
+	}
+	return nil
+}
+
+// ReconcileRoleBinding reconciles a namespaced RoleBinding: creates it if absent.
+func (ch *ControllerHelper) ReconcileRoleBinding(roleBindings []*rbacv1.RoleBinding) error {
+	logger := ch.Log.WithValues("Resource Type", "RoleBinding")
+	for _, rb := range roleBindings {
+		found := &rbacv1.RoleBinding{}
+		err := ch.APIReader.Get(context.TODO(), types.NamespacedName{Name: rb.GetName(), Namespace: rb.GetNamespace()}, found)
+		if err != nil && k8sErr.IsNotFound(err) {
+			logger.Info("Creating a new RoleBinding", "Name", rb.GetName(), "Namespace", rb.GetNamespace())
+			if err = ch.Create(context.TODO(), rb); err != nil {
+				return err
+			}
+		} else if err != nil {
+			logger.Error(err, "Failed to get RoleBinding", "Name", rb.GetName())
+			return err
+		} else {
+			logger.Info("Skip reconcile: RoleBinding already exists", "Name", rb.GetName())
+		}
+	}
+	return nil
+}
+
+// DeleteRoleBinding deletes a namespaced RoleBinding if it exists.
+func (ch *ControllerHelper) DeleteRoleBinding(roleBindings []*rbacv1.RoleBinding) error {
+	logger := ch.Log.WithName("DeleteRoleBinding")
+	for _, rb := range roleBindings {
+		found := &rbacv1.RoleBinding{}
+		err := ch.APIReader.Get(context.TODO(), types.NamespacedName{Name: rb.GetName(), Namespace: rb.GetNamespace()}, found)
+		if err != nil && k8sErr.IsNotFound(err) {
+			continue
+		} else if err != nil {
+			logger.Error(err, "failed to get RoleBinding", "Name", rb.GetName())
+			return err
+		}
+		logger.Info("deleting RoleBinding", "Name", rb.GetName(), "Namespace", rb.GetNamespace())
+		if err = ch.Delete(context.TODO(), found); err != nil {
+			logger.Error(err, "failed to delete RoleBinding", "Name", rb.GetName())
+			return err
+		}
+	}
+	return nil
 }
 
 // AddFinalizerIfNotPresent ...

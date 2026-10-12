@@ -25,6 +25,7 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -33,6 +34,7 @@ import (
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -82,6 +84,16 @@ func main() {
 		LeaderElectionID:       "af88e983.csi.ibm.com",
 		Cache: cache.Options{
 			DefaultLabelSelector: labels.SelectorFromSet(constants.CommonCSIResourceLabelForCaching),
+			DefaultNamespaces: map[string]cache.Config{
+				constants.CSIOperatorNamespace: {},
+			},
+			ByObject: map[client.Object]cache.ByObject{
+				&corev1.ConfigMap{}: {
+					Namespaces: map[string]cache.Config{
+						constants.ParamsConfigMapNamespace: {},
+					},
+				},
+			},
 		},
 
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
@@ -100,7 +112,7 @@ func main() {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
-	controllerHelper := common.NewControllerHelper(mgr.GetClient(), setupLog)
+	controllerHelper := common.NewControllerHelper(mgr.GetClient(), mgr.GetAPIReader(), setupLog)
 
 	// TODO: TIER Based SC Get cluster info
 	inConfig, err := rest.InClusterConfig()
@@ -125,6 +137,7 @@ func main() {
 
 	if err = (&controllers.IBMObjectCSIReconciler{
 		Client:           mgr.GetClient(),
+		APIReader:        mgr.GetAPIReader(),
 		Scheme:           mgr.GetScheme(),
 		ControllerHelper: controllerHelper,
 	}).SetupWithManager(mgr); err != nil {
@@ -132,14 +145,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.RecoverStaleVolumeReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		IsTest: false,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "RecoverStaleVolume")
-		os.Exit(1)
-	}
+	// RecoverStaleVolume controller is disabled - CRD is not installed in this deployment.
+	// Code is retained for future use. To re-enable, uncomment the block below.
+	// if err = (&controllers.RecoverStaleVolumeReconciler{
+	// 	Client: mgr.GetClient(),
+	// 	Scheme: mgr.GetScheme(),
+	// 	IsTest: false,
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create controller", "controller", "RecoverStaleVolume")
+	// 	os.Exit(1)
+	// }
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

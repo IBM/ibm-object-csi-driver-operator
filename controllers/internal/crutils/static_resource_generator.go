@@ -22,7 +22,7 @@ func getLocationConstraint(region, cosStorageClass string, isCrossRegional bool)
 		}
 		return fmt.Sprintf("%s-%s", geography, cosStorageClass)
 	}
-	
+
 	// For regional, use region directly without validation
 	// to maintain backward compatibility with existing behavior
 	return fmt.Sprintf("%s-%s", region, cosStorageClass)
@@ -81,7 +81,7 @@ func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRole() *rbacv1.ClusterR
 			{
 				APIGroups: []string{""},
 				Resources: []string{constants.SecretsResource},
-				Verbs:     []string{constants.VerbGet, constants.VerbList},
+				Verbs:     []string{constants.VerbGet},
 			},
 			{
 				APIGroups: []string{""},
@@ -112,11 +112,6 @@ func (c *IBMObjectCSI) GenerateExternalProvisionerClusterRole() *rbacv1.ClusterR
 				APIGroups: []string{""},
 				Resources: []string{constants.NodesResource},
 				Verbs:     []string{constants.VerbGet, constants.VerbList, constants.VerbWatch},
-			},
-			{
-				APIGroups: []string{""},
-				Resources: []string{constants.ConfigMapResource},
-				Verbs:     []string{constants.VerbGet, constants.VerbList},
 			},
 		},
 	}
@@ -208,11 +203,6 @@ func (c *IBMObjectCSI) GenerateSCCForNodeClusterRole() *rbacv1.ClusterRole {
 				Resources: []string{constants.PersistentVolumesResource, constants.SecretsResource},
 				Verbs:     []string{constants.VerbGet},
 			},
-			{
-				APIGroups: []string{""},
-				Resources: []string{constants.ConfigMapResource},
-				Verbs:     []string{constants.VerbGet, constants.VerbList},
-			},
 		},
 	}
 }
@@ -261,11 +251,11 @@ func (c *IBMObjectCSI) GenerateS3fsSC(scInputParams SCInputParams) *storagev1.St
 	mountOptions := []string{
 		"multipart_size=52",
 		"multireq_max=20",
-		"max_dirty_data=5120",
 		"parallel_count=20",
 		"max_stat_cache_size=100000",
 		"retries=5",
 		"kernel_cache",
+		"max_background=1000",
 	}
 
 	return &storagev1.StorageClass{
