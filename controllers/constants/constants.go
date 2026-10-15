@@ -67,6 +67,12 @@ const (
 
 	CSIController                         = "controller"
 	CSINode                               = "node"
+	CSIInstaller                          = "object-csi-bins-installer"
+	CSIInstallerName                      = "ibm-object-csi-bins-installer"
+	CSIInstallerNamespace                 = "kube-system"
+	CSIInstallerContainer                 = "object-csi-bins-installer"
+	CSIInstallerPauseImage                = "icr.io/armada-master/pause:3.8"
+	CSIInstallerPriorityClassName         = "system-node-critical"
 	CSIControllerServiceAccount           = "controller-sa"
 	CSINodeServiceAccount                 = "node-sa"
 	ExternalProvisionerClusterRole        = "external-provisioner-clusterrole"

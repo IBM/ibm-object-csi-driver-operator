@@ -71,6 +71,36 @@ spec:
                   values:
                     - rhel
 
+  # binsInstaller copies cos-csi-mounter binaries onto each node.
+  # When restrictNodeServerScheduling is true, only runs on nodes labelled cos.csi.ibm.io/csi-node=true.
+  binsInstaller:
+    repository: icr.io/ibm/ibm-object-csi-driver-bins
+    tag: "v1.0.6"
+    imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 500m
+        memory: 400Mi
+      requests:
+        cpu: 30m
+        memory: 30Mi
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: kubernetes.io/arch
+                  operator: In
+                  values:
+                    - amd64
+                - key: node.openshift.io/os_id
+                  operator: NotIn
+                  values:
+                    - rhel
+    tolerations:
+      - operator: Exists
+    restrictNodeServerScheduling: "false"
+
   sidecars:
   - name: csi-node-driver-registrar
     repository: k8s.gcr.io/sig-storage/csi-node-driver-registrar
