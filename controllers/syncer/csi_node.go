@@ -7,7 +7,6 @@ import (
 	"github.com/imdario/mergo"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -80,7 +79,12 @@ func (s *csiNodeSyncer) SyncFn() error {
 
 	ensureAnnotations(&out.Spec.Template.ObjectMeta, &out.ObjectMeta, nodeAnnotations)
 
-	err := mergo.Merge(&out.Spec.Template.Spec, s.ensurePodSpec(), mergo.WithTransformers(transformers.PodSpec))
+	podSpec, err := s.ensurePodSpec()
+	if err != nil {
+		return err
+	}
+
+	err = mergo.Merge(&out.Spec.Template.Spec, podSpec, mergo.WithTransformers(transformers.PodSpec))
 	if err != nil {
 		return err
 	}
@@ -88,9 +92,13 @@ func (s *csiNodeSyncer) SyncFn() error {
 	return nil
 }
 
-func (s *csiNodeSyncer) ensurePodSpec() corev1.PodSpec {
+func (s *csiNodeSyncer) ensurePodSpec() (corev1.PodSpec, error) {
+	containers, err := s.ensureContainersSpec()
+	if err != nil {
+		return corev1.PodSpec{}, err
+	}
 	return corev1.PodSpec{
-		Containers: s.ensureContainersSpec(),
+		Containers: containers,
 		Volumes:    s.ensureVolumes(),
 		SecurityContext: &corev1.PodSecurityContext{
 			RunAsNonRoot: util.True(),
@@ -101,7 +109,7 @@ func (s *csiNodeSyncer) ensurePodSpec() corev1.PodSpec {
 		Tolerations:        s.driver.Spec.Node.Tolerations,
 		ServiceAccountName: constants.GetResourceName(constants.CSINodeServiceAccount),
 		PriorityClassName:  constants.CSINodePriorityClassName,
-	}
+	}, nil
 }
 
 // buildNodeAffinity builds node affinity, adding cos.csi.ibm.io/csi-node=true label requirement when restrictNodeServerScheduling is "true".
@@ -141,7 +149,7 @@ func (s *csiNodeSyncer) buildNodeAffinity() *corev1.Affinity {
 	return affinity
 }
 
-func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
+func (s *csiNodeSyncer) ensureContainersSpec() ([]corev1.Container, error) {
 	// node plugin container
 	nodePlugin := s.ensureContainer(constants.NodeContainerName,
 		s.driver.GetCSINodeImage(),
@@ -154,7 +162,11 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 		},
 	)
 
-	nodePlugin.Resources = getCSINodeResourceRequests(s.driver)
+	var err error
+	nodePlugin.Resources, err = getResourceRequirements(s.driver.Spec.Node.Resources)
+	if err != nil {
+		return nil, fmt.Errorf("container %s: %w", constants.NodeContainerName, err)
+	}
 
 	nodePlugin.Ports = ensurePorts(corev1.ContainerPort{
 		Name:          constants.CosCsiMounterHealthPortName,
@@ -198,7 +210,10 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 	}
 	fillSecurityContextCapabilities(registrar.SecurityContext)
 	registrar.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
-	registrar.Resources = getSidecarResourceRequests(s.driver, constants.CSINodeDriverRegistrar)
+	registrar.Resources, err = getSidecarResourceRequests(s.driver, constants.CSINodeDriverRegistrar)
+	if err != nil {
+		return nil, err
+	}
 
 	healthPort := s.driver.Spec.HealthPort
 	if healthPort == 0 {
@@ -242,13 +257,16 @@ func (s *csiNodeSyncer) ensureContainersSpec() []corev1.Container {
 
 	fillSecurityContextCapabilities(livenessProbe.SecurityContext)
 	livenessProbe.ImagePullPolicy = s.getCSINodeDriverRegistrarPullPolicy()
-	livenessProbe.Resources = getSidecarResourceRequests(s.driver, constants.LivenessProbe)
+	livenessProbe.Resources, err = getSidecarResourceRequests(s.driver, constants.LivenessProbe)
+	if err != nil {
+		return nil, err
+	}
 
 	return []corev1.Container{
 		nodePlugin,
 		registrar,
 		livenessProbe,
-	}
+	}, nil
 }
 
 func (s *csiNodeSyncer) ensureContainer(name, image string, args []string) corev1.Container {
@@ -438,29 +456,5 @@ func fillSecurityContextCapabilities(sc *corev1.SecurityContext, add ...string) 
 			adds = append(adds, corev1.Capability(a))
 		}
 		sc.Capabilities.Add = adds
-	}
-}
-
-func getCSINodeResourceRequests(driver *crutils.IBMObjectCSI) corev1.ResourceRequirements {
-	resources := driver.GetCSINodeResourceRequests()
-
-	var requests, limits corev1.ResourceList
-
-	if resources.Requests.CPU != "" && resources.Requests.Memory != "" {
-		requests = corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse(resources.Requests.CPU),
-			corev1.ResourceMemory: resource.MustParse(resources.Requests.Memory),
-		}
-	}
-	if resources.Limits.CPU != "" && resources.Limits.Memory != "" {
-		limits = corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse(resources.Limits.CPU),
-			corev1.ResourceMemory: resource.MustParse(resources.Limits.Memory),
-		}
-	}
-
-	return corev1.ResourceRequirements{
-		Limits:   limits,
-		Requests: requests,
 	}
 }
