@@ -8,12 +8,11 @@ rules:
   - ""
   resources:
   - configmaps
+  - nodes
+  - secrets
   verbs:
-  - create
-  - delete
   - get
   - list
-  - update
   - watch
 - apiGroups:
   - ""
@@ -21,15 +20,6 @@ rules:
   - events
   verbs:
   - '*'
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  - secrets
-  verbs:
-  - get
-  - list
-  - watch
 - apiGroups:
   - ""
   resources:
@@ -72,9 +62,7 @@ rules:
   - pods
   verbs:
   - delete
-  - get
   - list
-  - watch
 - apiGroups:
   - ""
   resources:
@@ -87,17 +75,7 @@ rules:
   - serviceaccounts
   verbs:
   - create
-  - delete
   - get
-  - list
-  - watch
-- apiGroups:
-  - apiextensions.k8s.io
-  resources:
-  - customresourcedefinitions
-  verbs:
-  - create
-  - delete
   - list
   - watch
 - apiGroups:
@@ -174,15 +152,21 @@ rules:
   - rbac.authorization.k8s.io
   resources:
   - clusterrolebindings
-  - clusterroles
+  - rolebindings
   verbs:
   - create
   - delete
   - get
-  - list
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterroles
+  - roles
+  verbs:
+  - create
+  - delete
+  - get
   - patch
-  - update
-  - watch
 - apiGroups:
   - security.openshift.io
   resourceNames:
@@ -200,8 +184,6 @@ rules:
   - create
   - delete
   - get
-  - list
-  - watch
 - apiGroups:
   - storage.k8s.io
   resources:
