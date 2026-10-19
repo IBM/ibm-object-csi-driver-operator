@@ -371,8 +371,6 @@ type IBMObjectCSIReconciler struct {
 //+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=create;get;list;watch
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles,verbs=create;delete;get;patch
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=create;delete;get
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=create;delete;get;patch
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=create;delete;get
 //+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch
 //+kubebuilder:rbac:groups=apps,resourceNames=ibm-object-csi-operator,resources=deployments/finalizers,verbs=update
 //+kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers,verbs=create;delete;get
