@@ -201,6 +201,9 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		func(instance *crutils.IBMObjectCSI) error {
 			return r.reconcileClusterRoleBinding(instance, sccSupported)
 		},
+		func(instance *crutils.IBMObjectCSI) error {
+			return r.cleanupControllerSCC(instance, sccSupported)
+		},
 	} {
 		if err = rec(instance); err != nil {
 			return reconcile.Result{}, err
@@ -657,6 +660,25 @@ func (r *IBMObjectCSIReconciler) getClusterRoles(instance *crutils.IBMObjectCSI,
 		roles = append(roles, instance.GenerateSCCForControllerClusterRole())
 	}
 	return roles
+}
+
+// cleanupControllerSCC deletes the controller SCC ClusterRoleBinding and ClusterRole
+// on clusters without SCC support (IKS).
+//
+// Why this is needed: older operator versions created these resources on every cluster.
+// ReconcileClusterRole only creates/patches the roles in its list, so it never removes
+// a role that was dropped from it. Without this cleanup, existing IKS clusters would
+// keep the stale controller-scc role and binding after upgrading.
+func (r *IBMObjectCSIReconciler) cleanupControllerSCC(instance *crutils.IBMObjectCSI, sccSupported bool) error {
+	if sccSupported {
+		return nil
+	}
+	if err := r.ControllerHelper.DeleteClusterRoleBindings(
+		[]*rbacv1.ClusterRoleBinding{instance.GenerateSCCForControllerClusterRoleBinding()}); err != nil {
+		return err
+	}
+	return r.ControllerHelper.DeleteClusterRoles(
+		[]*rbacv1.ClusterRole{instance.GenerateSCCForControllerClusterRole()})
 }
 
 // isSCCSupported checks if the security.openshift.io API group is registered in the cluster.

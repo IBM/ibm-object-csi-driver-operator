@@ -25,8 +25,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -1048,6 +1048,58 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 				}
 			} else {
 				assert.NoError(t, err)
+			}
+		})
+	}
+}
+func TestCleanupControllerSCC(t *testing.T) {
+	testCases := []struct {
+		testCaseName string
+		sccSupported bool
+		objects      []runtime.Object
+		expectExists bool
+	}{
+		{
+			testCaseName: "IKS: leftover controller SCC role and binding are deleted",
+			sccSupported: false,
+			objects:      []runtime.Object{controllerSCCCR.DeepCopy(), controllerSCCCRB.DeepCopy()},
+			expectExists: false,
+		},
+		{
+			testCaseName: "IKS: nothing to delete, no error",
+			sccSupported: false,
+			objects:      []runtime.Object{},
+			expectExists: false,
+		},
+		{
+			testCaseName: "ROKS: controller SCC role and binding are kept",
+			sccSupported: true,
+			objects:      []runtime.Object{controllerSCCCR.DeepCopy(), controllerSCCCRB.DeepCopy()},
+			expectExists: true,
+		},
+	}
+
+	for _, testcase := range testCases {
+		t.Run(testcase.testCaseName, func(t *testing.T) {
+			c := fake.NewClientBuilder().WithRuntimeObjects(testcase.objects...).Build()
+			r := &IBMObjectCSIReconciler{
+				Client:           c,
+				APIReader:        c,
+				Scheme:           setupScheme(),
+				ControllerHelper: common.NewControllerHelper(c, c, TestLog),
+			}
+			instance := crutils.New(ibmObjectCSICR.DeepCopy())
+
+			assert.NoError(t, r.cleanupControllerSCC(instance, testcase.sccSupported))
+
+			roleErr := c.Get(TestCtx, types.NamespacedName{Name: controllerSCCCR.Name}, &rbacv1.ClusterRole{})
+			bindingErr := c.Get(TestCtx, types.NamespacedName{Name: controllerSCCCRB.Name}, &rbacv1.ClusterRoleBinding{})
+			if testcase.expectExists {
+				assert.NoError(t, roleErr)
+				assert.NoError(t, bindingErr)
+			} else {
+				assert.Error(t, roleErr)
+				assert.Error(t, bindingErr)
 			}
 		})
 	}
