@@ -25,13 +25,29 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+
+// sccRESTMapper returns a REST mapper with security.openshift.io registered,
+// simulating a ROKS/OpenShift cluster where isSCCSupported() returns true.
+func sccRESTMapper() meta.RESTMapper {
+	mapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{
+		{Group: constants.SecurityOpenshiftAPIGroup, Version: "v1"},
+	})
+	mapper.Add(schema.GroupVersionKind{
+		Group:   constants.SecurityOpenshiftAPIGroup,
+		Version: "v1",
+		Kind:    "SecurityContextConstraints",
+	}, meta.RESTScopeRoot)
+	return mapper
+}
 
 var (
 	defaultFSGroupPolicy = storagev1.FileFSGroupPolicy
@@ -923,7 +939,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 				nodeSCCCRB,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
-				return fakedelete.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+				return fakedelete.NewClientBuilder().WithRuntimeObjects(objs...).WithRESTMapper(sccRESTMapper()).Build()
 			},
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(DeleteError),
@@ -938,7 +954,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 				nodeSCCCR,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
-				return fakedelete.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+				return fakedelete.NewClientBuilder().WithRuntimeObjects(objs...).WithRESTMapper(sccRESTMapper()).Build()
 			},
 			expectedResp: reconcile.Result{},
 			expectedErr:  errors.New(DeleteError),
@@ -1032,6 +1048,58 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 				}
 			} else {
 				assert.NoError(t, err)
+			}
+		})
+	}
+}
+func TestCleanupControllerSCC(t *testing.T) {
+	testCases := []struct {
+		testCaseName string
+		sccSupported bool
+		objects      []runtime.Object
+		expectExists bool
+	}{
+		{
+			testCaseName: "IKS: leftover controller SCC role and binding are deleted",
+			sccSupported: false,
+			objects:      []runtime.Object{controllerSCCCR.DeepCopy(), controllerSCCCRB.DeepCopy()},
+			expectExists: false,
+		},
+		{
+			testCaseName: "IKS: nothing to delete, no error",
+			sccSupported: false,
+			objects:      []runtime.Object{},
+			expectExists: false,
+		},
+		{
+			testCaseName: "ROKS: controller SCC role and binding are kept",
+			sccSupported: true,
+			objects:      []runtime.Object{controllerSCCCR.DeepCopy(), controllerSCCCRB.DeepCopy()},
+			expectExists: true,
+		},
+	}
+
+	for _, testcase := range testCases {
+		t.Run(testcase.testCaseName, func(t *testing.T) {
+			c := fake.NewClientBuilder().WithRuntimeObjects(testcase.objects...).Build()
+			r := &IBMObjectCSIReconciler{
+				Client:           c,
+				APIReader:        c,
+				Scheme:           setupScheme(),
+				ControllerHelper: common.NewControllerHelper(c, c, TestLog),
+			}
+			instance := crutils.New(ibmObjectCSICR.DeepCopy())
+
+			assert.NoError(t, r.cleanupControllerSCC(instance, testcase.sccSupported))
+
+			roleErr := c.Get(TestCtx, types.NamespacedName{Name: controllerSCCCR.Name}, &rbacv1.ClusterRole{})
+			bindingErr := c.Get(TestCtx, types.NamespacedName{Name: controllerSCCCRB.Name}, &rbacv1.ClusterRoleBinding{})
+			if testcase.expectExists {
+				assert.NoError(t, roleErr)
+				assert.NoError(t, bindingErr)
+			} else {
+				assert.Error(t, roleErr)
+				assert.Error(t, bindingErr)
 			}
 		})
 	}
