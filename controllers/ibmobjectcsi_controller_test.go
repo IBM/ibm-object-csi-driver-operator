@@ -1052,6 +1052,79 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 		})
 	}
 }
+
+// failingRESTMapper simulates an API server failure (for example a timeout) during discovery.
+type failingRESTMapper struct {
+	meta.RESTMapper
+}
+
+func (failingRESTMapper) ResourcesFor(schema.GroupVersionResource) ([]schema.GroupVersionResource, error) {
+	return nil, errors.New("failed to get server groups: request timed out")
+}
+
+func TestIsSCCSupported(t *testing.T) {
+	testCases := []struct {
+		testCaseName string
+		mapper       meta.RESTMapper
+		expected     bool
+		expectErr    bool
+	}{
+		{
+			testCaseName: "ROKS: SCC API found",
+			mapper:       sccRESTMapper(),
+			expected:     true,
+		},
+		{
+			testCaseName: "IKS: SCC API not found (no match error)",
+			mapper:       meta.NewDefaultRESTMapper([]schema.GroupVersion{}),
+			expected:     false,
+		},
+		{
+			testCaseName: "Unknown: API server error is returned, cluster type is not guessed",
+			mapper:       failingRESTMapper{},
+			expected:     false,
+			expectErr:    true,
+		},
+	}
+
+	for _, testcase := range testCases {
+		t.Run(testcase.testCaseName, func(t *testing.T) {
+			c := fake.NewClientBuilder().WithRESTMapper(testcase.mapper).Build()
+			r := &IBMObjectCSIReconciler{Client: c}
+
+			supported, err := r.isSCCSupported()
+
+			assert.Equal(t, testcase.expected, supported)
+			if testcase.expectErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestReconcileStopsWhenSCCDetectionFails(t *testing.T) {
+	c := fake.NewClientBuilder().
+		WithScheme(setupScheme()).
+		WithRuntimeObjects(operatorDeploymnet, ibmObjectCSICR.DeepCopy(), controllerSCCCR.DeepCopy(), controllerSCCCRB.DeepCopy()).
+		WithRESTMapper(failingRESTMapper{}).
+		Build()
+	r := &IBMObjectCSIReconciler{
+		Client:           c,
+		APIReader:        c,
+		Scheme:           setupScheme(),
+		ControllerHelper: common.NewControllerHelper(c, c, TestLog),
+	}
+
+	_, err := r.Reconcile(TestCtx, ibmObjectCSIReconcileRequest)
+	assert.Error(t, err)
+
+	// nothing must be deleted when the cluster type could not be decided
+	assert.NoError(t, c.Get(TestCtx, types.NamespacedName{Name: controllerSCCCR.Name}, &rbacv1.ClusterRole{}))
+	assert.NoError(t, c.Get(TestCtx, types.NamespacedName{Name: controllerSCCCRB.Name}, &rbacv1.ClusterRoleBinding{}))
+}
+
 func TestCleanupControllerSCC(t *testing.T) {
 	testCases := []struct {
 		testCaseName string

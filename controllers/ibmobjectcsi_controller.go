@@ -36,6 +36,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -137,7 +138,11 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	r.ControllerHelper.S3Provider = s3Provider
 	r.ControllerHelper.S3ProviderRegion = instance.Spec.S3ProviderRegion
 
-	sccSupported := r.isSCCSupported()
+	sccSupported, err := r.isSCCSupported()
+	if err != nil {
+		reqLogger.Error(err, "Failed to detect SCC support")
+		return reconcile.Result{}, err
+	}
 	reqLogger.Info("SCC support detected", "sccSupported", sccSupported)
 
 	// If the deletion timestamp is set, perform cleanup operations and remove a finalizer before returning from the reconciliation process.
@@ -683,12 +688,20 @@ func (r *IBMObjectCSIReconciler) cleanupControllerSCC(instance *crutils.IBMObjec
 
 // isSCCSupported checks if the security.openshift.io API group is registered in the cluster.
 // Returns true on ROKS/OpenShift clusters where SCC is available, false on IKS.
-func (r *IBMObjectCSIReconciler) isSCCSupported() bool {
+// Only a "no match" error means the API is absent (IKS). Any other error (for example an
+// API server timeout) is returned, so the caller does not decide the cluster type by guessing.
+func (r *IBMObjectCSIReconciler) isSCCSupported() (bool, error) {
 	_, err := r.Client.RESTMapper().ResourcesFor(schema.GroupVersionResource{
 		Group:    constants.SecurityOpenshiftAPIGroup,
 		Resource: constants.SecurityContextConstraintsResource,
 	})
-	return err == nil
+	if err == nil {
+		return true, nil
+	}
+	if meta.IsNoMatchError(err) {
+		return false, nil
+	}
+	return false, err
 }
 
 func checkIfupdateCRFromConfigMapRequired(instance *objectdriverv1alpha1.IBMObjectCSI, cm *corev1.ConfigMap) bool {
