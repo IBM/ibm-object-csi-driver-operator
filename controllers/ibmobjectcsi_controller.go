@@ -671,9 +671,8 @@ func (r *IBMObjectCSIReconciler) getClusterRoles(instance *crutils.IBMObjectCSI,
 // on clusters without SCC support (IKS).
 //
 // Why this is needed: older operator versions created these resources on every cluster.
-// ReconcileClusterRole only creates/patches the roles in its list, so it never removes
-// a role that was dropped from it. Without this cleanup, existing IKS clusters would
-// keep the stale controller-scc role and binding after upgrading.
+// Without this cleanup, existing IKS clusters would keep the stale controller-scc role
+// and binding after upgrading.
 func (r *IBMObjectCSIReconciler) cleanupControllerSCC(instance *crutils.IBMObjectCSI, sccSupported bool) error {
 	if sccSupported {
 		return nil
