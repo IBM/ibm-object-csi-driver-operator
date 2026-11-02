@@ -57,7 +57,7 @@
 				
 				<option value="file0">github.com/IBM/ibm-object-csi-driver-operator/controllers/constants/constants.go (0.0%)</option>
 				
-				<option value="file1">github.com/IBM/ibm-object-csi-driver-operator/controllers/ibmobjectcsi_controller.go (76.0%)</option>
+				<option value="file1">github.com/IBM/ibm-object-csi-driver-operator/controllers/ibmobjectcsi_controller.go (77.0%)</option>
 				
 				<option value="file2">github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/common/common.go (0.0%)</option>
 				
@@ -326,6 +326,7 @@ import (
         rbacv1 "k8s.io/api/rbac/v1"
         storagev1 "k8s.io/api/storage/v1"
         "k8s.io/apimachinery/pkg/api/errors"
+        "k8s.io/apimachinery/pkg/api/meta"
         "k8s.io/apimachinery/pkg/runtime"
         "k8s.io/apimachinery/pkg/runtime/schema"
         "k8s.io/apimachinery/pkg/types"
@@ -389,7 +390,7 @@ type IBMObjectCSIReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.1/pkg/reconcile
-func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcile.Result, error) <span class="cov10" title="30">{
+func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcile.Result, error) <span class="cov9" title="31">{
         reqLogger := csiLog.WithValues("Request.Namespace", req.Namespace, "Request.Name", req.Name)
         r.ControllerHelper.Log = csiLog
 
@@ -399,7 +400,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
                 // Handle the update of IBMObjectCSI
                 return r.handleConfigMapReconcile(ctx, req)
         }</span>
-        <span class="cov10" title="30">reqLogger.Info("Reconciling IBMObjectCSI")
+        <span class="cov9" title="31">reqLogger.Info("Reconciling IBMObjectCSI")
 
         // Fetch the CSIDriver instance
         instance := crutils.New(&amp;objectdriverv1alpha1.IBMObjectCSI{})
@@ -414,26 +415,33 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
         }
         //setting default values for a Kubernetes Custom Resource using the Scheme's Default() method, based on the Go type definition of the Custom Resource.
         //This ensures that the CR has all the required fields with default values before further processing or reconciliation by the operator.
-        <span class="cov9" title="27">r.Scheme.Default(instance.Unwrap())
+        <span class="cov9" title="28">r.Scheme.Default(instance.Unwrap())
         if err := r.ControllerHelper.AddFinalizerIfNotPresent(
                 instance, instance.Unwrap()); err != nil </span><span class="cov6" title="9">{
                 return reconcile.Result{}, err
         }</span>
 
-        <span class="cov8" title="18">s3Provider := instance.Spec.S3Provider
-        if s3Provider == "" </span><span class="cov7" title="11">{
+        <span class="cov8" title="19">s3Provider := instance.Spec.S3Provider
+        if s3Provider == "" </span><span class="cov7" title="12">{
                 s3Provider = constants.S3ProviderIBM
         }</span>
-        <span class="cov8" title="18">r.ControllerHelper.S3Provider = s3Provider
+        <span class="cov8" title="19">r.ControllerHelper.S3Provider = s3Provider
         r.ControllerHelper.S3ProviderRegion = instance.Spec.S3ProviderRegion
+
+        sccSupported, err := r.isSCCSupported()
+        if err != nil </span><span class="cov1" title="1">{
+                reqLogger.Error(err, "Failed to detect SCC support")
+                return reconcile.Result{}, err
+        }</span>
+        <span class="cov8" title="18">reqLogger.Info("SCC support detected", "sccSupported", sccSupported)
 
         // If the deletion timestamp is set, perform cleanup operations and remove a finalizer before returning from the reconciliation process.
         if !instance.GetDeletionTimestamp().IsZero() </span><span class="cov5" title="6">{
-                if err := r.deleteClusterRoleBindings(instance); err != nil </span><span class="cov1" title="1">{
+                if err := r.deleteClusterRoleBindings(instance, sccSupported); err != nil </span><span class="cov1" title="1">{
                         return reconcile.Result{}, err
                 }</span>
 
-                <span class="cov5" title="5">if err := r.deleteClusterRoles(instance); err != nil </span><span class="cov1" title="1">{
+                <span class="cov5" title="5">if err := r.deleteClusterRoles(instance, sccSupported); err != nil </span><span class="cov1" title="1">{
                         return reconcile.Result{}, err
                 }</span>
 
@@ -479,12 +487,19 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
         }
 
         // create the resources if not exist
-        <span class="cov7" title="10">for _, rec := range []reconciler{
+        <span class="cov6" title="10">for _, rec := range []reconciler{
                 r.reconcileCSIDriver,
                 r.reconcileServiceAccount,
-                r.reconcileClusterRole,
-                r.reconcileClusterRoleBinding,
-        } </span><span class="cov9" title="28">{
+                func(instance *crutils.IBMObjectCSI) error </span><span class="cov5" title="5">{
+                        return r.reconcileClusterRole(instance, sccSupported)
+                }</span>,
+                func(instance *crutils.IBMObjectCSI) error <span class="cov5" title="5">{
+                        return r.reconcileClusterRoleBinding(instance, sccSupported)
+                }</span>,
+                func(instance *crutils.IBMObjectCSI) error <span class="cov5" title="5">{
+                        return r.cleanupControllerSCC(instance, sccSupported)
+                }</span>,
+        } <span class="cov10" title="33">{
                 if err = rec(instance); err != nil </span><span class="cov5" title="5">{
                         return reconcile.Result{}, err
                 }</span>
@@ -680,8 +695,8 @@ func (r *IBMObjectCSIReconciler) getControllerDeployment(instance *crutils.IBMOb
         return controllerDeployment, err
 }</span>
 
-func (r *IBMObjectCSIReconciler) reconcileClusterRoleBinding(instance *crutils.IBMObjectCSI) error <span class="cov5" title="5">{
-        clusterRoleBindings := r.getClusterRoleBindings(instance)
+func (r *IBMObjectCSIReconciler) reconcileClusterRoleBinding(instance *crutils.IBMObjectCSI, sccSupported bool) error <span class="cov5" title="5">{
+        clusterRoleBindings := r.getClusterRoleBindings(instance, sccSupported)
         return r.ControllerHelper.ReconcileClusterRoleBinding(clusterRoleBindings)
 }</span>
 
@@ -694,8 +709,8 @@ func (r *IBMObjectCSIReconciler) reconcileStorageClasses(instance *crutils.IBMOb
         return r.ControllerHelper.ReconcileStorageClasses(storageClasses)
 }</span>
 
-func (r *IBMObjectCSIReconciler) reconcileClusterRole(instance *crutils.IBMObjectCSI) error <span class="cov5" title="5">{
-        clusterRoles := r.getClusterRoles(instance)
+func (r *IBMObjectCSIReconciler) reconcileClusterRole(instance *crutils.IBMObjectCSI, sccSupported bool) error <span class="cov5" title="5">{
+        clusterRoles := r.getClusterRoles(instance, sccSupported)
         return r.ControllerHelper.ReconcileClusterRole(clusterRoles)
 }</span>
 
@@ -789,7 +804,7 @@ func (r *IBMObjectCSIReconciler) restartControllerPod(logger logr.Logger, instan
         <span class="cov3" title="3">return r.restartControllerPodfromDeployment(logger, controllerDeployment, controllerPod)</span>
 }
 
-func (r *IBMObjectCSIReconciler) reconcileCSIDriver(instance *crutils.IBMObjectCSI) error <span class="cov7" title="10">{
+func (r *IBMObjectCSIReconciler) reconcileCSIDriver(instance *crutils.IBMObjectCSI) error <span class="cov6" title="10">{
         logger := csiLog.WithValues("Resource Type", "CSIDriver")
 
         cd := instance.GenerateCSIDriver()
@@ -836,8 +851,8 @@ func (r *IBMObjectCSIReconciler) deleteCSIDriver(instance *crutils.IBMObjectCSI)
         <span class="cov0" title="0">return nil</span>
 }
 
-func (r *IBMObjectCSIReconciler) deleteClusterRoleBindings(instance *crutils.IBMObjectCSI) error <span class="cov5" title="6">{
-        clusterRoleBindings := r.getClusterRoleBindings(instance)
+func (r *IBMObjectCSIReconciler) deleteClusterRoleBindings(instance *crutils.IBMObjectCSI, sccSupported bool) error <span class="cov5" title="6">{
+        clusterRoleBindings := r.getClusterRoleBindings(instance, sccSupported)
         return r.ControllerHelper.DeleteClusterRoleBindings(clusterRoleBindings)
 }</span>
 
@@ -846,17 +861,16 @@ func (r *IBMObjectCSIReconciler) deleteStorageClasses(instance *crutils.IBMObjec
         return r.ControllerHelper.DeleteStorageClasses(storageClasses)
 }</span>
 
-func (r *IBMObjectCSIReconciler) getClusterRoleBindings(instance *crutils.IBMObjectCSI) []*rbacv1.ClusterRoleBinding <span class="cov7" title="11">{
-        externalProvisioner := instance.GenerateExternalProvisionerClusterRoleBinding()
-        controllerSCC := instance.GenerateSCCForControllerClusterRoleBinding()
-        nodeSCC := instance.GenerateSCCForNodeClusterRoleBinding()
-
-        return []*rbacv1.ClusterRoleBinding{
-                externalProvisioner,
-                controllerSCC,
-                nodeSCC,
+func (r *IBMObjectCSIReconciler) getClusterRoleBindings(instance *crutils.IBMObjectCSI, sccSupported bool) []*rbacv1.ClusterRoleBinding <span class="cov7" title="11">{
+        bindings := []*rbacv1.ClusterRoleBinding{
+                instance.GenerateExternalProvisionerClusterRoleBinding(),
+                instance.GenerateSCCForNodeClusterRoleBinding(),
         }
-}</span>
+        if sccSupported </span><span class="cov2" title="2">{
+                bindings = append(bindings, instance.GenerateSCCForControllerClusterRoleBinding())
+        }</span>
+        <span class="cov7" title="11">return bindings</span>
+}
 
 func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCSI) []*storagev1.StorageClass <span class="cov6" title="9">{
         var requiredRegion string
@@ -905,7 +919,7 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
         }</span>
         <span class="cov6" title="9">cosEP := r.ControllerHelper.GetCosEP()
         for _, sc := range cosSCs </span><span class="cov5" title="5">{
-                for _, rp := range reclaimPolicys </span><span class="cov7" title="10">{
+                for _, rp := range reclaimPolicys </span><span class="cov6" title="10">{
                         rcloneK8sSc := instance.GenerateRcloneSC(crutils.SCInputParams{
                                 ReclaimPolicy:   rp,
                                 S3Provider:      s3Provider,
@@ -927,22 +941,57 @@ func (r *IBMObjectCSIReconciler) getStorageClasses(instance *crutils.IBMObjectCS
         <span class="cov6" title="9">return k8sSCs</span>
 }
 
-func (r *IBMObjectCSIReconciler) deleteClusterRoles(instance *crutils.IBMObjectCSI) error <span class="cov5" title="5">{
-        clusterRoles := r.getClusterRoles(instance)
+func (r *IBMObjectCSIReconciler) deleteClusterRoles(instance *crutils.IBMObjectCSI, sccSupported bool) error <span class="cov5" title="5">{
+        clusterRoles := r.getClusterRoles(instance, sccSupported)
         return r.ControllerHelper.DeleteClusterRoles(clusterRoles)
 }</span>
 
-func (r *IBMObjectCSIReconciler) getClusterRoles(instance *crutils.IBMObjectCSI) []*rbacv1.ClusterRole <span class="cov7" title="10">{
-        externalProvisioner := instance.GenerateExternalProvisionerClusterRole()
-        controllerSCC := instance.GenerateSCCForControllerClusterRole()
-        nodeSCC := instance.GenerateSCCForNodeClusterRole()
-
-        return []*rbacv1.ClusterRole{
-                externalProvisioner,
-                controllerSCC,
-                nodeSCC,
+func (r *IBMObjectCSIReconciler) getClusterRoles(instance *crutils.IBMObjectCSI, sccSupported bool) []*rbacv1.ClusterRole <span class="cov6" title="10">{
+        roles := []*rbacv1.ClusterRole{
+                instance.GenerateExternalProvisionerClusterRole(),
+                instance.GenerateSCCForNodeClusterRole(sccSupported),
         }
-}</span>
+        if sccSupported </span><span class="cov1" title="1">{
+                roles = append(roles, instance.GenerateSCCForControllerClusterRole())
+        }</span>
+        <span class="cov6" title="10">return roles</span>
+}
+
+// cleanupControllerSCC deletes the controller SCC ClusterRoleBinding and ClusterRole
+// on clusters without SCC support (IKS).
+//
+// Why this is needed: older operator versions created these resources on every cluster.
+// Without this cleanup, existing IKS clusters would keep the stale controller-scc role
+// and binding after upgrading.
+func (r *IBMObjectCSIReconciler) cleanupControllerSCC(instance *crutils.IBMObjectCSI, sccSupported bool) error <span class="cov6" title="8">{
+        if sccSupported </span><span class="cov1" title="1">{
+                return nil
+        }</span>
+        <span class="cov6" title="7">if err := r.ControllerHelper.DeleteClusterRoleBindings(
+                []*rbacv1.ClusterRoleBinding{instance.GenerateSCCForControllerClusterRoleBinding()}); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov6" title="7">return r.ControllerHelper.DeleteClusterRoles(
+                []*rbacv1.ClusterRole{instance.GenerateSCCForControllerClusterRole()})</span>
+}
+
+// isSCCSupported checks if the security.openshift.io API group is registered in the cluster.
+// Returns true on ROKS/OpenShift clusters where SCC is available, false on IKS.
+// Only a "no match" error means the API is absent (IKS). Any other error (for example an
+// API server timeout) is returned, so the caller does not decide the cluster type by guessing.
+func (r *IBMObjectCSIReconciler) isSCCSupported() (bool, error) <span class="cov8" title="22">{
+        _, err := r.Client.RESTMapper().ResourcesFor(schema.GroupVersionResource{
+                Group:    constants.SecurityOpenshiftAPIGroup,
+                Resource: constants.SecurityContextConstraintsResource,
+        })
+        if err == nil </span><span class="cov3" title="3">{
+                return true, nil
+        }</span>
+        <span class="cov8" title="19">if meta.IsNoMatchError(err) </span><span class="cov8" title="17">{
+                return false, nil
+        }</span>
+        <span class="cov2" title="2">return false, err</span>
+}
 
 func checkIfupdateCRFromConfigMapRequired(instance *objectdriverv1alpha1.IBMObjectCSI, cm *corev1.ConfigMap) bool <span class="cov7" title="11">{
         crUpdateRequired := false
@@ -1447,32 +1496,37 @@ func (c *IBMObjectCSI) GenerateSCCForControllerClusterRoleBinding() *rbacv1.Clus
 }</span>
 
 // GenerateSCCForNodeClusterRole ...
-func (c *IBMObjectCSI) GenerateSCCForNodeClusterRole() *rbacv1.ClusterRole <span class="cov0" title="0">{
+func (c *IBMObjectCSI) GenerateSCCForNodeClusterRole(sccSupported bool) *rbacv1.ClusterRole <span class="cov0" title="0">{
+        rules := []rbacv1.PolicyRule{}
+        if sccSupported </span><span class="cov0" title="0">{
+                rules = append(rules, rbacv1.PolicyRule{
+                        APIGroups:     []string{constants.SecurityOpenshiftAPIGroup},
+                        Resources:     []string{constants.SecurityContextConstraintsResource},
+                        ResourceNames: []string{"privileged"},
+                        Verbs:         []string{"use"},
+                })
+        }</span>
+        <span class="cov0" title="0">rules = append(rules, []rbacv1.PolicyRule{
+                {
+                        APIGroups: []string{""},
+                        Resources: []string{constants.NodesResource},
+                        Verbs:     []string{constants.VerbGet},
+                },
+                {
+                        APIGroups: []string{""},
+                        Resources: []string{constants.PersistentVolumesResource, constants.SecretsResource},
+                        Verbs:     []string{constants.VerbGet},
+                },
+        }...)
+
         return &amp;rbacv1.ClusterRole{
                 ObjectMeta: metav1.ObjectMeta{
                         Name:   constants.GetResourceName(constants.CSINodeSCCClusterRole),
                         Labels: constants.CommonCSIResourceLabels,
                 },
-                Rules: []rbacv1.PolicyRule{
-                        {
-                                APIGroups:     []string{constants.SecurityOpenshiftAPIGroup},
-                                Resources:     []string{constants.SecurityContextConstraintsResource},
-                                ResourceNames: []string{"privileged"},
-                                Verbs:         []string{"use"},
-                        },
-                        {
-                                APIGroups: []string{""},
-                                Resources: []string{constants.NodesResource},
-                                Verbs:     []string{constants.VerbGet},
-                        },
-                        {
-                                APIGroups: []string{""},
-                                Resources: []string{constants.PersistentVolumesResource, constants.SecretsResource},
-                                Verbs:     []string{constants.VerbGet},
-                        },
-                },
-        }
-}</span>
+                Rules: rules,
+        }</span>
+}
 
 // GenerateSCCForNodeClusterRoleBinding ...
 func (c *IBMObjectCSI) GenerateSCCForNodeClusterRoleBinding() *rbacv1.ClusterRoleBinding <span class="cov0" title="0">{
@@ -2992,7 +3046,7 @@ var (
 
 var testNodeServerPodLogs = `E0319 05:32:00.429871       1 nodeserver.go:245] NodeGetVolumeStats: error occurred while getting volume stats map[Error:transport endpoint is not connected VolumeId:test-pv-1]`
 
-func setupScheme() *runtime.Scheme <span class="cov10" title="44">{
+func setupScheme() *runtime.Scheme <span class="cov10" title="49">{
         s := scheme.Scheme
         _ = v1alpha1.AddToScheme(s) // #nosec G104: Skip error
         return s
