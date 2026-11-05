@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -54,6 +55,12 @@ var (
 	reclaimPolicyRetain  = corev1.PersistentVolumeReclaimRetain
 	reclaimPolicyDelete  = corev1.PersistentVolumeReclaimDelete
 	secrets              = crutils.GetImagePullSecrets(ibmObjectCSICR.Spec.ImagePullSecrets)
+	operatorNamespace    = &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constants.CSIOperatorNamespace,
+			UID:  "operator-namespace-uid",
+		},
+	}
 
 	operatorDeploymnet = &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -533,6 +540,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Positive: Successful",
 			objects: []runtime.Object{
 				operatorDeploymnet,
+				operatorNamespace,
 				ibmObjectCSICR,
 				addonConfigMap,
 				csiNode,
@@ -559,6 +567,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Positive: Sync controller deployment & pod containers and update status in IBMObjectCSI CR",
 			objects: []runtime.Object{
 				operatorDeploymnet,
+				operatorNamespace,
 				ibmObjectCSICRWithAWSProvider,
 				addonConfigMap,
 				csiNode,
@@ -589,6 +598,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Positive: Successfully updated status in IBMObjectCSI CR after validating if pod images are in sync",
 			objects: []runtime.Object{
 				operatorDeploymnet,
+				operatorNamespace,
 				ibmObjectCSICR,
 				addonConfigMap,
 				controllerSA,
@@ -1184,5 +1194,145 @@ func TestIBMObjectCSISetupWithManager(t *testing.T) {
 		if err := ibmObjectCSIReconciler.SetupWithManager(nil); err != nil {
 			TestLog.Error(err, "failed to setup controller with nanager")
 		}
+	})
+}
+
+// newOwnedRBACObjects returns the 8 addon-manager RBAC objects with the given mode label value.
+func newOwnedRBACObjects(labels map[string]string) []runtime.Object {
+	var objs []runtime.Object
+	for _, t := range constants.NamespaceOwnedRBACObjects {
+		om := metav1.ObjectMeta{Name: t.Name, Namespace: t.Namespace, Labels: labels}
+		switch t.Kind {
+		case constants.KindClusterRole:
+			objs = append(objs, &rbacv1.ClusterRole{ObjectMeta: om})
+		case constants.KindClusterRoleBinding:
+			objs = append(objs, &rbacv1.ClusterRoleBinding{ObjectMeta: om})
+		case constants.KindRole:
+			objs = append(objs, &rbacv1.Role{ObjectMeta: om})
+		case constants.KindRoleBinding:
+			objs = append(objs, &rbacv1.RoleBinding{ObjectMeta: om})
+		}
+	}
+	return objs
+}
+
+func getOwnerRefs(t *testing.T, c client.Client, target constants.RBACTarget) []metav1.OwnerReference {
+	var obj client.Object
+	switch target.Kind {
+	case constants.KindClusterRole:
+		obj = &rbacv1.ClusterRole{}
+	case constants.KindClusterRoleBinding:
+		obj = &rbacv1.ClusterRoleBinding{}
+	case constants.KindRole:
+		obj = &rbacv1.Role{}
+	default:
+		obj = &rbacv1.RoleBinding{}
+	}
+	assert.NoError(t, c.Get(TestCtx, types.NamespacedName{Name: target.Name, Namespace: target.Namespace}, obj))
+	return obj.GetOwnerReferences()
+}
+
+// patchFailingClient fails Patch calls for the object with the given name.
+type patchFailingClient struct {
+	client.Client
+	failName string
+}
+
+func (c *patchFailingClient) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
+	if obj.GetName() == c.failName {
+		return errors.New("patch failed")
+	}
+	return c.Client.Patch(ctx, obj, patch, opts...)
+}
+
+func TestSetNamespaceOwnerReference(t *testing.T) {
+	modeEmpty := map[string]string{constants.AddonManagerModeLabel: ""}
+
+	t.Run("sets owner on all objects with mode empty and is idempotent", func(t *testing.T) {
+		objs := append(newOwnedRBACObjects(modeEmpty), operatorNamespace)
+		c := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+		helper := common.NewControllerHelper(c, c, TestLog)
+
+		assert.NoError(t, helper.SetNamespaceOwnerReference(TestCtx, constants.NamespaceOwnedRBACObjects))
+		assert.NoError(t, helper.SetNamespaceOwnerReference(TestCtx, constants.NamespaceOwnedRBACObjects))
+
+		for _, target := range constants.NamespaceOwnedRBACObjects {
+			refs := getOwnerRefs(t, c, target)
+			if assert.Len(t, refs, 1, target.Name) {
+				assert.Equal(t, "Namespace", refs[0].Kind)
+				assert.Equal(t, constants.CSIOperatorNamespace, refs[0].Name)
+				assert.Equal(t, operatorNamespace.UID, refs[0].UID)
+				assert.Equal(t, false, *refs[0].BlockOwnerDeletion)
+				assert.Equal(t, false, *refs[0].Controller)
+			}
+		}
+	})
+
+	t.Run("skips objects whose mode is not empty or missing", func(t *testing.T) {
+		for name, labels := range map[string]map[string]string{
+			"mode Reconcile": {constants.AddonManagerModeLabel: "Reconcile"},
+			"no label":       nil,
+		} {
+			objs := append(newOwnedRBACObjects(labels), operatorNamespace)
+			c := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+			helper := common.NewControllerHelper(c, c, TestLog)
+
+			assert.NoError(t, helper.SetNamespaceOwnerReference(TestCtx, constants.NamespaceOwnedRBACObjects), name)
+			for _, target := range constants.NamespaceOwnedRBACObjects {
+				assert.Empty(t, getOwnerRefs(t, c, target), name+" "+target.Name)
+			}
+		}
+	})
+
+	t.Run("skips missing objects without error", func(t *testing.T) {
+		c := fake.NewClientBuilder().WithRuntimeObjects(operatorNamespace).Build()
+		helper := common.NewControllerHelper(c, c, TestLog)
+		assert.NoError(t, helper.SetNamespaceOwnerReference(TestCtx, constants.NamespaceOwnedRBACObjects))
+	})
+
+	t.Run("keeps existing owner references", func(t *testing.T) {
+		existing := metav1.OwnerReference{APIVersion: "v1", Kind: "ConfigMap", Name: "other", UID: "other-uid"}
+		target := constants.NamespaceOwnedRBACObjects[0]
+		objs := []runtime.Object{
+			operatorNamespace,
+			&rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{
+				Name: target.Name, Labels: modeEmpty, OwnerReferences: []metav1.OwnerReference{existing},
+			}},
+		}
+		c := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+		helper := common.NewControllerHelper(c, c, TestLog)
+
+		assert.NoError(t, helper.SetNamespaceOwnerReference(TestCtx, []constants.RBACTarget{target}))
+		refs := getOwnerRefs(t, c, target)
+		if assert.Len(t, refs, 2) {
+			assert.Equal(t, "ConfigMap", refs[0].Kind)
+			assert.Equal(t, "Namespace", refs[1].Kind)
+		}
+	})
+
+	t.Run("one failing object does not stop the others and the error is returned", func(t *testing.T) {
+		objs := append(newOwnedRBACObjects(modeEmpty), operatorNamespace)
+		base := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+		failing := constants.NamespaceOwnedRBACObjects[0]
+		c := &patchFailingClient{Client: base, failName: failing.Name}
+		helper := common.NewControllerHelper(c, c, TestLog)
+
+		err := helper.SetNamespaceOwnerReference(TestCtx, constants.NamespaceOwnedRBACObjects)
+		if assert.Error(t, err) {
+			assert.Contains(t, err.Error(), failing.Name)
+		}
+		for i, target := range constants.NamespaceOwnedRBACObjects {
+			if i == 0 {
+				assert.Empty(t, getOwnerRefs(t, base, target))
+			} else {
+				assert.Len(t, getOwnerRefs(t, base, target), 1, target.Name)
+			}
+		}
+	})
+
+	t.Run("returns error when namespace is missing", func(t *testing.T) {
+		c := fake.NewClientBuilder().WithRuntimeObjects(newOwnedRBACObjects(modeEmpty)...).Build()
+		helper := common.NewControllerHelper(c, c, TestLog)
+		assert.Error(t, helper.SetNamespaceOwnerReference(TestCtx, constants.NamespaceOwnedRBACObjects))
 	})
 }
