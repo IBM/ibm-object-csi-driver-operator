@@ -314,6 +314,84 @@ func (ch *ControllerHelper) DeleteRoleBinding(roleBindings []*rbacv1.RoleBinding
 	return nil
 }
 
+// SetNamespaceOwnerReference adds the operator namespace as an owner of each given RBAC object that
+// has addonmanager.kubernetes.io/mode: "". Objects that are missing, have a different mode, or are
+// already owned by the namespace are skipped. All targets are attempted and the errors are joined,
+// so that one failing object does not leave the others without an owner.
+// Objects are read with APIReader because the operator is only allowed to get/patch them by name.
+func (ch *ControllerHelper) SetNamespaceOwnerReference(ctx context.Context, targets []constants.RBACTarget) error {
+	logger := ch.Log.WithName("SetNamespaceOwnerReference")
+
+	ns := &corev1.Namespace{}
+	if err := ch.APIReader.Get(ctx, types.NamespacedName{Name: constants.CSIOperatorNamespace}, ns); err != nil {
+		logger.Error(err, "Failed to get Namespace", "Name", constants.CSIOperatorNamespace)
+		return err
+	}
+	ownerRef := metav1.OwnerReference{
+		APIVersion:         "v1",
+		Kind:               "Namespace",
+		Name:               ns.Name,
+		UID:                ns.UID,
+		BlockOwnerDeletion: util.False(),
+		Controller:         util.False(),
+	}
+
+	var errs []error
+	for _, target := range targets {
+		if err := ch.setOwnerReference(ctx, target, ownerRef); err != nil {
+			logger.Error(err, "Failed to set ownerReference", "Kind", target.Kind, "Name", target.Name, "Namespace", target.Namespace)
+			errs = append(errs, fmt.Errorf("%s %s/%s: %w", target.Kind, target.Namespace, target.Name, err))
+		}
+	}
+	return errors.Join(errs...)
+}
+
+func (ch *ControllerHelper) setOwnerReference(ctx context.Context, target constants.RBACTarget, ownerRef metav1.OwnerReference) error {
+	logger := ch.Log.WithName("setOwnerReference").WithValues("Kind", target.Kind, "Name", target.Name, "Namespace", target.Namespace)
+
+	var obj client.Object
+	switch target.Kind {
+	case constants.KindClusterRole:
+		obj = &rbacv1.ClusterRole{}
+	case constants.KindClusterRoleBinding:
+		obj = &rbacv1.ClusterRoleBinding{}
+	case constants.KindRole:
+		obj = &rbacv1.Role{}
+	case constants.KindRoleBinding:
+		obj = &rbacv1.RoleBinding{}
+	default:
+		return fmt.Errorf("unsupported kind %q", target.Kind)
+	}
+
+	err := ch.APIReader.Get(ctx, types.NamespacedName{Name: target.Name, Namespace: target.Namespace}, obj)
+	if k8sErr.IsNotFound(err) {
+		logger.Info("Skip ownerReference: object not found")
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	if mode, ok := obj.GetLabels()[constants.AddonManagerModeLabel]; !ok || mode != "" {
+		logger.Info("Skip ownerReference: addon manager mode label is not empty", "mode", mode)
+		return nil
+	}
+
+	for _, ref := range obj.GetOwnerReferences() {
+		if ref.Kind == ownerRef.Kind && ref.UID == ownerRef.UID {
+			logger.Info("Skip ownerReference: already set")
+			return nil
+		}
+	}
+
+	patch := client.MergeFrom(obj.DeepCopyObject().(client.Object))
+	obj.SetOwnerReferences(append(obj.GetOwnerReferences(), ownerRef))
+	if err := ch.Patch(ctx, obj, patch); err != nil {
+		return err
+	}
+	logger.Info("Set namespace ownerReference")
+	return nil
+}
+
 // AddFinalizerIfNotPresent ...
 func (ch *ControllerHelper) AddFinalizerIfNotPresent(instance crutils.Instance,
 	unwrappedInstance client.Object) error {

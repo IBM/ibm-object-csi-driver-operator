@@ -98,7 +98,7 @@ const (
 	IaasIBMVPC       = "ibm-vpc"
 
 	// Environment variable names injected into the controller and node containers.
-	EnvIAMEndpoint              = "IAM_ENDPOINT"
+	EnvIAMEndpoint               = "IAM_ENDPOINT"
 	EnvCOSResourceConfigEndpoint = "COS_RESOURCE_CONFIG_ENDPOINT"
 
 	// IAM and COS resource config endpoints per IaaS provider type.
@@ -134,7 +134,39 @@ const (
 
 	CSIAddonNodeLabelKey   = "cos.csi.ibm.io/csi-node"
 	CSIAddonNodeLabelValue = "true"
+
+	// AddonManagerModeLabel is the label set by the addon deployment.yaml. RBAC objects with an
+	// empty value are not managed (or cleaned up) by the addon manager.
+	AddonManagerModeLabel = "addonmanager.kubernetes.io/mode"
+
+	KindClusterRole        = "ClusterRole"
+	KindClusterRoleBinding = "ClusterRoleBinding"
+	KindRole               = "Role"
+	KindRoleBinding        = "RoleBinding"
+
+	kubeSystemNamespace = "kube-system"
 )
+
+// RBACTarget identifies an RBAC object. Namespace is empty for cluster-scoped kinds.
+type RBACTarget struct {
+	Kind      string
+	Name      string
+	Namespace string
+}
+
+// NamespaceOwnedRBACObjects are the RBAC objects deployed with addonmanager.kubernetes.io/mode: "".
+// The operator adds the operator namespace as their owner so that they are garbage collected
+// when the namespace is deleted.
+var NamespaceOwnedRBACObjects = []RBACTarget{
+	{Kind: KindClusterRole, Name: "ibm-object-csi-operator-manager-role"},
+	{Kind: KindClusterRoleBinding, Name: "ibm-object-csi-operator-manager-rolebinding"},
+	{Kind: KindRole, Name: "leader-election-role", Namespace: CSIOperatorNamespace},
+	{Kind: KindRoleBinding, Name: "leader-election-rolebinding", Namespace: CSIOperatorNamespace},
+	{Kind: KindRole, Name: "ibm-object-csi-operator-role", Namespace: CSIOperatorNamespace},
+	{Kind: KindRoleBinding, Name: "ibm-object-csi-operator-rolebinding", Namespace: CSIOperatorNamespace},
+	{Kind: KindRole, Name: "ibm-object-csi-operator-kube-system-cm-role", Namespace: kubeSystemNamespace},
+	{Kind: KindRoleBinding, Name: "ibm-object-csi-operator-kube-system-cm-rolebinding", Namespace: kubeSystemNamespace},
+}
 
 type FinalizerOps int
 
