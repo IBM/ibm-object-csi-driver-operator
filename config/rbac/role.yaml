@@ -22,6 +22,14 @@ rules:
   - '*'
 - apiGroups:
   - ""
+  resourceNames:
+  - ibm-object-csi-operator
+  resources:
+  - namespaces
+  verbs:
+  - get
+- apiGroups:
+  - ""
   resources:
   - persistentvolumeclaims
   verbs:
@@ -158,11 +166,42 @@ rules:
   - get
 - apiGroups:
   - rbac.authorization.k8s.io
+  resourceNames:
+  - ibm-object-csi-operator-manager-rolebinding
+  resources:
+  - clusterrolebindings
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - rbac.authorization.k8s.io
   resources:
   - clusterroles
   verbs:
   - create
   - delete
+  - get
+  - patch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resourceNames:
+  - ibm-object-csi-operator-kube-system-cm-rolebinding
+  - ibm-object-csi-operator-rolebinding
+  - leader-election-rolebinding
+  resources:
+  - rolebindings
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resourceNames:
+  - ibm-object-csi-operator-kube-system-cm-role
+  - ibm-object-csi-operator-role
+  - leader-election-role
+  resources:
+  - roles
+  verbs:
   - get
   - patch
 - apiGroups:
