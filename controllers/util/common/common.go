@@ -373,7 +373,12 @@ func (ch *ControllerHelper) setOwnerReference(ctx context.Context, target consta
 		return err
 	}
 
-	if mode, ok := obj.GetLabels()[constants.AddonManagerModeLabel]; !ok || mode != "" {
+	mode, ok := obj.GetLabels()[constants.AddonManagerModeLabel]
+	if !ok {
+		logger.Info("Skip ownerReference: addon manager mode label is missing")
+		return nil
+	}
+	if mode != "" {
 		logger.Info("Skip ownerReference: addon manager mode label is not empty", "mode", mode)
 		return nil
 	}
