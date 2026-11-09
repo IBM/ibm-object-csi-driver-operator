@@ -200,6 +200,13 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return reconcile.Result{}, nil
 	}
 
+	// Make the operator namespace the owner of the addon-manager "mode: \"\"" RBAC objects,
+	// so that they get garbage collected once the namespace is cleaned up.
+	// This is independent of the CSI driver resources, so do it before reconciling them.
+	if err := r.ControllerHelper.SetNamespaceOwnerReference(ctx, constants.NamespaceOwnedRBACObjects); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	// create the resources if not exist
 	for _, rec := range []reconciler{
 		r.reconcileCSIDriver,
@@ -235,12 +242,6 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	if err := r.updateStatus(instance, originalStatus); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	// Make the operator namespace the owner of the addon-manager "mode: \"\"" RBAC objects,
-	// so that they get garbage collected once the namespace is cleaned up.
-	if err := r.ControllerHelper.SetNamespaceOwnerReference(ctx, constants.NamespaceOwnedRBACObjects); err != nil {
 		return reconcile.Result{}, err
 	}
 

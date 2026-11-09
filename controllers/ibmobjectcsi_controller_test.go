@@ -725,6 +725,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Negative: Failed to create CSI driver while reconciling",
 			objects: []runtime.Object{
 				operatorDeploymnet,
+				operatorNamespace,
 				ibmObjectCSICR,
 				addonConfigMap,
 			},
@@ -738,6 +739,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Negative: Failed to get CSI driver while reconciling",
 			objects: []runtime.Object{
 				operatorDeploymnet,
+				operatorNamespace,
 				ibmObjectCSICR.DeepCopy(),
 				addonConfigMap,
 			},
@@ -751,6 +753,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Negative: Failed to create service account while reconciling",
 			objects: []runtime.Object{
 				operatorDeploymnet,
+				operatorNamespace,
 				ibmObjectCSICR,
 				addonConfigMap,
 				csiDriver,
@@ -790,6 +793,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Negative: Failed to restart node while reconciling",
 			objects: []runtime.Object{
 				operatorDeploymnet,
+				operatorNamespace,
 				ibmObjectCSICRWithFinaliser,
 				addonConfigMap,
 				csiNode,
@@ -806,6 +810,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Failed to get service account while reconciling",
 			objects: []runtime.Object{
 				operatorDeploymnet,
+				operatorNamespace,
 				ibmObjectCSICR,
 				addonConfigMap,
 			},
@@ -819,6 +824,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Negative: Failed to get controller pod while reconciling",
 			objects: []runtime.Object{
 				operatorDeploymnet,
+				operatorNamespace,
 				ibmObjectCSICRWithFinaliser,
 				addonConfigMap,
 				csiNode,
@@ -848,6 +854,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Negative: Failed to sync CSI Controller",
 			objects: []runtime.Object{
 				operatorDeploymnet,
+				operatorNamespace,
 				ibmObjectCSICRWithFinaliser,
 				addonConfigMap,
 				controllerSA,
@@ -871,6 +878,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Negative: Failed to sync CSI Node",
 			objects: []runtime.Object{
 				operatorDeploymnet,
+				operatorNamespace,
 				ibmObjectCSICRWithFinaliser,
 				addonConfigMap,
 				controllerSA,
@@ -887,6 +895,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Negative: Failed to create storage class while reconciling",
 			objects: []runtime.Object{
 				operatorDeploymnet,
+				operatorNamespace,
 				ibmObjectCSICRWithAWSProvider,
 				addonConfigMap,
 				csiNode,
@@ -903,6 +912,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			testCaseName: "Negative: Failed to update status in IBMObjectCSI CR",
 			objects: []runtime.Object{
 				operatorDeploymnet,
+				operatorNamespace,
 				ibmObjectCSICRWithFinaliser,
 				addonConfigMap,
 				controllerSA,
@@ -1036,7 +1046,12 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			TestLog.Info("Testcase being executed", "testcase", testcase.testCaseName)
 
 			scheme := setupScheme()
-			client := testcase.clientFunc(testcase.objects)
+			objects := testcase.objects
+			if containsObject(objects, operatorNamespace) {
+				// the reconcile sets the ownerReference on the addon RBAC objects, so they must exist
+				objects = append(append([]runtime.Object{}, objects...), newOwnedRBACObjects(map[string]string{constants.AddonManagerModeLabel: ""})...)
+			}
+			client := testcase.clientFunc(objects)
 
 			ibmObjectCSIReconciler := &IBMObjectCSIReconciler{
 				Client:    client,
@@ -1284,10 +1299,31 @@ func TestSetNamespaceOwnerReference(t *testing.T) {
 		}
 	})
 
-	t.Run("skips missing objects without error", func(t *testing.T) {
-		c := fake.NewClientBuilder().WithRuntimeObjects(operatorNamespace).Build()
+	t.Run("returns error for missing objects until they exist and all get the owner", func(t *testing.T) {
+		all := newOwnedRBACObjects(modeEmpty)
+		present, missing := all[:3], all[3:]
+		c := fake.NewClientBuilder().WithRuntimeObjects(append([]runtime.Object{operatorNamespace}, present...)...).Build()
 		helper := common.NewControllerHelper(c, c, TestLog)
+
+		// first run: the objects that exist get the owner, the missing ones make it return an error
+		err := helper.SetNamespaceOwnerReference(TestCtx, constants.NamespaceOwnedRBACObjects)
+		if assert.Error(t, err) {
+			for _, target := range constants.NamespaceOwnedRBACObjects[3:] {
+				assert.Contains(t, err.Error(), target.Name)
+			}
+		}
+		for _, target := range constants.NamespaceOwnedRBACObjects[:3] {
+			assert.Len(t, getOwnerRefs(t, c, target), 1, target.Name)
+		}
+
+		// the missing objects get created, so the retry succeeds and every object has the owner
+		for _, obj := range missing {
+			assert.NoError(t, c.Create(TestCtx, obj.(client.Object)))
+		}
 		assert.NoError(t, helper.SetNamespaceOwnerReference(TestCtx, constants.NamespaceOwnedRBACObjects))
+		for _, target := range constants.NamespaceOwnedRBACObjects {
+			assert.Len(t, getOwnerRefs(t, c, target), 1, target.Name)
+		}
 	})
 
 	t.Run("keeps existing owner references", func(t *testing.T) {
@@ -1335,4 +1371,35 @@ func TestSetNamespaceOwnerReference(t *testing.T) {
 		helper := common.NewControllerHelper(c, c, TestLog)
 		assert.Error(t, helper.SetNamespaceOwnerReference(TestCtx, constants.NamespaceOwnedRBACObjects))
 	})
+}
+
+// The owner reference must be set even when reconciling the CSI driver resources fails afterwards.
+func TestReconcileSetsOwnerReferenceBeforeDriverResources(t *testing.T) {
+	objs := append(newOwnedRBACObjects(map[string]string{constants.AddonManagerModeLabel: ""}),
+		operatorDeploymnet, operatorNamespace, ibmObjectCSICR, addonConfigMap)
+	c := fakecreate.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+	r := &IBMObjectCSIReconciler{
+		Client:           c,
+		APIReader:        c,
+		Scheme:           setupScheme(),
+		ControllerHelper: common.NewControllerHelper(c, c, TestLog),
+	}
+
+	_, err := r.Reconcile(TestCtx, ibmObjectCSIReconcileRequest)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), CreateError)
+	}
+
+	for _, target := range constants.NamespaceOwnedRBACObjects {
+		assert.Len(t, getOwnerRefs(t, c, target), 1, target.Name)
+	}
+}
+
+func containsObject(objs []runtime.Object, target runtime.Object) bool {
+	for _, o := range objs {
+		if o == target {
+			return true
+		}
+	}
+	return false
 }

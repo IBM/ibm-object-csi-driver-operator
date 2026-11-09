@@ -315,9 +315,10 @@ func (ch *ControllerHelper) DeleteRoleBinding(roleBindings []*rbacv1.RoleBinding
 }
 
 // SetNamespaceOwnerReference adds the operator namespace as an owner of each given RBAC object that
-// has addonmanager.kubernetes.io/mode: "". Objects that are missing, have a different mode, or are
-// already owned by the namespace are skipped. All targets are attempted and the errors are joined,
-// so that one failing object does not leave the others without an owner.
+// has addonmanager.kubernetes.io/mode: "". Objects that have a different mode or are already owned by
+// the namespace are skipped. An object that is not found is returned as an error, so that the reconcile
+// is retried until all the objects exist and have the ownerReference. All targets are attempted and the
+// errors are joined, so that one failing object does not leave the others without an owner.
 // Objects are read with APIReader because the operator is only allowed to get/patch them by name.
 func (ch *ControllerHelper) SetNamespaceOwnerReference(ctx context.Context, targets []constants.RBACTarget) error {
 	logger := ch.Log.WithName("SetNamespaceOwnerReference")
@@ -365,8 +366,9 @@ func (ch *ControllerHelper) setOwnerReference(ctx context.Context, target consta
 
 	err := ch.APIReader.Get(ctx, types.NamespacedName{Name: target.Name, Namespace: target.Namespace}, obj)
 	if k8sErr.IsNotFound(err) {
-		logger.Info("Skip ownerReference: object not found")
-		return nil
+		// Return the error so that the reconcile is retried until the object exists and gets the ownerReference.
+		logger.Info("ownerReference not set: object not found yet, will retry")
+		return err
 	} else if err != nil {
 		return err
 	}
@@ -388,7 +390,7 @@ func (ch *ControllerHelper) setOwnerReference(ctx context.Context, target consta
 	if err := ch.Patch(ctx, obj, patch); err != nil {
 		return err
 	}
-	logger.Info("Set namespace ownerReference")
+	logger.Info("Setting namespace ownerReference completed")
 	return nil
 }
 
