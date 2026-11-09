@@ -57,7 +57,7 @@
 				
 				<option value="file0">github.com/IBM/ibm-object-csi-driver-operator/controllers/constants/constants.go (0.0%)</option>
 				
-				<option value="file1">github.com/IBM/ibm-object-csi-driver-operator/controllers/ibmobjectcsi_controller.go (77.0%)</option>
+				<option value="file1">github.com/IBM/ibm-object-csi-driver-operator/controllers/ibmobjectcsi_controller.go (76.9%)</option>
 				
 				<option value="file2">github.com/IBM/ibm-object-csi-driver-operator/controllers/internal/common/common.go (0.0%)</option>
 				
@@ -246,7 +246,39 @@ const (
 
         CSIAddonNodeLabelKey   = "cos.csi.ibm.io/csi-node"
         CSIAddonNodeLabelValue = "true"
+
+        // AddonManagerModeLabel is the label set by the addon deployment.yaml. RBAC objects with an
+        // empty value are not managed (or cleaned up) by the addon manager.
+        AddonManagerModeLabel = "addonmanager.kubernetes.io/mode"
+
+        KindClusterRole        = "ClusterRole"
+        KindClusterRoleBinding = "ClusterRoleBinding"
+        KindRole               = "Role"
+        KindRoleBinding        = "RoleBinding"
+
+        kubeSystemNamespace = "kube-system"
 )
+
+// RBACTarget identifies an RBAC object. Namespace is empty for cluster-scoped kinds.
+type RBACTarget struct {
+        Kind      string
+        Name      string
+        Namespace string
+}
+
+// NamespaceOwnedRBACObjects are the RBAC objects deployed with addonmanager.kubernetes.io/mode: "".
+// The operator adds the operator namespace as their owner so that they are garbage collected
+// when the namespace is deleted.
+var NamespaceOwnedRBACObjects = []RBACTarget{
+        {Kind: KindClusterRole, Name: "ibm-object-csi-operator-manager-role"},
+        {Kind: KindClusterRoleBinding, Name: "ibm-object-csi-operator-manager-rolebinding"},
+        {Kind: KindRole, Name: "leader-election-role", Namespace: CSIOperatorNamespace},
+        {Kind: KindRoleBinding, Name: "leader-election-rolebinding", Namespace: CSIOperatorNamespace},
+        {Kind: KindRole, Name: "ibm-object-csi-operator-role", Namespace: CSIOperatorNamespace},
+        {Kind: KindRoleBinding, Name: "ibm-object-csi-operator-rolebinding", Namespace: CSIOperatorNamespace},
+        {Kind: KindRole, Name: "ibm-object-csi-operator-kube-system-cm-role", Namespace: kubeSystemNamespace},
+        {Kind: KindRoleBinding, Name: "ibm-object-csi-operator-kube-system-cm-rolebinding", Namespace: kubeSystemNamespace},
+}
 
 type FinalizerOps int
 
@@ -380,6 +412,10 @@ type IBMObjectCSIReconciler struct {
 //+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=*,verbs=*
 //+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=create;get;list;watch;delete;update;patch
 //+kubebuilder:rbac:groups=config.openshift.io,resources=infrastructures,verbs=get;list
+//+kubebuilder:rbac:groups="",resourceNames=ibm-object-csi-operator,resources=namespaces,verbs=get
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resourceNames=ibm-object-csi-operator-manager-rolebinding,resources=clusterrolebindings,verbs=get;patch
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resourceNames=leader-election-role;ibm-object-csi-operator-role;ibm-object-csi-operator-kube-system-cm-role,resources=roles,verbs=get;patch
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resourceNames=leader-election-rolebinding;ibm-object-csi-operator-rolebinding;ibm-object-csi-operator-kube-system-cm-rolebinding,resources=rolebindings,verbs=get;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -390,7 +426,7 @@ type IBMObjectCSIReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.1/pkg/reconcile
-func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcile.Result, error) <span class="cov9" title="31">{
+func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcile.Result, error) <span class="cov9" title="32">{
         reqLogger := csiLog.WithValues("Request.Namespace", req.Namespace, "Request.Name", req.Name)
         r.ControllerHelper.Log = csiLog
 
@@ -400,7 +436,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
                 // Handle the update of IBMObjectCSI
                 return r.handleConfigMapReconcile(ctx, req)
         }</span>
-        <span class="cov9" title="31">reqLogger.Info("Reconciling IBMObjectCSI")
+        <span class="cov9" title="32">reqLogger.Info("Reconciling IBMObjectCSI")
 
         // Fetch the CSIDriver instance
         instance := crutils.New(&amp;objectdriverv1alpha1.IBMObjectCSI{})
@@ -415,17 +451,17 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
         }
         //setting default values for a Kubernetes Custom Resource using the Scheme's Default() method, based on the Go type definition of the Custom Resource.
         //This ensures that the CR has all the required fields with default values before further processing or reconciliation by the operator.
-        <span class="cov9" title="28">r.Scheme.Default(instance.Unwrap())
+        <span class="cov9" title="29">r.Scheme.Default(instance.Unwrap())
         if err := r.ControllerHelper.AddFinalizerIfNotPresent(
                 instance, instance.Unwrap()); err != nil </span><span class="cov6" title="9">{
                 return reconcile.Result{}, err
         }</span>
 
-        <span class="cov8" title="19">s3Provider := instance.Spec.S3Provider
-        if s3Provider == "" </span><span class="cov7" title="12">{
+        <span class="cov8" title="20">s3Provider := instance.Spec.S3Provider
+        if s3Provider == "" </span><span class="cov7" title="13">{
                 s3Provider = constants.S3ProviderIBM
         }</span>
-        <span class="cov8" title="19">r.ControllerHelper.S3Provider = s3Provider
+        <span class="cov8" title="20">r.ControllerHelper.S3Provider = s3Provider
         r.ControllerHelper.S3ProviderRegion = instance.Spec.S3ProviderRegion
 
         sccSupported, err := r.isSCCSupported()
@@ -433,7 +469,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
                 reqLogger.Error(err, "Failed to detect SCC support")
                 return reconcile.Result{}, err
         }</span>
-        <span class="cov8" title="18">reqLogger.Info("SCC support detected", "sccSupported", sccSupported)
+        <span class="cov8" title="19">reqLogger.Info("SCC support detected", "sccSupported", sccSupported)
 
         // If the deletion timestamp is set, perform cleanup operations and remove a finalizer before returning from the reconciliation process.
         if !instance.GetDeletionTimestamp().IsZero() </span><span class="cov5" title="6">{
@@ -459,7 +495,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
                 }</span>
                 <span class="cov1" title="1">return reconcile.Result{}, nil</span>
         }
-        <span class="cov7" title="12">originalStatus := *instance.Status.DeepCopy()
+        <span class="cov7" title="13">originalStatus := *instance.Status.DeepCopy()
 
         // Fetch the ConfigMap instance
         configMap := &amp;corev1.ConfigMap{}
@@ -474,7 +510,7 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
                 return reconcile.Result{}, err</span>
         }
 
-        <span class="cov7" title="11">if crUpdateRequired := checkIfupdateCRFromConfigMapRequired(instance.Unwrap(), configMap); crUpdateRequired </span><span class="cov1" title="1">{
+        <span class="cov7" title="12">if crUpdateRequired := checkIfupdateCRFromConfigMapRequired(instance.Unwrap(), configMap); crUpdateRequired </span><span class="cov1" title="1">{
                 // Update the instance in the Kubernetes API server
                 reqLogger.Info("IBMObjectCSI spec is not in sync with configmap data. Updating IBMObjectCSI CR...")
                 err = r.Update(ctx, instance.Unwrap())
@@ -486,8 +522,15 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
                 return reconcile.Result{}, nil</span>
         }
 
+        // Make the operator namespace the owner of the addon-manager "mode: \"\"" RBAC objects,
+        // so that they get garbage collected once the namespace is cleaned up.
+        // This is independent of the CSI driver resources, so do it before reconciling them.
+        <span class="cov7" title="11">if err := r.ControllerHelper.SetNamespaceOwnerReference(ctx, constants.NamespaceOwnedRBACObjects); err != nil </span><span class="cov0" title="0">{
+                return reconcile.Result{}, err
+        }</span>
+
         // create the resources if not exist
-        <span class="cov6" title="10">for _, rec := range []reconciler{
+        <span class="cov7" title="11">for _, rec := range []reconciler{
                 r.reconcileCSIDriver,
                 r.reconcileServiceAccount,
                 func(instance *crutils.IBMObjectCSI) error </span><span class="cov5" title="5">{
@@ -499,8 +542,8 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
                 func(instance *crutils.IBMObjectCSI) error <span class="cov5" title="5">{
                         return r.cleanupControllerSCC(instance, sccSupported)
                 }</span>,
-        } <span class="cov10" title="33">{
-                if err = rec(instance); err != nil </span><span class="cov5" title="5">{
+        } <span class="cov10" title="34">{
+                if err = rec(instance); err != nil </span><span class="cov5" title="6">{
                         return reconcile.Result{}, err
                 }</span>
         }
@@ -631,7 +674,7 @@ func (r *IBMObjectCSIReconciler) restartControllerPodfromDeployment(logger logr.
         return r.Delete(context.TODO(), controllerPod)
 }</span>
 
-func (r *IBMObjectCSIReconciler) getControllerPod(controllerDeployment *appsv1.Deployment) (*corev1.Pod, error) <span class="cov6" title="7">{
+func (r *IBMObjectCSIReconciler) getControllerPod(controllerDeployment *appsv1.Deployment) (*corev1.Pod, error) <span class="cov5" title="7">{
         var listOptions = &amp;client.ListOptions{Namespace: controllerDeployment.Namespace}
         podsList := &amp;corev1.PodList{}
         err := r.APIReader.List(context.TODO(), podsList, listOptions)
@@ -742,12 +785,12 @@ func (r *IBMObjectCSIReconciler) reconcileServiceAccount(instance *crutils.IBMOb
                                 return err
                         }</span>
 
-                        <span class="cov6" title="7">nodeDaemonSet, err := r.getNodeDaemonSet(instance)
+                        <span class="cov5" title="7">nodeDaemonSet, err := r.getNodeDaemonSet(instance)
                         if err != nil </span><span class="cov0" title="0">{
                                 return err
                         }</span>
 
-                        <span class="cov6" title="7">if controllerServiceAccountName == sa.Name </span><span class="cov4" title="4">{
+                        <span class="cov5" title="7">if controllerServiceAccountName == sa.Name </span><span class="cov4" title="4">{
                                 rErr := r.restartControllerPod(logger, instance)
                                 if rErr != nil </span><span class="cov1" title="1">{
                                         return rErr
@@ -804,20 +847,20 @@ func (r *IBMObjectCSIReconciler) restartControllerPod(logger logr.Logger, instan
         <span class="cov3" title="3">return r.restartControllerPodfromDeployment(logger, controllerDeployment, controllerPod)</span>
 }
 
-func (r *IBMObjectCSIReconciler) reconcileCSIDriver(instance *crutils.IBMObjectCSI) error <span class="cov6" title="10">{
+func (r *IBMObjectCSIReconciler) reconcileCSIDriver(instance *crutils.IBMObjectCSI) error <span class="cov7" title="11">{
         logger := csiLog.WithValues("Resource Type", "CSIDriver")
 
         cd := instance.GenerateCSIDriver()
         found := &amp;storagev1.CSIDriver{}
         err := r.APIReader.Get(context.TODO(), types.NamespacedName{Name: cd.Name, Namespace: ""}, found)
-        if err != nil </span><span class="cov6" title="9">{
-                if errors.IsNotFound(err) </span><span class="cov6" title="8">{
+        if err != nil </span><span class="cov6" title="10">{
+                if errors.IsNotFound(err) </span><span class="cov6" title="9">{
                         logger.Info("Creating a new CSIDriver", "Name", cd.GetName())
                         err = r.Create(context.TODO(), cd)
-                        if err != nil </span><span class="cov1" title="1">{
+                        if err != nil </span><span class="cov2" title="2">{
                                 return err
                         }</span>
-                        <span class="cov6" title="7">logger.Info("CSIDriver created", "Namespace", cd.GetNamespace(), "Name", cd.GetName())
+                        <span class="cov5" title="7">logger.Info("CSIDriver created", "Namespace", cd.GetNamespace(), "Name", cd.GetName())
                         return nil</span>
                 }
                 <span class="cov1" title="1">logger.Error(err, "Failed to get CSIDriver", "Name", cd.GetName())
@@ -967,11 +1010,11 @@ func (r *IBMObjectCSIReconciler) cleanupControllerSCC(instance *crutils.IBMObjec
         if sccSupported </span><span class="cov1" title="1">{
                 return nil
         }</span>
-        <span class="cov6" title="7">if err := r.ControllerHelper.DeleteClusterRoleBindings(
+        <span class="cov5" title="7">if err := r.ControllerHelper.DeleteClusterRoleBindings(
                 []*rbacv1.ClusterRoleBinding{instance.GenerateSCCForControllerClusterRoleBinding()}); err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
-        <span class="cov6" title="7">return r.ControllerHelper.DeleteClusterRoles(
+        <span class="cov5" title="7">return r.ControllerHelper.DeleteClusterRoles(
                 []*rbacv1.ClusterRole{instance.GenerateSCCForControllerClusterRole()})</span>
 }
 
@@ -979,7 +1022,7 @@ func (r *IBMObjectCSIReconciler) cleanupControllerSCC(instance *crutils.IBMObjec
 // Returns true on ROKS/OpenShift clusters where SCC is available, false on IKS.
 // Only a "no match" error means the API is absent (IKS). Any other error (for example an
 // API server timeout) is returned, so the caller does not decide the cluster type by guessing.
-func (r *IBMObjectCSIReconciler) isSCCSupported() (bool, error) <span class="cov8" title="22">{
+func (r *IBMObjectCSIReconciler) isSCCSupported() (bool, error) <span class="cov9" title="23">{
         _, err := r.Client.RESTMapper().ResourcesFor(schema.GroupVersionResource{
                 Group:    constants.SecurityOpenshiftAPIGroup,
                 Resource: constants.SecurityContextConstraintsResource,
@@ -987,13 +1030,13 @@ func (r *IBMObjectCSIReconciler) isSCCSupported() (bool, error) <span class="cov
         if err == nil </span><span class="cov3" title="3">{
                 return true, nil
         }</span>
-        <span class="cov8" title="19">if meta.IsNoMatchError(err) </span><span class="cov8" title="17">{
+        <span class="cov8" title="20">if meta.IsNoMatchError(err) </span><span class="cov8" title="18">{
                 return false, nil
         }</span>
         <span class="cov2" title="2">return false, err</span>
 }
 
-func checkIfupdateCRFromConfigMapRequired(instance *objectdriverv1alpha1.IBMObjectCSI, cm *corev1.ConfigMap) bool <span class="cov7" title="11">{
+func checkIfupdateCRFromConfigMapRequired(instance *objectdriverv1alpha1.IBMObjectCSI, cm *corev1.ConfigMap) bool <span class="cov7" title="12">{
         crUpdateRequired := false
 
         if val, ok := cm.Data[constants.NodeServerCPURequestCMKey]; ok </span><span class="cov0" title="0">{
@@ -1002,39 +1045,39 @@ func checkIfupdateCRFromConfigMapRequired(instance *objectdriverv1alpha1.IBMObje
                         crUpdateRequired = true
                 }</span>
         }
-        <span class="cov7" title="11">if val, ok := cm.Data[constants.NodeServerMemoryRequestCMKey]; ok </span><span class="cov0" title="0">{
+        <span class="cov7" title="12">if val, ok := cm.Data[constants.NodeServerMemoryRequestCMKey]; ok </span><span class="cov0" title="0">{
                 if instance.Spec.Node.Resources.Requests.Memory != val </span><span class="cov0" title="0">{
                         instance.Spec.Node.Resources.Requests.Memory = val
                         crUpdateRequired = true
                 }</span>
         }
-        <span class="cov7" title="11">if val, ok := cm.Data[constants.NodeServerCPULimitCMKey]; ok </span><span class="cov0" title="0">{
+        <span class="cov7" title="12">if val, ok := cm.Data[constants.NodeServerCPULimitCMKey]; ok </span><span class="cov0" title="0">{
                 if instance.Spec.Node.Resources.Limits.CPU != val </span><span class="cov0" title="0">{
                         instance.Spec.Node.Resources.Limits.CPU = val
                         crUpdateRequired = true
                 }</span>
         }
-        <span class="cov7" title="11">if val, ok := cm.Data[constants.NodeServerMemoryLimitCMKey]; ok </span><span class="cov0" title="0">{
+        <span class="cov7" title="12">if val, ok := cm.Data[constants.NodeServerMemoryLimitCMKey]; ok </span><span class="cov0" title="0">{
                 if instance.Spec.Node.Resources.Limits.Memory != val </span><span class="cov0" title="0">{
                         instance.Spec.Node.Resources.Limits.Memory = val
                         crUpdateRequired = true
                 }</span>
         }
 
-        <span class="cov7" title="11">if val, ok := cm.Data[constants.MaxVolumesPerNodeCMKey]; ok </span><span class="cov7" title="11">{
+        <span class="cov7" title="12">if val, ok := cm.Data[constants.MaxVolumesPerNodeCMKey]; ok </span><span class="cov7" title="12">{
                 if instance.Spec.Node.MaxVolumesPerNode != val </span><span class="cov1" title="1">{
                         instance.Spec.Node.MaxVolumesPerNode = val
                         crUpdateRequired = true
                 }</span>
         }
 
-        <span class="cov7" title="11">if val, ok := cm.Data[constants.RestrictNodeServerSchedulingCMKey]; ok </span><span class="cov7" title="11">{
+        <span class="cov7" title="12">if val, ok := cm.Data[constants.RestrictNodeServerSchedulingCMKey]; ok </span><span class="cov7" title="12">{
                 if instance.Spec.Node.RestrictNodeServerScheduling != val </span><span class="cov1" title="1">{
                         instance.Spec.Node.RestrictNodeServerScheduling = val
                         crUpdateRequired = true
                 }</span>
         }
-        <span class="cov7" title="11">return crUpdateRequired</span>
+        <span class="cov7" title="12">return crUpdateRequired</span>
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -3046,7 +3089,7 @@ var (
 
 var testNodeServerPodLogs = `E0319 05:32:00.429871       1 nodeserver.go:245] NodeGetVolumeStats: error occurred while getting volume stats map[Error:transport endpoint is not connected VolumeId:test-pv-1]`
 
-func setupScheme() *runtime.Scheme <span class="cov10" title="49">{
+func setupScheme() *runtime.Scheme <span class="cov10" title="50">{
         s := scheme.Scheme
         _ = v1alpha1.AddToScheme(s) // #nosec G104: Skip error
         return s
@@ -3383,6 +3426,91 @@ func (ch *ControllerHelper) DeleteRoleBinding(roleBindings []*rbacv1.RoleBinding
                 }</span>
         }
         <span class="cov0" title="0">return nil</span>
+}
+
+// SetNamespaceOwnerReference adds the operator namespace as an owner of each given RBAC object that
+// has addonmanager.kubernetes.io/mode: "". Objects that have a different mode or are already owned by
+// the namespace are skipped. An object that is not found is returned as an error, so that the reconcile
+// is retried until all the objects exist and have the ownerReference. All targets are attempted and the
+// errors are joined, so that one failing object does not leave the others without an owner.
+// Objects are read with APIReader because the operator is only allowed to get/patch them by name.
+func (ch *ControllerHelper) SetNamespaceOwnerReference(ctx context.Context, targets []constants.RBACTarget) error <span class="cov0" title="0">{
+        logger := ch.Log.WithName("SetNamespaceOwnerReference")
+
+        ns := &amp;corev1.Namespace{}
+        if err := ch.APIReader.Get(ctx, types.NamespacedName{Name: constants.CSIOperatorNamespace}, ns); err != nil </span><span class="cov0" title="0">{
+                logger.Error(err, "Failed to get Namespace", "Name", constants.CSIOperatorNamespace)
+                return err
+        }</span>
+        <span class="cov0" title="0">ownerRef := metav1.OwnerReference{
+                APIVersion:         "v1",
+                Kind:               "Namespace",
+                Name:               ns.Name,
+                UID:                ns.UID,
+                BlockOwnerDeletion: util.False(),
+                Controller:         util.False(),
+        }
+
+        var errs []error
+        for _, target := range targets </span><span class="cov0" title="0">{
+                if err := ch.setOwnerReference(ctx, target, ownerRef); err != nil </span><span class="cov0" title="0">{
+                        logger.Error(err, "Failed to set ownerReference", "Kind", target.Kind, "Name", target.Name, "Namespace", target.Namespace)
+                        errs = append(errs, fmt.Errorf("%s %s/%s: %w", target.Kind, target.Namespace, target.Name, err))
+                }</span>
+        }
+        <span class="cov0" title="0">return errors.Join(errs...)</span>
+}
+
+func (ch *ControllerHelper) setOwnerReference(ctx context.Context, target constants.RBACTarget, ownerRef metav1.OwnerReference) error <span class="cov0" title="0">{
+        logger := ch.Log.WithName("setOwnerReference").WithValues("Kind", target.Kind, "Name", target.Name, "Namespace", target.Namespace)
+
+        var obj client.Object
+        switch target.Kind </span>{
+        case constants.KindClusterRole:<span class="cov0" title="0">
+                obj = &amp;rbacv1.ClusterRole{}</span>
+        case constants.KindClusterRoleBinding:<span class="cov0" title="0">
+                obj = &amp;rbacv1.ClusterRoleBinding{}</span>
+        case constants.KindRole:<span class="cov0" title="0">
+                obj = &amp;rbacv1.Role{}</span>
+        case constants.KindRoleBinding:<span class="cov0" title="0">
+                obj = &amp;rbacv1.RoleBinding{}</span>
+        default:<span class="cov0" title="0">
+                return fmt.Errorf("unsupported kind %q", target.Kind)</span>
+        }
+
+        <span class="cov0" title="0">err := ch.APIReader.Get(ctx, types.NamespacedName{Name: target.Name, Namespace: target.Namespace}, obj)
+        if k8sErr.IsNotFound(err) </span><span class="cov0" title="0">{
+                // Return the error so that the reconcile is retried until the object exists and gets the ownerReference.
+                logger.Info("ownerReference not set: object not found yet, will retry")
+                return err
+        }</span> else<span class="cov0" title="0"> if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">mode, ok := obj.GetLabels()[constants.AddonManagerModeLabel]
+        if !ok </span><span class="cov0" title="0">{
+                logger.Info("Skip ownerReference: addon manager mode label is missing")
+                return nil
+        }</span>
+        <span class="cov0" title="0">if mode != "" </span><span class="cov0" title="0">{
+                logger.Info("Skip ownerReference: addon manager mode label is not empty", "mode", mode)
+                return nil
+        }</span>
+
+        <span class="cov0" title="0">for _, ref := range obj.GetOwnerReferences() </span><span class="cov0" title="0">{
+                if ref.Kind == ownerRef.Kind &amp;&amp; ref.UID == ownerRef.UID </span><span class="cov0" title="0">{
+                        logger.Info("Skip ownerReference: already set")
+                        return nil
+                }</span>
+        }
+
+        <span class="cov0" title="0">patch := client.MergeFrom(obj.DeepCopyObject().(client.Object))
+        obj.SetOwnerReferences(append(obj.GetOwnerReferences(), ownerRef))
+        if err := ch.Patch(ctx, obj, patch); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov0" title="0">logger.Info("Setting namespace ownerReference completed")
+        return nil</span>
 }
 
 // AddFinalizerIfNotPresent ...
