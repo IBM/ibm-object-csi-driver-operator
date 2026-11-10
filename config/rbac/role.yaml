@@ -171,6 +171,7 @@ rules:
   resources:
   - clusterrolebindings
   verbs:
+  - delete
   - get
   - patch
 - apiGroups:
@@ -191,6 +192,7 @@ rules:
   resources:
   - rolebindings
   verbs:
+  - delete
   - get
   - patch
 - apiGroups:
@@ -202,6 +204,7 @@ rules:
   resources:
   - roles
   verbs:
+  - delete
   - get
   - patch
 - apiGroups:
