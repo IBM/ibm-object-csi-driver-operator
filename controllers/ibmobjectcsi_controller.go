@@ -91,9 +91,9 @@ type IBMObjectCSIReconciler struct {
 //+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=create;get;list;watch;delete;update;patch
 //+kubebuilder:rbac:groups=config.openshift.io,resources=infrastructures,verbs=get;list
 //+kubebuilder:rbac:groups="",resourceNames=ibm-object-csi-operator,resources=namespaces,verbs=get
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resourceNames=ibm-object-csi-operator-manager-rolebinding,resources=clusterrolebindings,verbs=get;patch
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resourceNames=leader-election-role;ibm-object-csi-operator-role;ibm-object-csi-operator-kube-system-cm-role,resources=roles,verbs=get;patch
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resourceNames=leader-election-rolebinding;ibm-object-csi-operator-rolebinding;ibm-object-csi-operator-kube-system-cm-rolebinding,resources=rolebindings,verbs=get;patch
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resourceNames=ibm-object-csi-operator-manager-rolebinding,resources=clusterrolebindings,verbs=get;patch;delete
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resourceNames=leader-election-role;ibm-object-csi-operator-role;ibm-object-csi-operator-kube-system-cm-role,resources=roles,verbs=get;patch;delete
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resourceNames=leader-election-rolebinding;ibm-object-csi-operator-rolebinding;ibm-object-csi-operator-kube-system-cm-rolebinding,resources=rolebindings,verbs=get;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
