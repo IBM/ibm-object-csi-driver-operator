@@ -639,7 +639,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			expectedErr:  nil,
 		},
 		{
-			testCaseName: "Positive: Successfully removed finaliser from IBMObjectCSI CR",
+			testCaseName: "Positive: Cleanup DaemonSet created and teardown requeued on first pass",
 			objects: []runtime.Object{
 				operatorDeploymnet,
 				ibmObjectCSICRWithDeletionTS,
@@ -647,7 +647,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 			},
-			expectedResp: reconcile.Result{},
+			expectedResp: reconcile.Result{RequeueAfter: 5 * time.Second},
 			expectedErr:  nil,
 		},
 		{
