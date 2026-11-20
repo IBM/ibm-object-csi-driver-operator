@@ -37,6 +37,7 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -90,7 +91,7 @@ type IBMObjectCSIReconciler struct {
 //+kubebuilder:rbac:groups=objectdriver.csi.ibm.com,resources=*,verbs=*
 //+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=create;get;list;watch;delete;update;patch
 //+kubebuilder:rbac:groups=config.openshift.io,resources=infrastructures,verbs=get;list
-//+kubebuilder:rbac:groups="",resourceNames=ibm-object-csi-operator,resources=namespaces,verbs=get
+//+kubebuilder:rbac:groups="",resourceNames=ibm-object-csi-operator,resources=namespaces,verbs=get;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resourceNames=ibm-object-csi-operator-manager-rolebinding,resources=clusterrolebindings,verbs=get;patch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resourceNames=leader-election-role;ibm-object-csi-operator-role;ibm-object-csi-operator-kube-system-cm-role,resources=roles,verbs=get;patch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resourceNames=leader-election-rolebinding;ibm-object-csi-operator-rolebinding;ibm-object-csi-operator-kube-system-cm-rolebinding,resources=rolebindings,verbs=get;patch;delete
@@ -151,6 +152,8 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	// If the deletion timestamp is set, perform cleanup operations and remove a finalizer before returning from the reconciliation process.
 	if !instance.GetDeletionTimestamp().IsZero() {
+		reqLogger.Info("IBMObjectCSI deletion timestamp is set. Starting teardown...")
+
 		if err := r.deleteClusterRoleBindings(instance, sccSupported); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -167,10 +170,36 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return reconcile.Result{}, err
 		}
 
+		// Step 5: Deploy the cleanup DaemonSet and wait for it to run on all worker nodes.
+		cleanupDone, err := r.reconcileWorkerNodeCleanup(ctx, instance)
+		if err != nil {
+			reqLogger.Error(err, "Failed during worker node cleanup reconciliation")
+			return reconcile.Result{}, err
+		}
+		if !cleanupDone {
+			reqLogger.Info("Worker node cleanup in progress on nodes. Requeueing...")
+			return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
+		}
+		reqLogger.Info("Worker node cleanup completed successfully on all nodes")
+
+		// Step 6: Remove the CR finalizer.
 		if err := r.ControllerHelper.RemoveFinalizer(
 			instance, instance.Unwrap()); err != nil {
 			return reconcile.Result{}, err
 		}
+
+		// Step 7: Delete the operator namespace. The manager cache does not watch Namespaces,
+		// so the lookup goes through APIReader.
+		reqLogger.Info("Initiating operator namespace deletion", "namespace", instance.Namespace)
+		ns := &corev1.Namespace{}
+		if err := r.APIReader.Get(ctx, types.NamespacedName{Name: instance.Namespace}, ns); err == nil {
+			if delErr := r.Delete(ctx, ns); delErr != nil && !errors.IsNotFound(delErr) {
+				reqLogger.Error(delErr, "Failed to delete operator namespace", "namespace", instance.Namespace)
+				return reconcile.Result{}, delErr
+			}
+		}
+
+		reqLogger.Info("Teardown completed successfully")
 		return reconcile.Result{}, nil
 	}
 	originalStatus := *instance.Status.DeepCopy()
@@ -797,4 +826,138 @@ func configMapPredicate() predicate.Predicate {
 		},
 	}
 	return triggerReconcile
+}
+
+// reconcileWorkerNodeCleanup manages the lifecycle of the Cleanup DaemonSet during teardown:
+// 1. Creates the Cleanup DaemonSet if not present.
+// 2. Checks if cleanup pods finished on all worker nodes (NumberReady == DesiredNumberScheduled).
+// 3. Deletes the Cleanup DaemonSet once all nodes are clean.
+func (r *IBMObjectCSIReconciler) reconcileWorkerNodeCleanup(ctx context.Context, instance *crutils.IBMObjectCSI) (bool, error) {
+	logger := csiLog.WithName("reconcileWorkerNodeCleanup")
+
+	foundDS := &appsv1.DaemonSet{}
+	err := r.Get(ctx, types.NamespacedName{
+		Name:      constants.CSICleanupDaemonSet,
+		Namespace: instance.Namespace,
+	}, foundDS)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			logger.Info("Cleanup DaemonSet not found. Creating Cleanup DaemonSet...")
+			cleanupDS := r.generateCleanupDaemonSet(instance, constants.CSICleanupDaemonSet)
+			if createErr := r.Create(ctx, cleanupDS); createErr != nil {
+				logger.Error(createErr, "Failed to create Cleanup DaemonSet")
+				return false, createErr
+			}
+			logger.Info("Cleanup DaemonSet created successfully")
+			return false, nil // Requeue so pods have time to execute
+		}
+		return false, err
+	}
+
+	// Check if all scheduled worker nodes have finished cleanup (pause container is running/ready)
+	if foundDS.Status.DesiredNumberScheduled > 0 &&
+		foundDS.Status.NumberReady == foundDS.Status.DesiredNumberScheduled {
+		logger.Info("All worker nodes cleaned up successfully. Deleting Cleanup DaemonSet...")
+
+		if delErr := r.Delete(ctx, foundDS); delErr != nil && !errors.IsNotFound(delErr) {
+			logger.Error(delErr, "Failed to delete Cleanup DaemonSet")
+			return false, delErr
+		}
+		logger.Info("Cleanup DaemonSet deleted successfully")
+		return true, nil
+	}
+
+	logger.Info("Waiting for worker node cleanup pods to finish",
+		"Desired", foundDS.Status.DesiredNumberScheduled,
+		"Ready", foundDS.Status.NumberReady)
+	return false, nil
+}
+
+// generateCleanupDaemonSet builds the Cleanup DaemonSet with initContainer + pause container pattern
+func (r *IBMObjectCSIReconciler) generateCleanupDaemonSet(instance *crutils.IBMObjectCSI, name string) *appsv1.DaemonSet {
+	privileged := true
+	runAsUserZero := int64(0)
+
+	// Build cleanup image string: e.g. icr.io/ibm/ibm-object-csi-driver-cleanup:v1.0.33
+	cleanupRepo := strings.Replace(instance.Spec.Node.Repository, "ibm-object-csi-driver", "ibm-object-csi-driver-cleanup", 1)
+	cleanupImage := fmt.Sprintf("%s:%s", cleanupRepo, instance.Spec.Node.Tag)
+
+	// Labels must include the CommonCSIResourceLabels: the manager cache only watches objects
+	// carrying the part-of label, so without it the DaemonSet is invisible to r.Get.
+	labels := map[string]string{
+		"app.kubernetes.io/name":      constants.CSIDriverName,
+		"app.kubernetes.io/component": constants.CSICleanup,
+	}
+	for k, v := range constants.CommonCSIResourceLabels {
+		labels[k] = v
+	}
+
+	return &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: instance.Namespace,
+			Labels:    labels,
+		},
+		Spec: appsv1.DaemonSetSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app.kubernetes.io/component": constants.CSICleanup,
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: labels,
+				},
+				Spec: corev1.PodSpec{
+					HostNetwork: true,
+					HostPID:     true,
+					Tolerations: []corev1.Toleration{
+						{Operator: corev1.TolerationOpExists},
+					},
+					Affinity: instance.Spec.Node.Affinity,
+					InitContainers: []corev1.Container{
+						{
+							Name:            "object-csi-cleanup",
+							Image:           cleanupImage,
+							ImagePullPolicy: corev1.PullAlways,
+							Command: []string{
+								"/home/cos-mounters/cos-csi-cleanup.sh",
+							},
+							SecurityContext: &corev1.SecurityContext{
+								Privileged: &privileged,
+								RunAsUser:  &runAsUserZero,
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "host-root",
+									MountPath: "/host",
+								},
+							},
+						},
+					},
+					Containers: []corev1.Container{
+						{
+							Name:            "pause",
+							Image:           "icr.io/armada-master/pause:3.10.2",
+							ImagePullPolicy: corev1.PullIfNotPresent,
+						},
+					},
+					RestartPolicy:                 corev1.RestartPolicyAlways,
+					TerminationGracePeriodSeconds: &[]int64{10}[0],
+					PriorityClassName:             constants.CSINodePriorityClassName,
+					Volumes: []corev1.Volume{
+						{
+							Name: "host-root",
+							VolumeSource: corev1.VolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: "/",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 }

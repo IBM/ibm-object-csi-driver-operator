@@ -67,6 +67,8 @@ const (
 
 	CSIController                         = "controller"
 	CSINode                               = "node"
+	CSICleanup                            = "cleanup"
+	CSICleanupDaemonSet                   = "ibm-object-csi-cleanup"
 	CSIControllerServiceAccount           = "controller-sa"
 	CSINodeServiceAccount                 = "node-sa"
 	ExternalProvisionerClusterRole        = "external-provisioner-clusterrole"
