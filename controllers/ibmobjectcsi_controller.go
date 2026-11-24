@@ -910,12 +910,12 @@ func (r *IBMObjectCSIReconciler) generateCleanupDaemonSet(instance *crutils.IBMO
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					HostNetwork: true,
-					HostPID:     true,
+					ServiceAccountName: constants.GetResourceName(constants.CSINodeServiceAccount),
+					HostNetwork:        true,
+					HostPID:            true,
 					Tolerations: []corev1.Toleration{
 						{Operator: corev1.TolerationOpExists},
 					},
-					Affinity: instance.Spec.Node.Affinity,
 					InitContainers: []corev1.Container{
 						{
 							Name:            "object-csi-cleanup",
