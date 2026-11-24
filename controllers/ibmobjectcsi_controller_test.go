@@ -216,6 +216,19 @@ var (
 		},
 	}
 
+	// cleanupDaemonSetReady is a cleanup DaemonSet whose pods are ready on every node,
+	// so the teardown finishes the cleanup step and continues to the deletes.
+	cleanupDaemonSetReady = &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.CSICleanupDaemonSet,
+			Namespace: TestNamespace,
+		},
+		Status: appsv1.DaemonSetStatus{
+			DesiredNumberScheduled: 1,
+			NumberReady:            1,
+		},
+	}
+
 	controllerDeployment = &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        constants.GetResourceName(constants.CSIController),
@@ -639,7 +652,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			expectedErr:  nil,
 		},
 		{
-			testCaseName: "Positive: Successfully removed finaliser from IBMObjectCSI CR",
+			testCaseName: "Positive: Cleanup DaemonSet created and teardown requeued on first pass",
 			objects: []runtime.Object{
 				operatorDeploymnet,
 				ibmObjectCSICRWithDeletionTS,
@@ -647,7 +660,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 			},
-			expectedResp: reconcile.Result{},
+			expectedResp: reconcile.Result{RequeueAfter: 5 * time.Second},
 			expectedErr:  nil,
 		},
 		{
@@ -954,6 +967,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			objects: []runtime.Object{
 				operatorDeploymnet,
 				ibmObjectCSICRWithDeletionTS,
+				cleanupDaemonSetReady,
 				externalProvisionerCRB,
 				controllerSCCCRB,
 				nodeSCCCRB,
@@ -969,6 +983,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			objects: []runtime.Object{
 				operatorDeploymnet,
 				ibmObjectCSICRWithDeletionTS,
+				cleanupDaemonSetReady,
 				externalProvisionerCR,
 				controllerSCCCR,
 				nodeSCCCR,
@@ -984,6 +999,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			objects: []runtime.Object{
 				operatorDeploymnet,
 				ibmObjectCSICRWithDeletionTS,
+				cleanupDaemonSetReady,
 				rCloneSC,
 				rCloneRetainSC,
 				s3fsSC,
@@ -1000,6 +1016,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 			objects: []runtime.Object{
 				operatorDeploymnet,
 				ibmObjectCSICRWithDeletionTS,
+				cleanupDaemonSetReady,
 				csiDriver,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
@@ -1016,6 +1033,7 @@ func TestIBMObjectCSIReconcile(t *testing.T) {
 					ObjectMeta: ibmObjectCSICRWithDeletionTS.ObjectMeta,
 					Spec:       ibmObjectCSICR.Spec,
 				},
+				cleanupDaemonSetReady,
 			},
 			clientFunc: func(objs []runtime.Object) client.WithWatch {
 				return fakegetcsidriver.NewClientBuilder().WithRuntimeObjects(objs...).Build()
