@@ -154,6 +154,19 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	if !instance.GetDeletionTimestamp().IsZero() {
 		reqLogger.Info("IBMObjectCSI deletion timestamp is set. Starting teardown...")
 
+		// Step 1: Deploy cleanup DaemonSet FIRST (while SCC & SA bindings are active)
+		cleanupDone, err := r.reconcileWorkerNodeCleanup(ctx, instance)
+		if err != nil {
+			reqLogger.Error(err, "Failed during worker node cleanup reconciliation")
+			return reconcile.Result{}, err
+		}
+		if !cleanupDone {
+			reqLogger.Info("Worker node cleanup in progress on nodes. Requeueing...")
+			return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
+		}
+		reqLogger.Info("Worker node cleanup completed successfully on all nodes")
+
+		// Step 2: Delete ClusterRoleBindings, ClusterRoles, StorageClasses, and CSIDriver
 		if err := r.deleteClusterRoleBindings(instance, sccSupported); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -170,25 +183,13 @@ func (r *IBMObjectCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return reconcile.Result{}, err
 		}
 
-		// Step 5: Deploy the cleanup DaemonSet and wait for it to run on all worker nodes.
-		cleanupDone, err := r.reconcileWorkerNodeCleanup(ctx, instance)
-		if err != nil {
-			reqLogger.Error(err, "Failed during worker node cleanup reconciliation")
-			return reconcile.Result{}, err
-		}
-		if !cleanupDone {
-			reqLogger.Info("Worker node cleanup in progress on nodes. Requeueing...")
-			return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
-		}
-		reqLogger.Info("Worker node cleanup completed successfully on all nodes")
-
-		// Step 6: Remove the CR finalizer.
+		// Step 3: Remove the CR finalizer.
 		if err := r.ControllerHelper.RemoveFinalizer(
 			instance, instance.Unwrap()); err != nil {
 			return reconcile.Result{}, err
 		}
 
-		// Step 7: Delete the operator namespace. The manager cache does not watch Namespaces,
+		// Step 4: Delete the operator namespace. The manager cache does not watch Namespaces,
 		// so the lookup goes through APIReader.
 		reqLogger.Info("Initiating operator namespace deletion", "namespace", instance.Namespace)
 		ns := &corev1.Namespace{}
